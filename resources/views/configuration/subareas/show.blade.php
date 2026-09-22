@@ -9,9 +9,11 @@
                     <i class="fas fa-map me-2"></i>تفاصيل العزلة: {{ $subArea->name }}
                 </h5>
                 <div class="d-flex gap-2">
+                    @can('sub-areas.edit')
                     <a href="{{ route('sub-areas.edit', $subArea->id) }}" class="btn btn-light btn-sm">
                         <i class="fas fa-edit me-1"></i>تعديل
                     </a>
+                    @endcan
                     <a href="{{ route('sub-areas.index') }}" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
                     </a>
@@ -158,15 +160,19 @@
                         </div>
                         <div class="card-body">
                             <div class="d-flex gap-2 flex-wrap">
+                                @can('sub-areas.edit')
                                 <a href="{{ route('sub-areas.edit', $subArea->id) }}" class="btn btn-primary btn-sm">
                                     <i class="fas fa-edit me-1"></i>تعديل البيانات
                                 </a>
+                                @endcan
                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
                                     <i class="fas fa-trash me-1"></i>حذف العزلة
                                 </button>
+                                @can('villages.create')
                                 <a href="{{ route('villages.create') }}?sub_area_id={{ $subArea->id }}" class="btn btn-success btn-sm">
                                     <i class="fas fa-plus me-1"></i>إضافة قرية جديدة
                                 </a>
+                                @endcan
                                 <a href="{{ route('sub-areas.index') }}" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-list me-1"></i>عرض جميع العزل
                                 </a>
@@ -199,11 +205,13 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                @can('sub-areas.delete')
                 <form action="{{ route('sub-areas.destroy', $subArea->id) }}" method="POST" class="d-inline" onsubmit="return confirmAction(this, 'هل أنت متأكد من عملية الحذف؟')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-danger">حذف</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

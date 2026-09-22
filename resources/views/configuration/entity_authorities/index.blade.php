@@ -19,7 +19,9 @@
             </div>
 
             <div class="card-body px-4 pb-5">
+                @can('entity-authorities.view')
                 <form action="{{ route('entity-authorities.update') }}" method="POST">
+                @endcan
                     @csrf
                     
                     <div class="row mb-5">

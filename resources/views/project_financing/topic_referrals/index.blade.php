@@ -53,9 +53,11 @@
                                             <a href="{{ route('referrals.show', $topic->id) }}" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-eye me-1"></i>عرض التفاصيل
                                             </a>
+                                            @can('referrals.export')
                                             <a href="{{ route('referrals.export', $topic->id) }}" class="btn btn-sm btn-success">
                                                 <i class="fas fa-file-excel me-1"></i>تصدير
                                             </a>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @empty
@@ -79,7 +81,9 @@
 <div class="modal fade" id="createTopicModal" tabindex="-1" aria-labelledby="createTopicModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
+            @can('referrals.create')
             <form action="{{ route('referrals.store') }}" method="POST" enctype="multipart/form-data">
+            @endcan
                 @csrf
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="createTopicModalLabel">إنشاء إحالة موضوع جديد</h5>

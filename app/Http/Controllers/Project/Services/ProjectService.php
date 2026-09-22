@@ -30,6 +30,7 @@ use App\Models\Subdomain;
 use App\Models\SubFinancingForm;
 use App\Models\Task;
 use App\Models\Unit;
+use App\Models\User;
 use App\Scopes\DomainScope;
 use App\Services\ApprovalService;
 use App\Services\EntityHierarchyService;
@@ -125,6 +126,9 @@ class ProjectService
             'documents',
             'activityHistory.user',
             'projectEntities',
+            'authority',
+            'creatorEntity',
+            'internalEntity',
         ];
     }
 
@@ -480,17 +484,144 @@ class ProjectService
     }
 
     /**
-     * Get list of projects with full filtering and scoping applied.
-     * Scope is applied to all users (including admins) based on administrative and geographic scopes.
+     * Centralized Query: Apply accessibility rules to any projects query.
+     * Integrates Admin full-access, external authority isolation, and internal ministry scope/workflow access.
      */
-    public function authorizeProjectAccess(Project $project)
+    public function applyAccessibleProjectsQuery(Builder $query, ?User $user = null, ?Request $request = null): Builder
     {
-        $isAllowed = $this->getProjects(request(), null, null, [], true, true)
-            ->where('projects.id', $project->id)
-            ->exists();
+        $user = $user ?? auth()->user();
+        if (! $user) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        // 1. Admin / Full Access
+        if ($user->isAdmin() || ($user->role && $user->role->full_access)) {
+            return $query;
+        }
+
+        // 2. External Authority User (Strict Authority Isolation)
+        if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
+            $userAuthorityId = (int) $user->authority_id;
+            $hasWorkflowResponsibility = ! empty($user->responsibility);
+
+            $query->where(function ($q) use ($user, $userAuthorityId, $hasWorkflowResponsibility) {
+                // User always sees projects they personally created
+                $q->where('projects.created_by_user_id', $user->id);
+
+                if ($hasWorkflowResponsibility) {
+                    // Authority user with responsibility sees all projects under their authority
+                    $q->orWhere('projects.authority_id', $userAuthorityId);
+                } else {
+                    $authorityName = DB::table('authorities')->where('id', $userAuthorityId)->value('agency_name');
+                    if ($authorityName) {
+                        $q->orWhere('projects.created_by_entity', trim($authorityName));
+                    }
+                    $q->orWhere('projects.authority_id', $userAuthorityId);
+                }
+            });
+
+            return $query;
+        }
+
+        // 3. Internal Ministry User
+        $activeAdminScopeId = session('selected_administrative_scope_id', $user->administrative_scope_id);
+        $entityIdsByEnt = $activeAdminScopeId ? InternalEntity::getAllChildrenIds($activeAdminScopeId) : [];
+
+        $activeGeoScopes = session('selected_geographic_scopes');
+        if ($activeGeoScopes !== null) {
+            $entityIdsByGovAndDist = collect($activeGeoScopes)->map(fn ($s) => (object) $s);
+        } else {
+            $entityIdsByGovAndDist = $user->geographicScopes ?? collect();
+        }
+
+        $entityIdsByGeo = [];
+        foreach ($entityIdsByGovAndDist as $scope) {
+            $govId = is_array($scope) ? ($scope['governorate_id'] ?? null) : ($scope->governorate_id ?? null);
+            $dirId = is_array($scope) ? ($scope['directorate_id'] ?? null) : ($scope->directorate_id ?? null);
+
+            if (! empty($dirId)) {
+                $ids = InternalEntity::getAllByDirectorate($dirId);
+                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
+            } elseif (! empty($govId) || $govId === 'all' || $govId === 0 || $govId === '0') {
+                if ($govId === 'all' || $govId === 0 || $govId === '0') {
+                    $ids = DB::table('internal_entities')->pluck('id')->map(fn ($id) => (int) $id)->toArray();
+                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
+                } else {
+                    $ids = InternalEntity::getAllByGovernorate($govId);
+                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
+                }
+            }
+        }
+
+        $activeEntityId = session('selected_entity_id', $user->entity_id);
+        $entityIdsByMyEnt = [];
+        if (empty($entityIdsByEnt) && empty($entityIdsByGeo)) {
+            $entityIdsByMyEnt = $activeEntityId ? InternalEntity::getAllChildrenIds($activeEntityId) : [];
+        }
+
+        $entityIds = array_unique(array_merge($entityIdsByEnt, $entityIdsByMyEnt, $entityIdsByGeo));
+        $entityIds = array_values(array_filter($entityIds, fn ($id) => is_numeric($id) && $id > 0));
+
+        if (! empty($entityIds)) {
+            $entityNames = DB::table('internal_entities')->whereIn('id', $entityIds)->pluck('name')->filter()->toArray();
+            $cleanEntityNames = array_filter(array_map(fn ($name) => trim(preg_replace('/\s+/u', ' ', $name)), $entityNames));
+
+            $query->where(function ($q) use ($entityIds, $cleanEntityNames, $user) {
+                $q->whereIn('projects.creator_entity_id', $entityIds)
+                    ->orWhereIn('projects.internal_entity_id', $entityIds)
+                    ->orWhere('projects.created_by_user_id', $user->id);
+
+                if (! empty($cleanEntityNames)) {
+                    $q->orWhereIn('projects.created_by_entity', $cleanEntityNames);
+                }
+
+                // Internal Ministry reviewer/approver can see external projects assigned to or in workflow at their entity
+                $q->orWhereHas('projectApprovals', function ($appQ) use ($entityIds) {
+                    $appQ->whereIn('project_approvals.entity_id', $entityIds);
+                });
+            });
+        } else {
+            $userEntityId = $user->entity_id;
+            $userEntityName = $user->entity?->name;
+            $cleanEntName = $userEntityName ? trim(preg_replace('/\s+/u', ' ', $userEntityName)) : null;
+
+            $query->where(function ($q) use ($user, $userEntityId, $cleanEntName) {
+                $q->where('projects.created_by_user_id', $user->id);
+                if (! empty($userEntityId)) {
+                    $q->orWhere('projects.creator_entity_id', $userEntityId)
+                        ->orWhere('projects.internal_entity_id', $userEntityId)
+                        ->orWhereHas('projectApprovals', function ($appQ) use ($userEntityId) {
+                            $appQ->where('project_approvals.entity_id', $userEntityId);
+                        });
+                }
+                if (! empty($cleanEntName)) {
+                    $q->orWhere('projects.created_by_entity', $cleanEntName);
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * Authorize project access for a user. Throws 403 if unauthorized.
+     */
+    public function authorizeProjectAccess(Project $project, ?User $user = null): void
+    {
+        $user = $user ?? auth()->user();
+        if (! $user) {
+            abort(401, 'يجب تسجيل الدخول أولاً');
+        }
+
+        if ($user->isAdmin() || ($user->role && $user->role->full_access)) {
+            return;
+        }
+
+        $query = Project::withoutGlobalScopes()->where('projects.id', $project->id);
+        $isAllowed = $this->applyAccessibleProjectsQuery($query, $user)->exists();
 
         if (! $isAllowed) {
-            abort(403, 'ليس لديك الصلاحية لعرض هذا المشروع');
+            abort(403, 'ليس لديك الصلاحية لعرض أو الوصول إلى هذا المشروع');
         }
     }
 
@@ -505,7 +636,6 @@ class ProjectService
 
         // ================================================================
         // 1. بناء الاستعلام الأساسي مع العلاقات والعدادات
-        //    نستخدم withoutGlobalScopes() لتجاوز أي Global Scopes قد تسبب مشاكل
         // ================================================================
 
         $query = Project::withoutGlobalScopes();
@@ -523,6 +653,8 @@ class ProjectService
                 'projectApprovals',
                 'supervisingAuthorities',
                 'implementingEntities',
+                'authority',
+                'creatorEntity',
             ];
             $query->with($eagerLoads)->withCount([
                 'mainObjectives',
@@ -536,125 +668,10 @@ class ProjectService
         }
 
         // ================================================================
-        // 2. تطبيق فلترة النطاق الإداري والجغرافي
-        //    يقرأ من الجلسة أولاً (للتبديل الديناميكي) ثم يعود للبيانات المخزنة
+        // 2. تطبيق فلترة الوصول الموحدة
         // ================================================================
 
-        // ── أ) النطاق الإداري: الجلسة أولاً، ثم قاعدة البيانات ──────────────
-        $activeAdminScopeId = session(
-            'selected_administrative_scope_id',
-            $user?->administrative_scope_id
-        );
-        $entityIdsByEnt = $activeAdminScopeId ? InternalEntity::getAllChildrenIds($activeAdminScopeId) : [];
-
-        // ── ج) النطاقات الجغرافية: الجلسة أولاً، ثم العلاقة المخزنة ──────────
-        $activeGeoScopes = session('selected_geographic_scopes');
-        if ($activeGeoScopes !== null) {
-            // إذا كانت في الجلسة كمصفوفة نحوّلها لـ Collection من Objects
-            $entityIdsByGovAndDist = collect($activeGeoScopes)->map(fn ($s) => (object) $s);
-        } else {
-            $entityIdsByGovAndDist = $user?->geographicScopes ?? collect();
-        }
-
-        $entityIdsByGeo = [];
-        foreach ($entityIdsByGovAndDist as $scope) {
-            $govId = is_array($scope) ? ($scope['governorate_id'] ?? null) : ($scope->governorate_id ?? null);
-            $dirId = is_array($scope) ? ($scope['directorate_id'] ?? null) : ($scope->directorate_id ?? null);
-
-            if (! empty($dirId)) {
-                $ids = InternalEntity::getAllByDirectorate($dirId);
-                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-            } elseif (! empty($govId) || $govId === 'all' || $govId === 0 || $govId === '0') {
-                if ($govId === 'all' || $govId === 0 || $govId === '0') {
-                    // نطاق «كل المحافظات»: جلب جميع الكيانات الداخلية
-                    $ids = DB::table('internal_entities')->pluck('id')->map(fn ($id) => (int) $id)->toArray();
-                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-                } else {
-                    $ids = InternalEntity::getAllByGovernorate($govId);
-                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-                }
-            }
-        }
-
-        // ── ب) النطاق بحسب الكيان (entity_id): الجلسة أولاً، ثم قاعدة البيانات ──
-        $activeEntityId = session('selected_entity_id', $user?->entity_id);
-        $entityIdsByMyEnt = [];
-        if (empty($entityIdsByEnt) && empty($entityIdsByGeo)) {
-            $entityIdsByMyEnt = $activeEntityId ? InternalEntity::getAllChildrenIds($activeEntityId) : [];
-        }
-
-        $entityIds = array_merge($entityIdsByEnt, $entityIdsByMyEnt, $entityIdsByGeo);
-        $entityIds = array_unique($entityIds);
-        $entityIds = array_filter($entityIds, fn ($id) => is_numeric($id) && $id > 0);
-        $entityIds = array_values($entityIds);
-
-        // ================================================================
-        // تطبيق الفلترة على الاستعلام
-        // ================================================================
-
-        if ($user?->isAdmin()) {
-            // المدير يرى الكل — لا فلترة
-        } elseif ($user?->organization_type === 'external' && $user->authority_id) {
-            // ─── المستخدم الخارجي (External Authority) ────────────────────────
-            // الرؤية مبنية على: الجهة الخارجية (authority_id) + مسؤولية المستخدم.
-            // - إذا كان لديه مسؤولية رسمية في دورة الاعتماد (responsibility != null) → يرى كل مشاريع جهته.
-            // - غير ذلك → يرى مشاريعه الشخصية فقط.
-            $userAuthorityId = $user->authority_id;
-            $hasWorkflowResponsibility = ! empty($user->responsibility);
-
-            $query->where(function ($q) use ($user, $userAuthorityId, $hasWorkflowResponsibility) {
-                // دائماً يرى مشاريعه الشخصية
-                $q->where('created_by_user_id', $user->id);
-
-                if ($hasWorkflowResponsibility) {
-                    // صاحب مسؤولية رسمية يرى جميع مشاريع الجهة الخارجية
-                    $q->orWhere('authority_id', $userAuthorityId);
-                } else {
-                    // المستخدم بلا مسؤولية يرى مشاريعه الشخصية فقط.
-                    // أضف created_by_entity كـ fallback للمشاريع التي سُجِّلت بالاسم قبل هذا الإصلاح.
-                    $authorityName = DB::table('authorities')->where('id', $userAuthorityId)->value('agency_name');
-                    if ($authorityName) {
-                        $q->orWhere('created_by_entity', trim($authorityName));
-                    }
-                }
-            });
-
-        } elseif (! empty($entityIds)) {
-            // فلترة على creator_entity_id أو internal_entity_id أو اسم الكيان أو المستخدم نفسه
-            $entityNames = DB::table('internal_entities')->whereIn('id', $entityIds)->pluck('name')->filter()->toArray();
-            $query->where(function ($q) use ($entityIds, $entityNames, $user) {
-                $q->whereIn('creator_entity_id', $entityIds)
-                    ->orWhereIn('internal_entity_id', $entityIds);
-                if ($user?->id) {
-                    $q->orWhere('created_by_user_id', $user->id);
-                }
-
-                $cleanEntityNames = array_filter(array_map(function ($name) {
-                    return trim(preg_replace('/\s+/u', ' ', $name));
-                }, $entityNames));
-
-                if (! empty($cleanEntityNames)) {
-                    $q->orWhereIn('created_by_entity', $cleanEntityNames);
-                }
-            });
-        } else {
-            // لا نطاق مُعيَّن → المستخدم يرى مشاريعه الشخصية أو مشاريع كيانه فقط
-            $userEntityId = $user?->entity_id;
-            $userEntityName = $user?->entity?->name;
-            $query->where(function ($q) use ($user, $userEntityId, $userEntityName) {
-                if ($user?->id) {
-                    $q->where('created_by_user_id', $user->id);
-                }
-                if (! empty($userEntityId)) {
-                    $q->orWhere('creator_entity_id', $userEntityId)
-                        ->orWhere('internal_entity_id', $userEntityId);
-                }
-                if (! empty($userEntityName)) {
-                    $cleanEntName = trim(preg_replace('/\s+/u', ' ', $userEntityName));
-                    $q->orWhere('created_by_entity', $cleanEntName);
-                }
-            });
-        }
+        $this->applyAccessibleProjectsQuery($query, $user, $request);
 
         // ================================================================
         // 3. تطبيق الفلاتر الاختيارية من الطلب

@@ -2,12 +2,12 @@
 
 namespace App\Scopes;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
-use App\Models\User;
 
 class DomainScope implements Scope
 {
@@ -15,8 +15,9 @@ class DomainScope implements Scope
 
     public function apply(Builder $builder, Model $model)
     {
-        if (self::$applying)
+        if (self::$applying) {
             return;
+        }
 
         self::$applying = true;
 
@@ -29,7 +30,7 @@ class DomainScope implements Scope
 
     protected function doApply(Builder $builder, Model $model)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return;
         }
 
@@ -52,12 +53,13 @@ class DomainScope implements Scope
 
     protected function applyUnifiedFiltering(Builder $builder, User $user, string $module): void
     {
-        $geoScope   = $user->getModuleGeoScope($module);
+        $geoScope = $user->getModuleGeoScope($module);
         $adminScope = $user->getModuleAdminScope($module);
 
         // If either scope is 'none', user sees nothing.
         if ($geoScope === 'none' || $adminScope === 'none') {
             $builder->whereRaw('0=1');
+
             return;
         }
 
@@ -81,7 +83,7 @@ class DomainScope implements Scope
     {
         $table = $builder->getModel()->getTable();
 
-        if (!$this->hasJoin($builder, 'internal_entities')) {
+        if (! $this->hasJoin($builder, 'internal_entities')) {
             $builder->leftJoin(
                 'internal_entities',
                 "{$table}.internal_entity_id",
@@ -101,19 +103,19 @@ class DomainScope implements Scope
 
     protected function applyGeoFilter(Builder $query, User $user, string $module, string $geoScope): void
     {
-        $table    = $query->getModel()->getTable();
-        $userGov  = $user->getAssignedGovernorateId();
-        $userDir  = $user->getAssignedDirectorateId();
-        $geoData  = $user->getModuleGeoData($module); // Custom governorates array
+        $table = $query->getModel()->getTable();
+        $userGov = $user->getAssignedGovernorateId();
+        $userDir = $user->getAssignedDirectorateId();
+        $geoData = $user->getModuleGeoData($module); // Custom governorates array
 
         // If the table doesn't have direct geo columns, we join internal_entities to filter by entity location
         $hasDirectGeo = Schema::hasColumn($table, 'governorate_id') || Schema::hasColumn($table, 'geographic_scope_id');
-        
+
         $joinTable = $table;
-        if (!$hasDirectGeo) {
+        if (! $hasDirectGeo) {
             $adminCol = $user->detectAdminColumn($table);
             if ($adminCol) {
-                if (!$this->hasJoin($query, 'internal_entities')) {
+                if (! $this->hasJoin($query, 'internal_entities')) {
                     $query->leftJoin('internal_entities', "{$table}.{$adminCol}", '=', 'internal_entities.id');
                     $query->select("{$table}.*");
                 }
@@ -196,7 +198,7 @@ class DomainScope implements Scope
                 break;
             case 'dept_in_gen_dir':
                 $ids = $user->getAllowedAdministrativeIds($module);
-                if ($adminCol && !empty($ids) && is_array($ids)) {
+                if ($adminCol && ! empty($ids) && is_array($ids)) {
                     $query->where(function ($q) use ($adminCol, $ids, $table) {
                         $cols = (array) $adminCol;
                         foreach ($cols as $col) {
@@ -219,18 +221,19 @@ class DomainScope implements Scope
     public function resolveModule(Model $model): string
     {
         $table = $model->getTable();
+
         return match ($table) {
-            'projects'          => 'projects',
-            'project_requests'  => 'project-requests',
+            'projects' => 'projects',
+            'project_requests' => 'project-requests',
             'internal_entities' => 'internal-entities',
-            'authorities'       => 'authorities',
-            'correspondences'   => 'correspondence',
-            'plans'             => 'planning',
+            'authorities' => 'authorities',
+            'correspondences' => 'correspondence',
+            'plans' => 'planning',
             'empowerment_projects' => 'empowerment',
-            'memoirs'           => 'memoirs',
-            'suggestions'       => 'suggestions',
-            'reports'           => 'reports',
-            default             => $table,
+            'memoirs' => 'memoirs',
+            'suggestions' => 'suggestions',
+            'reports' => 'reports',
+            default => $table,
         };
     }
 

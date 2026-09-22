@@ -2,7 +2,9 @@
 
 @section('content')
 <div class="container-fluid py-4 bg-light-subtle">
+    @can('plans.edit')
     <form action="{{ route('plans.implementation.update', $plan->id) }}" method="POST" id="implementationPlanForm">
+    @endcan
         @csrf
         @method('PUT')
         

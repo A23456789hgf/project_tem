@@ -37,7 +37,9 @@ class ExecutionController extends Controller
      */
     public function store(Request $request, Project $project)
     {
-        if (! auth()->user()->hasPermission('execution.add')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if (! auth()->user()->hasPermission('execution.add', $project)) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'غير مصرح لك بالقيام بهذا الإجراء'], 403);
             }
@@ -317,6 +319,8 @@ class ExecutionController extends Controller
 
     public function storeProcedureBudgetJustification(Request $request, Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         $validated = $request->validate([
             'preliminary_procedure_id' => 'required|exists:preliminary_procedures,id',
             'planned_total' => 'required|numeric',
@@ -364,6 +368,8 @@ class ExecutionController extends Controller
      */
     public function storeExecutiveBudgetJustification(Request $request, Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         $validated = $request->validate([
             'executive_activity_action_id' => 'required|exists:executive_activity_actions,id',
             'planned_amount' => 'required|numeric',
@@ -414,6 +420,8 @@ class ExecutionController extends Controller
      */
     public function storeExecutiveTechnicalJustification(Request $request, Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         $validated = $request->validate([
             'executive_activity_action_id' => 'required|exists:executive_activity_actions,id',
             'planned_end_date' => 'nullable|date',
@@ -465,6 +473,8 @@ class ExecutionController extends Controller
      */
     public function storeProcedureTechnicalJustification(Request $request, Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         $validated = $request->validate([
             'preliminary_procedure_id' => 'required|exists:preliminary_procedures,id',
             'planned_end_date' => 'nullable|date',
@@ -518,6 +528,8 @@ class ExecutionController extends Controller
      */
     public function approveBudgetJustification(Request $request, Project $project, $justificationId)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         if (! auth()->user()->hasRole('financial_reviewer')) {
             abort(403);
         }
@@ -555,6 +567,7 @@ class ExecutionController extends Controller
 
     public function preliminaryForm(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load('preliminaryActivities.procedures');
 
         return view('projects.implementation.execution-preliminary-form', compact('project'));
@@ -562,6 +575,7 @@ class ExecutionController extends Controller
 
     public function preliminaryDisplay(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load('preliminaryActivities.procedures');
 
         return view('projects.implementation.execution-preliminary-display', compact('project'));
@@ -569,6 +583,7 @@ class ExecutionController extends Controller
 
     public function preliminaryFinancialJustification(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load('preliminaryActivities.procedures');
 
         return view('projects.implementation.execution-procedure-financial-justification', compact('project'));
@@ -576,6 +591,7 @@ class ExecutionController extends Controller
 
     public function preliminaryTechnicalJustification(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load('preliminaryActivities.procedures');
 
         return view('projects.implementation.execution-procedure-technical-justification', compact('project'));
@@ -593,6 +609,7 @@ class ExecutionController extends Controller
 
     public function executiveForm(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load([
             'executiveActivities.actions.executions' => fn ($query) => $query->orderBy('sequence'),
         ]);
@@ -602,6 +619,7 @@ class ExecutionController extends Controller
 
     public function executiveDisplay(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load([
             'executiveActivities.actions.executions' => fn ($query) => $query->orderBy('sequence'),
         ]);
@@ -611,6 +629,7 @@ class ExecutionController extends Controller
 
     public function executiveFinancialJustification(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load([
             'executiveActivities.actions.executions' => fn ($query) => $query->orderBy('sequence'),
         ]);
@@ -620,6 +639,7 @@ class ExecutionController extends Controller
 
     public function executiveTechnicalJustification(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
         $project->load([
             'executiveActivities.actions.executions' => fn ($query) => $query->orderBy('sequence'),
         ]);
@@ -695,7 +715,9 @@ class ExecutionController extends Controller
      */
     public function storeDelayExplanation(Request $request, Project $project)
     {
-        if (! auth()->user()->hasPermission('execution.edit')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if (! auth()->user()->hasPermission('execution.edit', $project)) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'غير مصرح لك بالقيام بهذا الإجراء'], 403);
             }
@@ -769,6 +791,8 @@ class ExecutionController extends Controller
      */
     public function getDelayExplanation(Request $request, Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         $validated = $request->validate([
             'execution_type' => 'required|in:preliminary,executive',
             'execution_type_id' => 'required|integer',
@@ -789,7 +813,9 @@ class ExecutionController extends Controller
      */
     public function approveDelayExplanation(Request $request, Project $project, $explanationId)
     {
-        if (! auth()->user()->hasPermission('execution.edit')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if (! auth()->user()->hasPermission('execution.edit', $project)) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'غير مصرح لك بالقيام بهذا الإجراء'], 403);
             }
@@ -827,7 +853,9 @@ class ExecutionController extends Controller
      */
     public function deleteDelayAttachment(Request $request, Project $project, $explanationId)
     {
-        if (! auth()->user()->hasPermission('execution.edit')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if (! auth()->user()->hasPermission('execution.edit', $project)) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'غير مصرح لك بالقيام بهذا الإجراء'], 403);
             }
@@ -863,7 +891,9 @@ class ExecutionController extends Controller
      */
     public function update(Request $request, Project $project, $executionId)
     {
-        if (! auth()->user()->hasPermission('execution.edit')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if (! auth()->user()->hasPermission('execution.edit', $project)) {
             return redirect()->back()->with('error', 'غير مصرح لك بالقيام بهذا الإجراء');
         }
 
@@ -895,7 +925,9 @@ class ExecutionController extends Controller
 
     public function destroy(Project $project, $executionId)
     {
-        if (! auth()->user()->hasPermission('execution.delete')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if (! auth()->user()->hasPermission('execution.delete', $project)) {
             return redirect()->back()->with('error', 'غير مصرح لك بالقيام بهذا الإجراء');
         }
 
@@ -946,7 +978,9 @@ class ExecutionController extends Controller
 
     private function deleteDocument(Project $project, $executionId, $type, $isPreliminary)
     {
-        if (! auth()->user()->hasPermission('execution.edit')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if (! auth()->user()->hasPermission('execution.edit', $project)) {
             if (request()->expectsJson()) {
                 return response()->json(['success' => false, 'message' => 'غير مصرح لك'], 403);
             }
@@ -990,8 +1024,27 @@ class ExecutionController extends Controller
         return redirect()->back()->with('error', 'المستند غير موجود');
     }
 
+    public function downloadDocument(Request $request, Project $project, $executionId)
+    {
+        $this->projectService->authorizeProjectAccess($project);
+
+        $isPreliminary = $request->query('type') === 'preliminary';
+        $execution = $isPreliminary
+            ? PreliminaryProcedureExecution::where('project_id', $project->id)->findOrFail($executionId)
+            : ProjectExecution::where('project_id', $project->id)->findOrFail($executionId);
+
+        $docPath = $request->query('file');
+        if (! $docPath || ! Storage::disk('public')->exists($docPath)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->download($docPath);
+    }
+
     public function printExecution(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         $project->load([
             'preliminaryActivities.procedures.executions',
             'preliminaryActivities.procedures.costs.financialItem',
@@ -1023,7 +1076,13 @@ class ExecutionController extends Controller
      */
     public function approvePreliminaryExecution(Project $project, PreliminaryProcedureExecution $execution)
     {
-        if (! auth()->user()->hasPermission('execution.approve')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if ($execution->project_id !== $project->id) {
+            abort(404);
+        }
+
+        if (! auth()->user()->hasPermission('execution.approve', $project)) {
             return redirect()->back()->with('error', 'غير مصرح لك بالقيام بهذا الإجراء');
         }
 
@@ -1082,7 +1141,13 @@ class ExecutionController extends Controller
      */
     public function rejectPreliminaryExecution(Request $request, Project $project, PreliminaryProcedureExecution $execution)
     {
-        if (! auth()->user()->hasPermission('execution.reject')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if ($execution->project_id !== $project->id) {
+            abort(404);
+        }
+
+        if (! auth()->user()->hasPermission('execution.reject', $project)) {
             return redirect()->back()->with('error', 'غير مصرح لك بالقيام بهذا الإجراء');
         }
 
@@ -1146,7 +1211,13 @@ class ExecutionController extends Controller
      */
     public function approveExecutiveExecution(Project $project, ProjectExecution $execution)
     {
-        if (! auth()->user()->hasPermission('execution.approve')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if ($execution->project_id !== $project->id) {
+            abort(404);
+        }
+
+        if (! auth()->user()->hasPermission('execution.approve', $project)) {
             return redirect()->back()->with('error', 'غير مصرح لك بالقيام بهذا الإجراء');
         }
 
@@ -1160,7 +1231,7 @@ class ExecutionController extends Controller
             'project_id' => $project->id,
             'user_id' => auth()->id(),
             'action_type' => 'execution_approved',
-            'notes' => 'تمت الموافقة على سجل تنفيذ (تنفيذي): '.($execution->action->title ?? 'نشاط تنفيذي'),
+            'notes' => 'تمت الموافقة على سجل تنفيذ (تنفيزي): '.($execution->action->title ?? 'نشاط تنفيذي'),
             'action_details' => "المبلغ المصروف: {$execution->amount_spent}",
             'metadata' => ['execution_id' => $execution->id, 'type' => 'executive'],
         ]);
@@ -1175,7 +1246,7 @@ class ExecutionController extends Controller
                             'type' => 'execution',
                             'action_type' => 'approved',
                             'title' => 'اعتماد سجل تنفيذ: '.$project->project_name,
-                            'message' => 'تمت الموافقة على سجل التنفيذ (تنفيذي) للمشروع بواسطة '.(auth()->user()?->name ?? 'النظام'),
+                            'message' => 'تمت الموافقة على سجل التنفيذ (تنفيزي) للمشروع بواسطة '.(auth()->user()?->name ?? 'النظام'),
                             'page_name' => 'متابعة التنفيذ',
                             'action_url' => route('projects.execution', $project->id),
                             'icon' => 'fas fa-check-circle',
@@ -1205,7 +1276,13 @@ class ExecutionController extends Controller
      */
     public function rejectExecutiveExecution(Request $request, Project $project, ProjectExecution $execution)
     {
-        if (! auth()->user()->hasPermission('execution.reject')) {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if ($execution->project_id !== $project->id) {
+            abort(404);
+        }
+
+        if (! auth()->user()->hasPermission('execution.reject', $project)) {
             return redirect()->back()->with('error', 'غير مصرح لك بالقيام بهذا الإجراء');
         }
 
@@ -1239,7 +1316,7 @@ class ExecutionController extends Controller
                             'type' => 'execution',
                             'action_type' => 'rejected',
                             'title' => 'رفض سجل تنفيذ: '.$project->project_name,
-                            'message' => 'تم رفض سجل التنفيذ (تنفيذي) للمشروع: '.$validated['rejection_reason'],
+                            'message' => 'تم رفض سجل التنفيذ (تنفيزي) للمشروع: '.$validated['rejection_reason'],
                             'page_name' => 'متابعة التنفيذ',
                             'action_url' => route('projects.execution', $project->id),
                             'icon' => 'fas fa-times-circle',
@@ -1282,12 +1359,12 @@ class ExecutionController extends Controller
         // Base query for preliminary executions
         $preliminaryQuery = PreliminaryProcedureExecution::with([
             'project', 'procedure', 'createdBy', 'approvedBy', 'rejectedBy',
-        ])->whereHas('project', fn ($q) => $this->scopeFilter->applyEntityFilter($q));
+        ])->whereHas('project', fn ($q) => $this->projectService->applyAccessibleProjectsQuery($q, auth()->user()));
 
         // Base query for executive executions
         $executiveQuery = ProjectExecution::with([
             'project', 'action', 'createdBy', 'approvedBy', 'rejectedBy',
-        ])->whereHas('project', fn ($q) => $this->scopeFilter->applyEntityFilter($q));
+        ])->whereHas('project', fn ($q) => $this->projectService->applyAccessibleProjectsQuery($q, auth()->user()));
 
         // Filter by approval status
         if ($status !== 'all') {
@@ -1320,16 +1397,18 @@ class ExecutionController extends Controller
             ? $executiveQuery->orderBy('created_at', 'desc')->get()
             : collect();
 
-        // Get projects list for filter dropdown
-        $projects = Project::where('status', '!=', 'draft')
-            ->orderBy('project_name')
-            ->get(['id', 'project_name', 'form_number']);
+        // Get projects list for filter dropdown using accessible projects single source of truth
+        $projects = $this->projectService->applyAccessibleProjectsQuery(
+            Project::where('status', '!=', 'draft'),
+            auth()->user()
+        )->orderBy('project_name')->get(['id', 'project_name', 'form_number']);
 
         // Statistics
+        $accessibleProjectIds = $this->projectService->applyAccessibleProjectsQuery(Project::query(), auth()->user())->pluck('id');
         $stats = [
-            'pending' => PreliminaryProcedureExecution::pending()->count() + ProjectExecution::pending()->count(),
-            'approved' => PreliminaryProcedureExecution::approved()->count() + ProjectExecution::approved()->count(),
-            'rejected' => PreliminaryProcedureExecution::rejected()->count() + ProjectExecution::rejected()->count(),
+            'pending' => PreliminaryProcedureExecution::whereIn('project_id', $accessibleProjectIds)->pending()->count() + ProjectExecution::whereIn('project_id', $accessibleProjectIds)->pending()->count(),
+            'approved' => PreliminaryProcedureExecution::whereIn('project_id', $accessibleProjectIds)->approved()->count() + ProjectExecution::whereIn('project_id', $accessibleProjectIds)->approved()->count(),
+            'rejected' => PreliminaryProcedureExecution::whereIn('project_id', $accessibleProjectIds)->rejected()->count() + ProjectExecution::whereIn('project_id', $accessibleProjectIds)->rejected()->count(),
         ];
 
         return view('projects.project_implementation.execution-tracking', compact(

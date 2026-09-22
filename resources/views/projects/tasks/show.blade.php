@@ -916,7 +916,9 @@
                         <h6>إعدادات المهمة</h6>
                     </div>
 
+                    @can('task.edit')
                     <form action="{{ route('projects.tasks.update', [$project->id, $task->id]) }}" method="POST">
+                    @endcan
                         @csrf
                         @method('PUT')
                         <div class="panel-card-body">

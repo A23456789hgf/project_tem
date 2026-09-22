@@ -7,35 +7,36 @@ use App\Models\SmsLog;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\SmppSmsService;
+use App\Services\SmsEventManager;
 use Illuminate\Http\Request;
 
 class SmsAdminController extends Controller
 {
-    public function settings()
+    public function settings(SmsEventManager $eventManager)
     {
         $this->authorize('sms.settings.view');
 
-        // Load the SMS events settings, for example:
-        $events = [
-            'project_approved' => SystemSetting::get('sms_event_project_approved', '0'),
-            'user_registered' => SystemSetting::get('sms_event_user_registered', '0'),
-        ];
+        // Safe idempotent migration of legacy settings
+        $eventManager->migrateLegacySettings();
 
-        return view('configuration.sms.settings', compact('events'));
+        $registry = $eventManager->getRegistry();
+
+        return view('configuration.sms.settings', compact('registry', 'eventManager'));
     }
 
-    public function updateSettings(Request $request)
+    public function updateSettings(Request $request, SmsEventManager $eventManager)
     {
         $this->authorize('sms.settings.update');
 
-        $events = [
-            'sms_event_project_approved',
-            'sms_event_user_registered',
-        ];
+        $eventsInput = $request->input('events', []);
+        $eventManager->updateSettings($eventsInput);
 
-        foreach ($events as $event) {
-            $val = $request->has($event) ? '1' : '0';
-            SystemSetting::set($event, $val, 'sms');
+        // Keep legacy setting keys updated for backward compatibility
+        if (isset($eventsInput['project.approved'])) {
+            SystemSetting::set('sms_event_project_approved', ! empty($eventsInput['project.approved']) ? '1' : '0', 'sms');
+        }
+        if (isset($eventsInput['user.registered'])) {
+            SystemSetting::set('sms_event_user_registered', ! empty($eventsInput['user.registered']) ? '1' : '0', 'sms');
         }
 
         return redirect()->route('configuration.sms.settings')->with('success', 'تم تحديث إعدادات الرسائل النصية بنجاح.');
@@ -63,7 +64,6 @@ class SmsAdminController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        // recipient search by name or username
         if ($request->filled('recipient')) {
             $query->whereHas('recipient', function ($q) use ($request) {
                 $q->where('name', 'like', '%'.$request->recipient.'%')
@@ -71,7 +71,6 @@ class SmsAdminController extends Controller
             });
         }
 
-        // sender search
         if ($request->filled('sender')) {
             $query->whereHas('sender', function ($q) use ($request) {
                 $q->where('name', 'like', '%'.$request->sender.'%')
@@ -88,7 +87,6 @@ class SmsAdminController extends Controller
     {
         $this->authorize('sms.manage');
 
-        // Load active users with phone numbers
         $users = User::whereNotNull('phone')->where('status', 'Active')->get(['id', 'name', 'phone']);
 
         return view('configuration.sms.manual', compact('users'));
@@ -106,7 +104,6 @@ class SmsAdminController extends Controller
         ]);
 
         $message = $request->message;
-        $users = collect();
 
         if ($request->recipient_type === 'all') {
             $users = User::whereNotNull('phone')->where('status', 'Active')->get();

@@ -10,7 +10,9 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+            @can('projects.entities.create')
             <form id="stakeholderForm" method="POST" action="{{ route('projects.entities.store', $project->id) }}">
+            @endcan
                 @csrf
                 <div class="modal-body">
                     <div class="row">

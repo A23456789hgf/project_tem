@@ -27,9 +27,13 @@
                         <i class="fas fa-database me-1"></i> البيانات
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                        @can('config.export')
                         <li><a class="dropdown-item py-2" href="{{ route('config.export', ['entity' => 'beneficiary-groups']) }}"><i class="fas fa-download text-success me-2"></i> تصدير Excel</a></li>
+                        @endcan
                         <li><hr class="dropdown-divider"></li>
+                        @can('config.import')
                         <li><a class="dropdown-item py-2" href="{{ route('config.import', ['entity' => 'beneficiary-groups']) }}"><i class="fas fa-upload text-info me-2"></i> استيراد ملف</a></li>
+                        @endcan
                     </ul>
                 </div>
             </div>
@@ -55,15 +59,19 @@
                         <td><span class="badge-label">{{ $group->created_at->format('Y-m-d') }}</span></td>
                         <td>
                             <div class="d-flex justify-content-center">
+                                @can('beneficiary-groups.edit')
                                 <a href="{{ route('beneficiary-groups.edit', $group->id) }}" class="btn-action btn btn-sm btn-outline-warning" title="تعديل">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                @endcan
+                                @can('beneficiary-groups.delete')
                                 <form action="{{ route('beneficiary-groups.destroy', $group->id) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn-action btn btn-sm btn-outline-danger" onclick="return confirmAction(this, 'هل تريد الحذف؟')">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
+                                @endcan
                             </div>
                         </td>
                     </tr>

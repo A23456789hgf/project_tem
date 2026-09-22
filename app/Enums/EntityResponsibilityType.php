@@ -58,7 +58,7 @@ enum EntityResponsibilityType: string
         return match ($phase) {
             'technical_review' => self::TechnicalReview,
             'financial_review' => self::FinancialReview,
-            'stage_approval' => self::Approval,
+            'stage_approval', 'approval' => self::Approval,
             default => null,
         };
     }

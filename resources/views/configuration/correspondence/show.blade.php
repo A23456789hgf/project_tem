@@ -386,6 +386,7 @@
                 <h5 class="modal-title" id="closeModalLabel">إغلاق المراسلة</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            @can('correspondence.close')
             <form action="{{ route('correspondence.close', $correspondence->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
@@ -399,6 +400,7 @@
                     <button type="submit" class="btn btn-warning">تأكيد الإغلاق</button>
                 </div>
             </form>
+            @endcan
         </div>
     </div>
 </div>
@@ -411,6 +413,7 @@
                 <h5 class="modal-title" id="forwardModalLabel"><i class="fas fa-forward me-2"></i>توجيه المراسلة لأقسام فرعية</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            @can('correspondence.forward')
             <form action="{{ route('correspondence.forward', $correspondence->id) }}" method="POST">
                 @csrf
                 <div class="modal-body">
@@ -432,6 +435,7 @@
                     <button type="submit" class="btn btn-primary">إرسال التوجيه</button>
                 </div>
             </form>
+            @endcan
         </div>
     </div>
 </div>

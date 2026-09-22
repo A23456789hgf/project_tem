@@ -7,6 +7,7 @@
 
 <div class="container py-4">
     <x-ui.card title="تعديل عزلة / منطقة" subtitle="قم بتحديث البيانات المطلوبة" icon="fas fa-edit">
+        @can('sub-areas.edit')
         <form action="{{ route('sub-areas.update', $subArea->id) }}" method="POST" id="subarea-form">
             @csrf @method('PUT')
             
@@ -39,6 +40,7 @@
                 </div>
             </div>
         </form>
+        @endcan
     </x-ui.card>
 </div>
 

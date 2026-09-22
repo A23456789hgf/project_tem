@@ -830,11 +830,13 @@
     </x-index-page>
 
 <!-- Bulk Delete Form -->
+@can('projects.tasks.bulk-destroy')
 <form id="bulkDeleteForm" action="{{ route('projects.tasks.bulk-destroy', $project->id) }}" method="POST" style="display: none;">
     @csrf
     @method('DELETE')
     <input type="hidden" name="ids" id="bulkDeleteIds">
 </form>
+@endcan
 
 @can('task.create', $project)
 <!-- Modal: Create Task -->

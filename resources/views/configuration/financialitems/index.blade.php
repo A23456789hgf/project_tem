@@ -90,18 +90,22 @@
                         <td>
                             <div class="d-flex justify-content-center gap-1">
                                 @if($item->status == 0 || $item->status === 'pending')
+                                @can('financial-items.approve')
                                 <form action="{{ route('financial-items.approve', $item->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-success" title="اعتماد وموافق" onclick="return confirm('هل تريد اعتماد هذا البند المالي؟')">
                                         <i class="fas fa-check-circle"></i>
                                     </button>
                                 </form>
+                                @endcan
+                                @can('financial-items.reject')
                                 <form action="{{ route('financial-items.reject', $item->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-secondary" title="رفض" onclick="return confirm('هل تريد رفض هذا البند المالي؟')">
                                         <i class="fas fa-times-circle"></i>
                                     </button>
                                 </form>
+                                @endcan
                                 @endif
 
                                 @can('financial-items.edit')

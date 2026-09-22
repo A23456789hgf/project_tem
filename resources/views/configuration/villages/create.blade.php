@@ -7,7 +7,9 @@
 
 <div class="container py-4">
     <x-ui.card title="إضافة قرية جديدة" subtitle="يرجى اختيار الموقع الإداري بدقة ثم إدخال اسم القرية" icon="fas fa-plus-circle">
+        @can('villages.create')
         <form action="{{ route('villages.store') }}" method="POST">
+        @endcan
             @csrf
             
             <div class="row g-4">

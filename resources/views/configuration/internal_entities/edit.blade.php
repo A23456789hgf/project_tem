@@ -14,7 +14,9 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('internal-entities.edit')
     <form action="{{ route('internal-entities.update', $internalEntity) }}" method="POST">
+    @endcan
         @csrf
         @method('PUT')
 

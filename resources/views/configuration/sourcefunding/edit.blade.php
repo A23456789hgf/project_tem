@@ -12,6 +12,7 @@
 
     
 
+    @can('funding-sources.edit')
     <form action="{{ route('funding-sources.update', $fundingSource->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -36,5 +37,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

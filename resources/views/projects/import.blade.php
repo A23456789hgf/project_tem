@@ -157,11 +157,13 @@
                             </table>
                         </div>
                         
+                        @can('projects.create')
                         <form id="downloadFailuresForm" method="POST" action="{{ route('projects.failure-report') }}" class="mt-3">
                             @csrf
                             <input type="hidden" name="failures_json" id="failuresJsonInput">
                             <input type="hidden" name="failed_export_file" id="failedExportFileInput">
                         </form>
+                        @endcan
                     </div>
 
                     <!-- Updated (Duplicates) Section -->

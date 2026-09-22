@@ -57,6 +57,7 @@
                         
                         @if($report['failed'] == 0)
                         <div class="mt-3">
+                            @can('programs.delete')
                             <form action="{{ route('programs.undo-import', $importedFile) }}" method="POST" style="display: inline;">
                                 @csrf
                                 @method('DELETE')
@@ -64,6 +65,7 @@
                                     <i class="fas fa-undo"></i> تراجع عن الاستيراد
                                 </button>
                             </form>
+                            @endcan
                         </div>
                         @endif
                     </div>
@@ -73,9 +75,11 @@
                         <a href="{{ route('programs.index') }}" class="btn btn-primary">
                             <i class="fas fa-list"></i> العودة إلى قائمة البرامج
                         </a>
+                        @can('programs.import')
                         <a href="{{ route('programs.import') }}" class="btn btn-secondary">
                             <i class="fas fa-upload"></i> استيراد ملف آخر
                         </a>
+                        @endcan
                     </div>
                 </div>
             </div>

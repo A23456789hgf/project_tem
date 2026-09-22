@@ -142,6 +142,7 @@
                     <h5 class="modal-title">رفض سجل التنفيذ</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+                @can('projects.execution.')
                 <form action="{{ route('projects.execution.' . ($executionType ?? 'preliminary') . '.reject', [$project, $execution]) }}" 
                       method="POST">
                     @csrf
@@ -169,6 +170,7 @@
                         </button>
                     </div>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

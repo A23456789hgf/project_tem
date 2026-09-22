@@ -12,6 +12,7 @@
 
     
 
+    @can('mothers.edit')
     <form action="{{ route('mothers.update', $mother->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -49,5 +50,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

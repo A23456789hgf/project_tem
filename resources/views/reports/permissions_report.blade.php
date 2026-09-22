@@ -96,6 +96,7 @@
                             <h5 class="fw-bold mb-1 text-dark">العمليات غير المحمية (صلاحيات مفقودة)</h5>
                             <p class="text-muted small mb-0">تحليل كود النظام: دوال المتحكمات التي لا تملك صلاحيات مقابلة</p>
                         </div>
+                        @can('roles-permissions.edit')
                         <form action="{{ route('permissions.auto-register') }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="return confirm('هل أنت متأكد من تسجيل كافة الصلاحيات المفقودة آلياً؟')">
@@ -103,6 +104,7 @@
                                 تسجيل الكل آلياً
                             </button>
                         </form>
+                        @endcan
                     </div>
                 </div>
                 <div class="card-body p-0">

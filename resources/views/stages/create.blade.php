@@ -4,7 +4,9 @@
 <div class="container">
     <h1 class="mb-4">إضافة مرحلة جديدة</h1>
 
+    @can('stages.create')
     <form action="{{ route('stages.store') }}" method="POST">
+    @endcan
         @csrf
 
         <div class="mb-3">

@@ -323,4 +323,52 @@ class EntityHierarchyService
 
         return null;
     }
+
+    /**
+     * Get configured responsible user for a specific entity stage.
+     * Used by approval workflow to show the current task owner.
+     */
+    public function getStageResponsibleUser(int $entityId, string $phaseCode): ?User
+    {
+        $stage = EntityApprovalStage::where('entity_id', $entityId)
+            ->where('is_active', true)
+            ->whereHas('stage', function ($q) use ($phaseCode) {
+                $q->where('code', $phaseCode)
+                    ->orWhere('value', $phaseCode);
+            })
+            ->with('responsibleUser')
+            ->first();
+
+        return $stage?->responsibleUser;
+    }
+
+    /**
+     * Validate that all configured stages have valid responsible users.
+     */
+    public function validateApprovalChainConfiguration(array $chain): bool
+    {
+        foreach ($chain as $entityData) {
+            $stages = EntityApprovalStage::where('entity_id', $entityData['id'])
+                ->where('is_active', true)
+                ->get();
+
+            foreach ($stages as $stage) {
+                if (! $stage->hasValidResponsibleUser()) {
+                    throw new ConfigurationException(
+                        "الجهة: {$entityData['name']} تحتوي مرحلة بدون مسؤول نشط."
+                    );
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Return only active configured stages for displaying current workflow state.
+     */
+    public function getActiveWorkflowStages(int $entityId): array
+    {
+        return $this->generateApprovalStagesFromSelectedEntity($entityId);
+    }
 }

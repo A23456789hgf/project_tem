@@ -12,6 +12,7 @@
 
     
 
+    @can('subfinancing-forms.edit')
     <form action="{{ route('subfinancing-forms.update',$subFinancingForm->id) }}" method="POST">
         @csrf @method('PUT')
         
@@ -51,5 +52,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

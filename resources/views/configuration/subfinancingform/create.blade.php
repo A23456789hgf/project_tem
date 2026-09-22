@@ -12,6 +12,7 @@
 
     
 
+    @can('subfinancing-forms.create')
     <form action="{{ route('subfinancing-forms.store') }}" method="POST">
         @csrf
         
@@ -51,5 +52,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

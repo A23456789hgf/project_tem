@@ -7,6 +7,7 @@
 
 <div class="container py-4">
     <x-ui.card title="إضافة مديرية جديدة" subtitle="يرجى اختيار المحافظة وإدخال اسم المديرية" icon="fas fa-plus-circle">
+        @can('directorates.create')
         <form action="{{ route('directorates.store') }}" method="POST">
             @csrf
             
@@ -31,6 +32,7 @@
                 </div>
             </div>
         </form>
+        @endcan
     </x-ui.card>
 </div>
 @endsection

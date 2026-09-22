@@ -25,15 +25,26 @@ class DefaultUserSeeder extends Seeder
         // جلب الإدارة العامة لتخصيصها لمستخدم النظام
         $hq = InternalEntity::where('name', 'وزارة الزراعة والثروة السمكية والموارد المائية')->first();
 
-        // إنشاء المستخدم root إذا لم يكن موجود
+        $existingRoot = User::withoutGlobalScopes()->where('username', 'root')->first();
+        $rootPhone = $existingRoot?->phone ?: '777777771';
+
+        // تجنب تكرار رقم الهاتف مع أي مستخدم آخر
+        if (User::withoutGlobalScopes()->where('phone', $rootPhone)->where('username', '!=', 'root')->exists()) {
+            $rootPhone = '777777771';
+            if (User::withoutGlobalScopes()->where('phone', $rootPhone)->where('username', '!=', 'root')->exists()) {
+                $rootPhone = '777000001';
+            }
+        }
+
+        // إنشاء أو تحديث المستخدم root
         User::withoutGlobalScopes()->updateOrCreate(
-            ['username' => 'root'], // تحقق من الاسم
+            ['username' => 'root'],
             [
-                'user_id' => 'root', // رقم المستخدم الفريد
+                'user_id' => 'root',
                 'name' => 'System Administrator (Root)',
                 'email' => 'root@example.com',
-                'password' => Hash::make('root@2026'), // كلمة المرور مشفرة
-                'phone' => '777777777',
+                'password' => Hash::make('root@2026'),
+                'phone' => $rootPhone,
                 'role_id' => $adminRole->id,
                 'entity_id' => $hq ? $hq->id : null,
                 'status' => 'Active',

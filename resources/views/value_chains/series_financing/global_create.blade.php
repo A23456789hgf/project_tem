@@ -13,7 +13,9 @@
             </a>
         </div>
 
+        @can('value_chains.create')
         <form action="{{ route('global-financings.store') }}" method="POST" class="row g-4">
+        @endcan
             @csrf
 
             {{-- سلسلة القيمة --}}

@@ -73,18 +73,23 @@ class FinalVerificationSmokeTest extends TestCase
         $this->assertEquals('technical_review', $chain[0]['phase']);
 
         $this->assertEquals($this->authorityA->id, $chain[2]['authority_id']);
-        $this->assertEquals('approval', $chain[2]['phase']);
+        $this->assertEquals('stage_approval', $chain[2]['phase']);
 
         $this->assertEquals($this->ministry->id, $chain[3]['entity_id']);
         $this->assertEquals('technical_review', $chain[3]['phase']);
 
         $this->assertEquals($this->ministry->id, $chain[5]['entity_id']);
-        $this->assertEquals('approval', $chain[5]['phase']);
+        $this->assertEquals('stage_approval', $chain[5]['phase']);
 
         // Now test the service logic
-        $project = Project::factory()->create(['authority_id' => $this->authorityA->id, 'source_type' => 'external', 'status' => 'pending_approval']);
+        $project = Project::factory()->create([
+            'authority_id' => $this->authorityA->id,
+            'source_type' => 'external',
+            'status' => 'draft',
+            'created_by_user_id' => $this->userAuthAApp->id,
+        ]);
         $approvalService = app(ApprovalService::class);
-        $approvalService->initializeApprovalChain($project);
+        $approvalService->closeDraftAndGenerateApprovalChain($project, $this->userAuthAApp);
 
         $this->assertEquals(6, ProjectApproval::where('project_id', $project->id)->count());
         $firstStep = ProjectApproval::where('project_id', $project->id)->orderBy('step_order')->first();
@@ -95,17 +100,26 @@ class FinalVerificationSmokeTest extends TestCase
 
     public function test_smoke_path_2_external_to_governorate_to_ministry()
     {
-        // Actually, route from external to internal is 'internal'
-        AuthorityApprovalRoute::create(['authority_id' => $this->authorityB->id, 'destination_type' => 'internal', 'destination_entity_id' => $this->governorate->id, 'is_active' => true]);
+        AuthorityApprovalRoute::create([
+            'authority_id' => $this->authorityB->id,
+            'destination_type' => 'authority',
+            'destination_authority_id' => $this->authorityA->id,
+            'is_active' => true,
+        ]);
+        AuthorityApprovalRoute::create([
+            'authority_id' => $this->authorityA->id,
+            'destination_type' => 'ministry',
+            'is_active' => true,
+        ]);
 
         $builder = new ApprovalChainBuilder;
         $chain = $builder->buildExternalChain($this->authorityB->id);
 
-        // Authority B (App) -> Governorate (App) -> Ministry (Tech, Fin, App)
-        $this->assertCount(5, $chain);
+        // Authority B (App) -> Authority A (Tech, Fin, App) -> Ministry (Tech, Fin, App)
+        $this->assertCount(7, $chain);
         $this->assertEquals($this->authorityB->id, $chain[0]['authority_id']);
-        $this->assertEquals($this->governorate->id, $chain[1]['entity_id']);
-        $this->assertEquals($this->ministry->id, $chain[2]['entity_id']);
+        $this->assertEquals($this->authorityA->id, $chain[1]['authority_id']);
+        $this->assertEquals($this->ministry->id, $chain[4]['entity_id']);
     }
 
     public function test_smoke_visibility_external_user()

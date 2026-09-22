@@ -7,6 +7,7 @@
 
 <div class="container py-4">
     <x-ui.card title="تعديل الوحدة" subtitle="قم بتحديث البيانات ثم اضغط على حفظ التغييرات" icon="fas fa-edit">
+        @can('units.edit')
         <form action="{{ route('units.update', $unit->id) }}" method="POST">
             @csrf @method('PUT')
             
@@ -23,6 +24,7 @@
                 </div>
             </div>
         </form>
+        @endcan
     </x-ui.card>
 </div>
 @endsection

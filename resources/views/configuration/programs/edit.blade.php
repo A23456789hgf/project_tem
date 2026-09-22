@@ -12,6 +12,7 @@
 
     
 
+    @can('programs.edit')
     <form action="{{ route('programs.update', $program->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -49,5 +50,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

@@ -14,7 +14,9 @@
                         <strong>تنبيه:</strong> يجب تغيير كلمة المرور الافتراضية قبل الاستمرار في استخدام النظام.
                     </div>
 
+                    @can('password.change.edit')
                     <form action="{{ route('password.change.update') }}" method="POST" id="passwordChangeForm">
+                    @endcan
                         @csrf
                         <div class="mb-3">
                             <label class="form-label fw-bold">كلمة المرور الحالية</label>
@@ -61,12 +63,14 @@
                     </form>
                 </div>
                 <div class="modal-footer bg-light d-flex justify-content-between">
+                    @can('logout')
                     <form action="{{ route('logout') }}" method="POST" class="d-inline mb-0">
                         @csrf
                         <button type="submit" class="btn btn-outline-secondary rounded-pill px-4" formnovalidate>
                             <i class="fas fa-sign-out-alt me-1"></i> خروج
                         </button>
                     </form>
+                    @endcan
                     <button type="submit" form="passwordChangeForm" class="btn btn-danger px-4 rounded-pill">
                         <i class="fas fa-save me-1"></i> تحديث ومتابعة
                     </button>

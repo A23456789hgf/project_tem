@@ -73,10 +73,12 @@
                             </a>
                         @endif
                         
+                        @can('governorates.import')
                         <a href="{{ route('governorates.import') }}" class="btn btn-outline-primary">
                             <i class="fas fa-upload me-1"></i>
                             استيراد ملف آخر
                         </a>
+                        @endcan
                         
                         @if($report['successful'] > 0)
                             <button type="button" class="btn btn-outline-warning" onclick="confirmUndo()">
@@ -167,6 +169,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                @can('governorates.import')
                 <form action="{{ route('governorates.undo-import', $importedFile) }}" method="POST" style="display: inline;">
                     @csrf
                     <button type="submit" class="btn btn-warning">
@@ -174,6 +177,7 @@
                         تأكيد التراجع
                     </button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

@@ -83,13 +83,16 @@ class TaskService
             ));
         }
 
-        // Send SMS notifications for creation, updates, and stop/resume
-        if (in_array($actionType, ['created', 'updated', 'stopped', 'resumed'])) {
-            try {
-                $smsService = app(SmppSmsService::class);
-                $smsService->sendToMultiple($actualUsersToNotify, $message, 'task_assignment');
-            } catch (\Exception $e) {
-                Log::error('Failed to send task assignment SMS: '.$e->getMessage());
+        // Send SMS notifications for creation, updates, and stop/resume if enabled in Central Event Manager
+        if (in_array($actionType, ['created', 'updated', 'stopped', 'resumed'], true)) {
+            $eventKey = "task.{$actionType}";
+            if (app(SmsEventManager::class)->enabled($eventKey)) {
+                try {
+                    $smsService = app(SmppSmsService::class);
+                    $smsService->sendToMultiple($actualUsersToNotify, $message, $eventKey, true);
+                } catch (\Exception $e) {
+                    Log::error("Failed to send task {$actionType} SMS: ".$e->getMessage());
+                }
             }
         }
     }

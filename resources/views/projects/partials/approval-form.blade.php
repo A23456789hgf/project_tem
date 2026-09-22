@@ -237,7 +237,9 @@
             <div class="modal fade" id="requestActionModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                        @can('approvals.request-action')
                         <form action="{{ route('projects.approval.requestAction', $project) }}" method="POST" enctype="multipart/form-data">
+                        @endcan
                             @csrf
                             <div class="modal-header bg-warning text-dark py-3 border-0">
                                 <h5 class="modal-title fw-bold"><i class="fas fa-undo me-2"></i> طلب استكمال نواقص / مراجعة</h5>
@@ -287,6 +289,7 @@
             <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                        @can('approvals.reject')
                         <form action="{{ route('projects.approval.reject', $project) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <div class="modal-header bg-danger text-white py-3 border-0">
@@ -311,6 +314,7 @@
                                 <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">تأكيد الرفض</button>
                             </div>
                         </form>
+                        @endcan
                     </div>
                 </div>
             </div>

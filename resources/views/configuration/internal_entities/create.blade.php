@@ -11,7 +11,9 @@
             <div class="section-divider"></div>
         </div>
 
+        @can('internal-entities.create')
         <form action="{{ route('internal-entities.store') }}" method="POST">
+        @endcan
             @csrf
 
             <div class="row g-4 align-items-end">

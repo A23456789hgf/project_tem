@@ -49,7 +49,9 @@
                 {{-- Panel 1: Supervising --}}
                 {{-- ============================================================ --}}
                 <div class="entity-panel" id="supervising-panel-{{ $project->id }}">
+                    @can('projects.edit')
                     <form action="{{ route('projects.update', $project->id) }}" method="POST">
+                    @endcan
                         @csrf @method('PUT')
                         <input type="hidden" name="status" value="{{ $project->status }}">
                         <input type="hidden" name="_entity_section" value="supervising">
@@ -133,7 +135,9 @@
                 {{-- Panel 2: Implementing --}}
                 {{-- ============================================================ --}}
                 <div class="entity-panel d-none" id="implementing-panel-{{ $project->id }}">
+                    @can('projects.edit')
                     <form action="{{ route('projects.update', $project->id) }}" method="POST">
+                    @endcan
                         @csrf @method('PUT')
                         <input type="hidden" name="status" value="{{ $project->status }}">
                         <input type="hidden" name="_entity_section" value="implementing">
@@ -217,7 +221,9 @@
                 {{-- Panel 3: Beneficiary --}}
                 {{-- ============================================================ --}}
                 <div class="entity-panel d-none" id="beneficiary-panel-{{ $project->id }}">
+                    @can('projects.edit')
                     <form action="{{ route('projects.update', $project->id) }}" method="POST">
+                    @endcan
                         @csrf @method('PUT')
                         <input type="hidden" name="status" value="{{ $project->status }}">
                         <input type="hidden" name="_entity_section" value="beneficiary">
@@ -301,7 +307,9 @@
                 {{-- Panel 4: Participating --}}
                 {{-- ============================================================ --}}
                 <div class="entity-panel d-none" id="participating-panel-{{ $project->id }}">
+                    @can('projects.edit')
                     <form action="{{ route('projects.update', $project->id) }}" method="POST">
+                    @endcan
                         @csrf @method('PUT')
                         <input type="hidden" name="status" value="{{ $project->status }}">
                         <input type="hidden" name="_entity_section" value="participating">

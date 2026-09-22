@@ -182,16 +182,21 @@ class ApprovalService
      */
     public function canUserActOnStep(User $user, ProjectApproval $step): bool
     {
+        // 0. Administrator bypass: Admin can act on any step in any entity and phase
+        if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
+            return true;
+        }
+
         // 1. Verify Scope and Organization Type matching
         if ($step->approver_scope === 'external') {
-            if ($user->organization_type !== 'external') {
+            if (! $user->isExternal()) {
                 return false;
             }
             if ($step->authority_id && (int) $user->authority_id !== (int) $step->authority_id) {
                 return false;
             }
         } else {
-            if ($user->organization_type !== 'internal') {
+            if (! $user->isInternal()) {
                 return false;
             }
             if ($step->entity_id && (int) $user->entity_id !== (int) $step->entity_id) {
@@ -324,6 +329,10 @@ class ApprovalService
                 'reviewed_at' => $timestamp,
                 'notes' => $notes ?: 'تمت الموافقة بواسطة '.$user->name,
                 'attachment' => $attachment,
+                // إزالة تعيين المهمة بعد الإنجاز حتى تختفي من صندوق المستخدم
+                'assigned_user_id' => null,
+                'technical_reviewer_id' => null,
+                'financial_reviewer_id' => null,
                 'financial_review_status' => ($activeStep->phase === 'financial_review') ? 'approved' : $activeStep->financial_review_status,
                 'technical_review_status' => ($activeStep->phase === 'technical_review') ? 'approved' : $activeStep->technical_review_status,
             ]);
@@ -450,6 +459,10 @@ class ApprovalService
                 'reviewed_by' => $user->id,
                 'reviewed_at' => $timestamp,
                 'attachment' => $attachment,
+                // إنهاء ارتباط المهمة بالمستخدم بعد الرفض
+                'assigned_user_id' => null,
+                'technical_reviewer_id' => null,
+                'financial_reviewer_id' => null,
             ]);
 
             // Freeze future steps
@@ -537,6 +550,9 @@ class ApprovalService
                     'attachment' => $attachment,
                     'reviewed_by' => $user->id,
                     'reviewed_at' => $timestamp,
+                    'assigned_user_id' => null,
+                    'technical_reviewer_id' => null,
+                    'financial_reviewer_id' => null,
                 ]);
 
                 $project->update([
@@ -582,6 +598,9 @@ class ApprovalService
                 'attachment' => $attachment,
                 'reviewed_by' => $user->id,
                 'reviewed_at' => $timestamp,
+                'assigned_user_id' => null,
+                'technical_reviewer_id' => null,
+                'financial_reviewer_id' => null,
             ]);
 
             $previousStep->update([
@@ -830,7 +849,10 @@ class ApprovalService
             'to_stage_name' => $data['to_stage_name'] ?? null,
             'notes' => $data['notes'] ?? null,
             'action_details' => $data['action_details'] ?? null,
-            'metadata' => $metadata,
+            'metadata' => array_merge($metadata, [
+                'performed_by' => $userId,
+                'ip_address' => request()->ip(),
+            ]),
         ]);
     }
 
@@ -1009,6 +1031,17 @@ class ApprovalService
             'completion_percentage' => $total > 0 ? round(($approved / $total) * 100, 2) : 0,
             'is_fully_approved' => $project->status === ProjectStatus::InExecution->value,
         ];
+    }
+
+    /**
+     * Get the latest project approval state for list views.
+     * Keeps main screens showing the current/latest state while details keep full history.
+     */
+    public function getLatestApprovalState(Project $project): ?ProjectApproval
+    {
+        return $project->projectApprovals()
+            ->orderByDesc('updated_at')
+            ->first();
     }
 
     public function getApprovalStages(Project $project): Collection

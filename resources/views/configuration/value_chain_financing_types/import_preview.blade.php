@@ -28,7 +28,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    @can('value-chain-financing-types.import.process')
                     <form action="{{ route('value-chain-financing-types.import.process') }}" method="POST" id="importForm" class="import-form">
+                    @endcan
                         @csrf
                         <input type="hidden" name="file_path" value="{{ $filePath }}">
                         

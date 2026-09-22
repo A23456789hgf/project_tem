@@ -41,4 +41,14 @@ class SubdomainPolicy
     {
         return $user->hasPermission('subdomains.export') || $user->hasPermission('subdomains.view');
     }
+
+    public function approve(User $user, ?Subdomain $model = null): bool
+    {
+        return $user->hasPermission('subdomains.approve');
+    }
+
+    public function reject(User $user, ?Subdomain $model = null): bool
+    {
+        return $user->hasPermission('subdomains.reject');
+    }
 }

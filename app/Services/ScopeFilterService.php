@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Authority;
 use App\Models\Domain;
 use App\Models\Governorate;
 use App\Models\InternalEntity;
@@ -87,6 +88,12 @@ class ScopeFilterService
             return collect();
         }
 
+        if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
+            return Authority::where('id', $user->authority_id)
+                ->select('id', 'agency_name as name')
+                ->get();
+        }
+
         $entitiesQuery = InternalEntity::where('is_active', true)->orderBy('name')->select('id', 'name');
 
         if (! $user->isAdmin()) {
@@ -108,6 +115,10 @@ class ScopeFilterService
     {
         $user = $user ?? auth()->user();
 
+        if ($user?->isExternal()) {
+            return $user->authority_id ? (int) $user->authority_id : null;
+        }
+
         return $user?->entity_id ? (int) $user->entity_id : null;
     }
 
@@ -122,10 +133,32 @@ class ScopeFilterService
             return $query->whereRaw('0=1');
         }
 
-        if ($user->isAdmin()) {
+        if ($user->isAdmin() || ($user->role && $user->role->full_access)) {
             return $query;
         }
 
+        // 1. المستخدم الخارجي
+        if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
+            $userAuthorityId = (int) $user->authority_id;
+            $hasWorkflowResponsibility = ! empty($user->responsibility);
+
+            return $query->where(function ($q) use ($user, $userAuthorityId, $hasWorkflowResponsibility) {
+                $table = $q->getModel()->getTable();
+                $q->where("$table.created_by_user_id", $user->id);
+
+                if ($hasWorkflowResponsibility) {
+                    $q->orWhere("$table.authority_id", $userAuthorityId);
+                } else {
+                    $authorityName = DB::table('authorities')->where('id', $userAuthorityId)->value('agency_name');
+                    if ($authorityName) {
+                        $q->orWhere("$table.created_by_entity", trim($authorityName));
+                    }
+                    $q->orWhere("$table.authority_id", $userAuthorityId);
+                }
+            });
+        }
+
+        // 2. مستخدم الوزارة الداخلي
         $entityIds = $this->getUserEntityIds($user);
 
         if (! empty($entityIds)) {
@@ -144,6 +177,10 @@ class ScopeFilterService
                 if (! empty($cleanEntityNames)) {
                     $q->orWhereIn("$table.created_by_entity", $cleanEntityNames);
                 }
+
+                if ($table === 'projects') {
+                    $q->orWhereHas('projectApprovals', fn ($appQ) => $appQ->whereIn('project_approvals.entity_id', $entityIds));
+                }
             });
         } else {
             $userEntityId = $user->entity_id;
@@ -155,6 +192,10 @@ class ScopeFilterService
                 if ($userEntityId) {
                     $q->orWhere("$table.$column", $userEntityId)
                         ->orWhere("$table.internal_entity_id", $userEntityId);
+
+                    if ($table === 'projects') {
+                        $q->orWhereHas('projectApprovals', fn ($appQ) => $appQ->where('project_approvals.entity_id', $userEntityId));
+                    }
                 }
                 if ($userEntityName) {
                     $cleanEntName = trim(preg_replace('/\s+/u', ' ', $userEntityName));
@@ -191,8 +232,8 @@ class ScopeFilterService
         $orgInput = null;
         if ($request->has('organization') || $request->has('entity')) {
             $orgInput = $request->input('organization', $request->input('entity'));
-        } elseif ($enforceDefaultEntity && $user->entity_id) {
-            $orgInput = $user->entity_id;
+        } elseif ($enforceDefaultEntity && ($user->entity_id || $user->authority_id)) {
+            $orgInput = $user->entity_id ?? $user->authority_id;
         }
 
         if (! empty($orgInput) && $orgInput !== 'all' && $orgInput !== '') {
@@ -202,7 +243,10 @@ class ScopeFilterService
             if ($normalizedId && ! $organizationName) {
                 $organizationName = DB::table('internal_entities')
                     ->where('id', $normalizedId)
-                    ->value('name');
+                    ->value('name')
+                    ?? DB::table('authorities')
+                        ->where('id', $normalizedId)
+                        ->value('agency_name');
             }
 
             $includeChildren = $request->boolean('include_children', false);
@@ -214,7 +258,8 @@ class ScopeFilterService
 
                 $query->where(function ($q) use ($targetIds, $targetNames, $table) {
                     $q->whereIn("$table.creator_entity_id", $targetIds)
-                        ->orWhereIn("$table.internal_entity_id", $targetIds);
+                        ->orWhereIn("$table.internal_entity_id", $targetIds)
+                        ->orWhereIn("$table.authority_id", $targetIds);
 
                     if (! empty($targetNames)) {
                         $cleanNames = array_map(fn ($n) => trim(preg_replace('/\s+/u', ' ', $n)), $targetNames);
@@ -226,7 +271,8 @@ class ScopeFilterService
                 $query->where(function ($q) use ($normalizedId, $organizationName, $orgInput, $table) {
                     if ($normalizedId !== null) {
                         $q->where("$table.creator_entity_id", $normalizedId)
-                            ->orWhere("$table.internal_entity_id", $normalizedId);
+                            ->orWhere("$table.internal_entity_id", $normalizedId)
+                            ->orWhere("$table.authority_id", $normalizedId);
                     }
 
                     $q->orWhere("$table.created_by_entity", (string) $orgInput);
@@ -240,6 +286,9 @@ class ScopeFilterService
                             })
                             ->orWhereHas('internalEntity', function ($entityQ) use ($cleanName) {
                                 $entityQ->where('name', $cleanName);
+                            })
+                            ->orWhereHas('authority', function ($authQ) use ($cleanName) {
+                                $authQ->where('agency_name', $cleanName);
                             });
                     }
                 });

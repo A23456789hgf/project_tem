@@ -10,6 +10,7 @@ use App\Models\AuthorityApprovalStage;
 use App\Models\EntityApprovalStage;
 use App\Models\InternalEntity;
 use App\Models\Project;
+use App\Models\User;
 
 class ApprovalChainBuilder
 {
@@ -261,5 +262,48 @@ class ApprovalChainBuilder
         }
 
         return $stages;
+    }
+
+    /**
+     * Validate that every configured stage has a responsible user.
+     * Prevents creating approval tasks that nobody can execute.
+     */
+    public function validateChainStages(array $stages): bool
+    {
+        foreach ($stages as $stage) {
+            if (empty($stage['responsible_user_id'])) {
+                throw new ConfigurationException(
+                    'مرحلة الاعتماد '.$stage['name_ar'].' لا تحتوي على مسؤول محدد.'
+                );
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the assigned user for the current workflow stage.
+     * Used to display the task owner.
+     */
+    public function getResponsibleUserFromStage(array $stage): ?User
+    {
+        if (empty($stage['responsible_user_id'])) {
+            return null;
+        }
+
+        return User::find($stage['responsible_user_id']);
+    }
+
+    /**
+     * Build chain prepared for workflow execution.
+     * Adds normalized fields used by ProjectApproval creation.
+     */
+    public function buildWorkflowChain(Project $project): array
+    {
+        $chain = $this->buildChainForProject($project);
+
+        $this->validateChainStages($chain);
+
+        return $chain;
     }
 }

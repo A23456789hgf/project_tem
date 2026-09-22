@@ -128,7 +128,9 @@
             @endif
 
             {{-- Main Technical Review Form --}}
+            @can('reviews.technical')
             <form method="POST" action="{{ route('projects.review.technical.submit', $project) }}" enctype="multipart/form-data">
+            @endcan
                 @csrf
 
                 {{-- Policy Notice Banner --}}
@@ -157,24 +159,35 @@
                     <div class="card-body">
                         @foreach($project->preliminaryActivities as $activity)
                             <div class="mb-4 p-3 bg-light rounded border">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold text-primary small">
-                                        <i class="fas fa-tasks me-1"></i> بيان / اسم النشاط التمهيدي:
-                                    </label>
-                                    <input type="text" 
-                                           name="preliminary_activities[{{ $activity->id }}][name]" 
-                                           class="form-control fw-semibold" 
-                                           value="{{ $activity->name ?? $activity->activity }}" 
-                                           required>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-9">
+                                        <label class="form-label fw-bold text-primary small">
+                                            <i class="fas fa-tasks me-1"></i> بيان / اسم النشاط التمهيدي:
+                                        </label>
+                                        <input type="text" 
+                                               name="preliminary_activities[{{ $activity->id }}][name]" 
+                                               class="form-control fw-semibold" 
+                                               value="{{ $activity->name ?? $activity->activity }}" 
+                                               required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold text-primary small">
+                                            <i class="fas fa-percentage me-1"></i> الوزن النسبي (%):
+                                        </label>
+                                        <input type="number" step="0.01" min="0" max="100"
+                                               name="preliminary_activities[{{ $activity->id }}][weight]" 
+                                               class="form-control fw-semibold" 
+                                               value="{{ $activity->weight ?? 0 }}">
+                                    </div>
                                 </div>
 
                                 @if($activity->procedures->count() > 0)
                                     <div class="ms-md-3">
-                                        <label class="form-label fw-bold text-dark small mb-2">إجراءات النشاط التمهيدي والمواعيد:</label>
+                                        <label class="form-label fw-bold text-dark small mb-2">إجراءات النشاط التمهيدي والمواعيد والأوزان:</label>
                                         @foreach($activity->procedures as $procedure)
                                             <div class="p-3 bg-white mb-3 rounded border shadow-xs">
                                                 <div class="row g-2 align-items-center">
-                                                    <div class="col-md-6">
+                                                    <div class="col-md-5">
                                                         <label class="form-label small text-muted mb-1">اسم الإجراء:</label>
                                                         <input type="text" 
                                                                name="preliminary_procedures[{{ $procedure->id }}][procedure_name]" 
@@ -182,7 +195,14 @@
                                                                value="{{ $procedure->procedure_name ?? $procedure->procedure }}" 
                                                                required>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-2">
+                                                        <label class="form-label small text-muted mb-1">الوزن (%):</label>
+                                                        <input type="number" step="0.01" min="0" max="100"
+                                                               name="preliminary_procedures[{{ $procedure->id }}][weight]" 
+                                                               class="form-control form-control-sm" 
+                                                               value="{{ $procedure->weight ?? 0 }}">
+                                                    </div>
+                                                    <div class="col-md-2">
                                                         <label class="form-label small text-muted mb-1">تاريخ البداية:</label>
                                                         <input type="date" 
                                                                name="preliminary_procedures[{{ $procedure->id }}][start_date]" 
@@ -233,24 +253,35 @@
                     <div class="card-body">
                         @foreach($project->executiveActivities as $activity)
                             <div class="mb-4 p-3 bg-light rounded border">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small" style="color: #6f42c1;">
-                                        <i class="fas fa-running me-1"></i> بيان / اسم النشاط التنفيذي:
-                                    </label>
-                                    <input type="text" 
-                                           name="executive_activities[{{ $activity->id }}][activity_name]" 
-                                           class="form-control fw-semibold" 
-                                           value="{{ $activity->activity_name ?? $activity->name }}" 
-                                           required>
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-9">
+                                        <label class="form-label fw-bold small" style="color: #6f42c1;">
+                                            <i class="fas fa-running me-1"></i> بيان / اسم النشاط التنفيذي:
+                                        </label>
+                                        <input type="text" 
+                                               name="executive_activities[{{ $activity->id }}][activity_name]" 
+                                               class="form-control fw-semibold" 
+                                               value="{{ $activity->activity_name ?? $activity->name }}" 
+                                               required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold small" style="color: #6f42c1;">
+                                            <i class="fas fa-percentage me-1"></i> الوزن النسبي (%):
+                                        </label>
+                                        <input type="number" step="0.01" min="0" max="100"
+                                               name="executive_activities[{{ $activity->id }}][weight]" 
+                                               class="form-control fw-semibold" 
+                                               value="{{ $activity->weight ?? 0 }}">
+                                    </div>
                                 </div>
 
                                 @if($activity->actions->count() > 0)
                                     <div class="ms-md-3">
-                                        <label class="form-label fw-bold text-dark small mb-2">إجراءات النشاط التنفيذي والمواعيد:</label>
+                                        <label class="form-label fw-bold text-dark small mb-2">إجراءات النشاط التنفيذي والمواعيد والأوزان:</label>
                                         @foreach($activity->actions as $action)
                                             <div class="p-3 bg-white mb-3 rounded border shadow-xs">
                                                 <div class="row g-2 align-items-center">
-                                                    <div class="col-md-6">
+                                                    <div class="col-md-5">
                                                         <label class="form-label small text-muted mb-1">اسم الإجراء التنفيذي:</label>
                                                         <input type="text" 
                                                                name="executive_actions[{{ $action->id }}][action_name]" 
@@ -258,7 +289,14 @@
                                                                value="{{ $action->action_name ?? $action->action }}" 
                                                                required>
                                                     </div>
-                                                    <div class="col-md-3">
+                                                    <div class="col-md-2">
+                                                        <label class="form-label small text-muted mb-1">الوزن (%):</label>
+                                                        <input type="number" step="0.01" min="0" max="100"
+                                                               name="executive_actions[{{ $action->id }}][weight]" 
+                                                               class="form-control form-control-sm" 
+                                                               value="{{ $action->weight ?? 0 }}">
+                                                    </div>
+                                                    <div class="col-md-2">
                                                         <label class="form-label small text-muted mb-1">تاريخ البداية:</label>
                                                         <input type="date" 
                                                                name="executive_actions[{{ $action->id }}][start_date]" 

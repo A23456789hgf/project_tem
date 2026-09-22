@@ -107,7 +107,9 @@
 
     <!-- Form Section -->
     @if($hasOverage)
+        @can('projects.execution.storeProcedureBudgetJustification')
         <form action="{{ route('projects.execution.storeProcedureBudgetJustification', ['project' => $project]) }}" 
+        @endcan
               method="POST" 
               enctype="multipart/form-data"
               class="budget-justification-form">

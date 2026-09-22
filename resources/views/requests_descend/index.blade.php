@@ -634,12 +634,14 @@
                                     @endif
 
                                     @if($requestItem->status == 'draft' || $requestItem->status == 'returned')
+                                        @can('project-requests.approve')
                                         <form action="{{ route('requests_descend.sendForApproval', $requestItem->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             <button type="button" class="btn btn-action-enable btn-icon" onclick="confirmAction('إرسال للاعتماد', this.form)" title="إرسال للاعتماد النهائي">
                                                 <x-icon name="send" class="action-icon" />
                                             </button>
                                         </form>
+                                        @endcan
 
                                         @can('requests_descend.edit', $requestItem)
                                             <a href="{{ route('requests_descend.edit', $requestItem->id) }}"
@@ -670,6 +672,7 @@
                                                 <h5 class="modal-title fw-bold text-primary"><i class="fas fa-shield-alt me-2"></i> قرار الاعتماد أو المراجعة</h5>
                                                 <button type="button" class="btn-close m-0 ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
+                                            @can('project-requests.approve')
                                             <form action="{{ route('requests_descend.processApproval', $requestItem->id) }}" method="POST">
                                                 @csrf
                                                 <div class="modal-body p-4">
@@ -693,6 +696,7 @@
                                                     <button type="submit" class="btn btn-primary px-4 fw-bold">حفظ القرار</button>
                                                 </div>
                                             </form>
+                                            @endcan
                                         </div>
                                     </div>
                                 </div>

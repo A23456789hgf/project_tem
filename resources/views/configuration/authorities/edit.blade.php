@@ -13,7 +13,9 @@
     <div class="row justify-content-center">
         <div class="col-xl-8">
             <div class="main-card p-5 shadow-lg border-0 rounded-4">
+                @can('authorities.edit')
                 <form action="{{ route('authorities.update', $authority->id) }}" method="POST">
+                @endcan
                     @csrf 
                     @method('PUT')
                     <input type="hidden" name="view" value="{{ request('view', 'tree') }}">

@@ -49,6 +49,7 @@
                                 <h5 class="modal-title fw-bold text-primary"><i class="fas fa-shield-alt me-2"></i> قرار الاعتماد أو المراجعة</h5>
                                 <button type="button" class="btn-close m-0 ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
+                            @can('project-requests.approve')
                             <form action="{{ route('requests_descend.processApproval', $requestDescend->id) }}" method="POST">
                                 @csrf
                                 <div class="modal-body p-4">
@@ -72,6 +73,7 @@
                                     <button type="submit" class="btn btn-primary px-4 fw-bold">حفظ القرار</button>
                                 </div>
                             </form>
+                            @endcan
                         </div>
                     </div>
                 </div>

@@ -863,6 +863,7 @@
                                                 <h5 class="modal-title">رفض سجل التنفيذ</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
+                                            @can('execution.reject')
                                             <form action="{{ route('projects.execution.preliminary.reject', [$execution->project, $execution]) }}" method="POST">
                                                 @csrf
                                                 <div class="modal-body">
@@ -877,6 +878,7 @@
                                                     <button type="submit" class="btn btn-danger">رفض</button>
                                                 </div>
                                             </form>
+                                            @endcan
                                         </div>
                                     </div>
                                 </div>
@@ -983,6 +985,7 @@
                                                 <h5 class="modal-title">رفض سجل التنفيذ</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
+                                            @can('execution.reject')
                                             <form action="{{ route('projects.execution.executive.reject', [$execution->project, $execution]) }}" method="POST">
                                                 @csrf
                                                 <div class="modal-body">
@@ -997,6 +1000,7 @@
                                                     <button type="submit" class="btn btn-danger">رفض</button>
                                                 </div>
                                             </form>
+                                            @endcan
                                         </div>
                                     </div>
                                 </div>

@@ -13,7 +13,9 @@
             </a>
         </div>
 
+        @can('value-chain-financing-types.edit')
         <form action="{{ route('value-chains.financing.store', $valueChain->id) }}" method="POST" class="row g-4">
+        @endcan
             @csrf
 
             {{-- نوع التمويل --}}

@@ -12,7 +12,9 @@
 
     
 
+    @can('associations.create')
     <form action="{{ route('associations.store') }}" method="POST">
+    @endcan
         @csrf
         
         <div class="row g-4 align-items-end">

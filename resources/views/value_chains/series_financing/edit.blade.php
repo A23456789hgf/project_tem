@@ -11,7 +11,9 @@
                 <i class="fas fa-arrow-right ms-1"></i> العودة لقائمة جهات التمويل
             </a>
         </div>
+        @can('value-chain-financing-types.edit')
         <form action="{{ route('value-chains.financing.update', [$valueChain->id, $financing->id]) }}" method="POST"
+        @endcan
             class="row g-4">
             @csrf
             @method('PUT')

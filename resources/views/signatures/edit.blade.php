@@ -16,7 +16,9 @@
                     </div>
                 </div>
 
+                @can('signatures.edit')
                 <form action="{{ route('signatures.update', $signature) }}" method="POST" enctype="multipart/form-data" class="modern-form">
+                @endcan
                     @csrf
                     @method('PUT')
                     

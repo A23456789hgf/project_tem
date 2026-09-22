@@ -731,7 +731,9 @@
                 <div class="sms-send-form-body">
 
 
+                    @can('config.view')
                     <form action="{{ route('configuration.sms.send-manual') }}" method="POST" id="smsSendForm">
+                    @endcan
                         @csrf
 
                         {{-- ===== قسم الفئة المستهدفة ===== --}}

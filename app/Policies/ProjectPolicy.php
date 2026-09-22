@@ -136,9 +136,9 @@ class ProjectPolicy
     /**
      * Determine whether the user can export models.
      */
-    public function export(User $user, ?Project $project = null): bool
+    public function export(User $user, $project = null): bool
     {
-        return $user->hasPermission('projects.export', $project);
+        return $user->hasPermission('projects.export', $project instanceof Project ? $project : null);
     }
 
     /**

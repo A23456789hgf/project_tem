@@ -147,7 +147,9 @@
 
 <!-- سكريبت SweetAlert (local) -->
 <script src="{{ asset('js/libs/sweetalert2.all.min.js') }}"></script>
+@can('logout')
 <form id="logout-form" method="POST" action="{{ route('logout') }}" class="d-none">@csrf</form>
+@endcan
 
 <script>
     function confirmLogout() {

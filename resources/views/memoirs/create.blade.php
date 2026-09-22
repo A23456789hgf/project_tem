@@ -12,7 +12,9 @@
                     </a>
                 </div>
                 <div class="card-body p-4">
+                    @can('memoirs.create')
                     <form action="{{ route('memoirs.store') }}" method="POST">
+                    @endcan
                         @csrf
                         
                         <div class="row g-4 mb-4">

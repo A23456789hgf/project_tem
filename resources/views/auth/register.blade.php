@@ -16,7 +16,9 @@
 
                     
 
+                    @can('auth.register')
                     <form action="{{ route('auth.register') }}" method="POST">
+                    @endcan
                         @csrf
 
                         <div class="row">

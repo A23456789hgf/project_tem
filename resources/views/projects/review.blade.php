@@ -156,17 +156,21 @@
                             <i class="fas fa-print"></i> طباعة
                         </button>
                         @if($project->status !== 'final')
+                        @can('projects.edit')
                         <a href="{{ route('projects.edit', $project->id) }}" class="btn btn-light btn-sm">
                             <i class="fas fa-edit"></i> تعديل
                         </a>
+                        @endcan
                         @endif
                         @if(in_array($project->status, ['draft', 'completed_draft']))
+                        @can('projects.edit')
                         <form action="{{ route('projects.approve-internally', $project->id) }}" method="POST" style="display:inline;">
                             @csrf
                             <button type="submit" class="btn btn-success btn-sm" onclick="return confirmAction(this, 'هل أنت متأكد من اعتماد هذا المشروع داخلياً؟ لن يمكنك التعديل عليه إلا بعد تحويله لمسودة مرة أخرى.')">
                                 <i class="fas fa-check-circle"></i> اعتماد داخلي
                             </button>
                         </form>
+                        @endcan
                         @endif
                         <div class="btn-group">
                             <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">

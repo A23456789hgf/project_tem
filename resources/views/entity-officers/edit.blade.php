@@ -14,7 +14,9 @@
             <div class="title-line mt-2"></div>
         </div>
 
+        @can('entity-officers.edit')
         <form action="{{ route('entity-officers.update', $entityOfficer) }}" method="POST" class="p-4">
+        @endcan
             @csrf
             @method('PUT')
             

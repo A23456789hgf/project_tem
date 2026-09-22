@@ -580,7 +580,9 @@
     </div>
 
     <div class="content-scrollable-area" id="mainScrollContainer">
+        @can('project-requests.create')
         <form id="projectForm" action="{{ route('project-requests.store') }}" method="POST" novalidate>
+        @endcan
             @csrf
             <input type="hidden" name="status" value="draft">
             <input type="hidden" id="request_id" name="request_id" value="{{ $projectRequest->id ?? '' }}">

@@ -60,7 +60,7 @@
                             <label class="fw-bold">مسؤولية الموافقات:</label>
                             <p>
                                 @if($user->responsibility)
-                                    <span class="badge bg-info text-dark">{{ \App\Enums\UserResponsibilityType::tryFrom($user->responsibility)?->label() ?? $user->responsibility }}</span>
+                                    <span class="badge bg-info text-dark">{{ $user->responsibility instanceof \App\Enums\UserResponsibilityType ? $user->responsibility->label() : (\App\Enums\UserResponsibilityType::tryFrom($user->responsibility)?->label() ?? $user->responsibility) }}</span>
                                 @else
                                     <span class="text-muted">بدون مسؤولية خاصة</span>
                                 @endif
@@ -68,7 +68,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="fw-bold">النطاق الإداري:</label>
-                            <p>{{ $user->internalEntity?->name ?? 'غير محدد' }}</p>
+                            <p>{{ $user->isExternal() ? ($user->administrativeAuthority?->agency_name ?? $user->authority?->agency_name ?? 'غير محدد') : ($user->internalEntity?->name ?? 'غير محدد') }}</p>
                         </div>
                     </div>
 

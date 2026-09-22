@@ -51,7 +51,9 @@
                     </div>
 
                     <!-- نموذج الاستيراد -->
+                    @can('authorities.import')
                     <form action="{{ route('authorities.process-import') }}" method="POST" id="importForm" class="import-form">
+                    @endcan
                         @csrf
                         <input type="hidden" name="file_path" value="{{ $filePath ?? '' }}">
                         <input type="hidden" name="confirmation" value="1">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Project\Services\ProjectService;
 use App\Models\InternalEntity;
 use App\Models\Program;
 use App\Models\Project;
@@ -9,129 +10,68 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
 class HomeController extends Controller
 {
+    public function __construct(protected ProjectService $projectService) {}
+
     public function index()
     {
         $user = Auth::user();
 
-        // ================================================================
-        // قراءة النطاقات من الجلسة أو من المستخدم (القيم الافتراضية)
-        // ================================================================
-        $selectedAdminScope = Session::get('selected_administrative_scope_id', $user->administrative_scope_id);
-        $selectedEntity = Session::get('selected_entity_id', $user->entity_id);
-        $selectedGeographicScopes = Session::get('selected_geographic_scopes', $user->geographicScopes);
-
-        // ================================================================
-        // بناء قائمة المعرفات (entity_ids) من النطاقات الثلاثة
-        // ================================================================
-        $entityIds = $this->getEntityIdsFromScope($selectedAdminScope, $selectedEntity, $selectedGeographicScopes);
-
-        // ================================================================
-        // بناء الاستعلامات
-        // ================================================================
-        $programQuery = Program::query();
-        $userQuery = User::query();
+        // ── فلترة المشاريع الموحدة (Single Source of Truth) ─────────────
         $projectQuery = Project::withoutGlobalScopes();
+        $this->projectService->applyAccessibleProjectsQuery($projectQuery, $user);
 
-        // ── فلترة البرامج والمستخدمين ──────────────────────────────────
-        if ($user->isAdmin()) {
-            // المدير يرى الكل — لا فلترة
-        } elseif (! empty($entityIds)) {
-            $programQuery->whereHas('projects', function ($q) use ($entityIds) {
-                $q->whereIn('creator_entity_id', $entityIds);
+        // ── فلترة البرامج ──────────────────────────────────────────────
+        $programQuery = Program::query();
+        if (! $user->isAdmin() && ! ($user->role && $user->role->full_access)) {
+            $programQuery->whereHas('projects', function ($q) use ($user) {
+                $this->projectService->applyAccessibleProjectsQuery($q, $user);
             });
-            $userQuery->whereIn('entity_id', $entityIds);
-        } else {
-            // لا نطاق مُعيَّن → يرى برامجه وكيانه فقط
-            $userEntityId = $user->entity_id;
-            if (! empty($userEntityId)) {
-                $programQuery->whereHas('projects', function ($q) use ($userEntityId) {
-                    $q->where('creator_entity_id', $userEntityId);
-                });
-                $userQuery->where('entity_id', $userEntityId);
-            }
         }
 
-        // ── فلترة المشاريع (مطابقة لـ ProjectService) ──────────────────
-        if ($user->isAdmin()) {
-            // المدير يرى الكل — لا فلترة
-        } elseif (! empty($entityIds)) {
-            $entityNames = DB::table('internal_entities')
-                ->whereIn('id', $entityIds)
-                ->pluck('name')
-                ->filter()
-                ->toArray();
+        // ── فلترة المستخدمين ──────────────────────────────────────────
+        $userQuery = User::query();
+        if (! $user->isAdmin() && ! ($user->role && $user->role->full_access)) {
+            if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
+                $userQuery->where('authority_id', $user->authority_id);
+            } else {
+                $selectedAdminScope = Session::get('selected_administrative_scope_id', $user->administrative_scope_id);
+                $selectedEntity = Session::get('selected_entity_id', $user->entity_id);
+                $selectedGeographicScopes = Session::get('selected_geographic_scopes', $user->geographicScopes);
+                $entityIds = $this->getEntityIdsFromScope($selectedAdminScope, $selectedEntity, $selectedGeographicScopes);
 
-            $projectQuery->where(function ($q) use ($entityIds, $entityNames, $user) {
-                $q->whereIn('creator_entity_id', $entityIds)
-                    ->orWhereIn('internal_entity_id', $entityIds)
-                    ->orWhere('created_by_user_id', $user->id);
-
-                foreach ($entityNames as $entName) {
-                    $cleanEntName = trim(preg_replace('/\s+/u', ' ', $entName));
-                    if (! empty($cleanEntName)) {
-                        $q->orWhere('created_by_entity', 'like', "%{$cleanEntName}%");
-                    }
+                if (! empty($entityIds)) {
+                    $userQuery->whereIn('entity_id', $entityIds);
+                } elseif (! empty($user->entity_id)) {
+                    $userQuery->where('entity_id', $user->entity_id);
                 }
-            });
-        } else {
-            // لا نطاق مُعيَّن → المستخدم يرى مشاريعه الشخصية أو مشاريع كيانه فقط
-            $userEntityId = $user->entity_id;
-            $userEntityName = $user->entity?->name;
-
-            $projectQuery->where(function ($q) use ($user, $userEntityId, $userEntityName) {
-                $q->where('created_by_user_id', $user->id);
-                if (! empty($userEntityId)) {
-                    $q->orWhere('creator_entity_id', $userEntityId)
-                        ->orWhere('internal_entity_id', $userEntityId);
-                }
-                if (! empty($userEntityName)) {
-                    $cleanEntName = trim(preg_replace('/\s+/u', ' ', $userEntityName));
-                    $q->orWhere('created_by_entity', 'like', "%{$cleanEntName}%");
-                }
-            });
+            }
         }
 
         // ================================================================
         // الإحصائيات والمشاريع الأخيرة
         // ================================================================
-        $t1 = microtime(true);
         $programCount = $programQuery->count();
-        $t2 = microtime(true);
         $userCount = $userQuery->count();
-        $t3 = microtime(true);
-        $projectCount = $projectQuery->count();
-        $t4 = microtime(true);
+        $projectCount = (clone $projectQuery)->count();
 
         $completedProjectsCount = (clone $projectQuery)->where('status', 'completed')->count();
-        $t5 = microtime(true);
-        $underReviewProjectsCount = (clone $projectQuery)->whereHas('currentApprovalStage', function ($q) {
-            $q->whereIn('type', ['financial_review', 'technical_review']);
+        $underReviewProjectsCount = (clone $projectQuery)->where(function ($q) {
+            $q->where('status', 'under_review')
+                ->orWhereHas('currentApprovalStage', function ($sq) {
+                    $sq->whereIn('type', ['financial_review', 'technical_review', 'review']);
+                });
         })->count();
-        $t6 = microtime(true);
         $underExecutionProjectsCount = (clone $projectQuery)->whereIn('status', ['in_progress', 'implementation', 'in_execution'])->count();
-        $t7 = microtime(true);
 
-        $recentProjects = $projectQuery
-            ->latest()
+        $recentProjects = (clone $projectQuery)
+            ->with(['program', 'domain', 'currentApprovalStage', 'authority', 'creatorEntity'])
+            ->latest('projects.created_at')
             ->take(5)
             ->get();
-        $t8 = microtime(true);
-
-        Log::info('HomeTiming', [
-            'q1' => $t2 - $t1,
-            'q2' => $t3 - $t2,
-            'q3' => $t4 - $t3,
-            'q4' => $t5 - $t4,
-            'q5' => $t6 - $t5,
-            'q6' => $t7 - $t6,
-            'q7' => $t8 - $t7,
-            'total' => $t8 - $t1,
-        ]);
 
         return view('home', compact(
             'user',

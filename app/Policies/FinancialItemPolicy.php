@@ -41,4 +41,14 @@ class FinancialItemPolicy
     {
         return $user->hasPermission('financial-items.export') || $user->hasPermission('financial-items.view');
     }
+
+    public function approve(User $user, ?FinancialItem $model = null): bool
+    {
+        return $user->hasPermission('financial-items.approve');
+    }
+
+    public function reject(User $user, ?FinancialItem $model = null): bool
+    {
+        return $user->hasPermission('financial-items.reject');
+    }
 }

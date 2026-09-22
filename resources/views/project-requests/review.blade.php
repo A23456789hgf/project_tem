@@ -148,15 +148,19 @@
                             <i class="fas fa-print"></i> طباعة
                         </button>
                         @if($projectRequest->status === 'draft')
+                        @can('project-requests.edit')
                         <a href="{{ route('project-requests.edit', $projectRequest->id) }}" class="btn btn-light btn-sm">
                             <i class="fas fa-edit"></i> تعديل
                         </a>
+                        @endcan
+                        @can('project-requests.edit')
                         <form action="{{ route('project-requests.submit', $projectRequest->id) }}" method="POST" style="display:inline;">
                             @csrf
                             <button type="submit" class="btn btn-success btn-sm" onclick="return confirmAction(this, 'هل أنت متأكد من إرسال هذا الطلب؟ لن يمكنك التعديل عليه بعد الإرسال.')">
                                 <i class="fas fa-paper-plane"></i> إرسال الطلب
                             </button>
                         </form>
+                        @endcan
                         @endif
                     </div>
                 </div>

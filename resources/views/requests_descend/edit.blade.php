@@ -15,7 +15,9 @@
         <div class="card-body">
             
 
+            @can('requests_descend.edit')
             <form action="{{ route('requests_descend.update', $requestDescend->id) }}" method="POST">
+            @endcan
                 @csrf
                 @method('PUT')
                 

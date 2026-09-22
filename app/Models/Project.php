@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Project\Services\ProjectService;
 use App\Services\ProjectNumberGenerator;
 use App\Traits\Auditable;
 use App\Traits\HasCreatorTracking;
@@ -11,8 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 // تم إزالة HasModelVisibility لإصلاح خطأ "Call to undefined method App\Scopes\DomainScope::applyEntityBasedScope()"
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Auth;
@@ -357,7 +358,19 @@ class Project extends Model
      */
     public function getCreatorEntityNameAttribute(): string
     {
-        // 1. Preferred: use the proper FK relation
+        // 1. External Authority Project
+        if ($this->isExternal() || $this->authority_id) {
+            if ($this->authority_id) {
+                $name = $this->relationLoaded('authority')
+                    ? optional($this->authority)->agency_name
+                    : DB::table('authorities')->where('id', $this->authority_id)->value('agency_name');
+                if ($name) {
+                    return (string) $name;
+                }
+            }
+        }
+
+        // 2. Preferred for internal: use creator_entity_id FK relation
         if ($this->creator_entity_id) {
             $name = $this->relationLoaded('creatorEntity')
                 ? optional($this->creatorEntity)->name
@@ -370,12 +383,12 @@ class Project extends Model
             }
         }
 
-        // 2. Legacy fallback: string stored in created_by_entity
+        // 3. Legacy fallback: string stored in created_by_entity
         if (! empty($this->created_by_entity)) {
             return (string) $this->created_by_entity;
         }
 
-        // 3. Ultimate fallback: creator user's department
+        // 4. Fallback: creator user's department
         if ($this->createdBy) {
             return $this->createdBy->department ?? '-';
         }
@@ -886,6 +899,16 @@ class Project extends Model
         return 'internal';
     }
 
+    public function isInternal(): bool
+    {
+        return $this->getOriginType() === 'internal';
+    }
+
+    public function isExternal(): bool
+    {
+        return $this->getOriginType() === 'external';
+    }
+
     /**
      * Check if the project is currently in the stage belonging to the creator entity.
      */
@@ -1180,15 +1203,19 @@ class Project extends Model
             return true;
         }
 
+        if ($user->role && $user->role->full_access) {
+            return true;
+        }
+
         $userId = $user->id;
         if (isset($this->visibilityCheckCache[$userId])) {
             return $this->visibilityCheckCache[$userId];
         }
 
-        return $this->visibilityCheckCache[$userId] = static::query()
-            ->withVisibility($user)
-            ->whereKey($this->getKey())
-            ->exists();
+        $query = static::withoutGlobalScopes()->where('projects.id', $this->getKey());
+        app(ProjectService::class)->applyAccessibleProjectsQuery($query, $user);
+
+        return $this->visibilityCheckCache[$userId] = $query->exists();
     }
 
     /**
@@ -1206,7 +1233,7 @@ class Project extends Model
             return $query;
         }
 
-        return $query->withVisibility($user);
+        return app(ProjectService::class)->applyAccessibleProjectsQuery($query, $user);
     }
 
     /**

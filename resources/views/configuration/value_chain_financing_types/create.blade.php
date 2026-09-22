@@ -12,6 +12,7 @@
 
     
 
+    @can('value-chain-financing-types.edit')
     <form action="{{ route('value-chain-financing-types.store') }}" method="POST">
         @csrf
         
@@ -47,5 +48,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

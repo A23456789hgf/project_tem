@@ -4,14 +4,12 @@
     @include('configuration.shared_styles')
 
     <style>
-        /* ===== الخلفية العامة ===== */
         .sms-settings-wrapper {
             background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
             min-height: 100vh;
             padding: 30px 0;
         }
 
-        /* ===== البطاقة الرئيسية ===== */
         .sms-main-card {
             background: #ffffff;
             border-radius: 20px;
@@ -21,7 +19,6 @@
             transition: all 0.3s ease;
         }
 
-        /* ===== رأس الصفحة ===== */
         .sms-page-header {
             background: linear-gradient(135deg, #001f3f 0%, #003366 50%, #004080 100%);
             padding: 30px 35px;
@@ -29,35 +26,10 @@
             overflow: hidden;
         }
 
-        .sms-page-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-
-        .sms-page-header::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -10%;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-
         .sms-page-header h2 {
             color: #ffffff !important;
             font-size: 1.6rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
-            position: relative;
-            z-index: 1;
         }
 
         .sms-page-header .header-icon {
@@ -82,8 +54,6 @@
             color: rgba(255, 255, 255, 0.7);
             font-size: 0.9rem;
             margin-top: 6px;
-            position: relative;
-            z-index: 1;
         }
 
         .sms-page-header .title-line {
@@ -92,11 +62,8 @@
             background: linear-gradient(90deg, #00d4ff, #0099cc);
             border-radius: 3px;
             margin-top: 10px;
-            position: relative;
-            z-index: 1;
         }
 
-        /* ===== زر العودة ===== */
         .btn-back-sms {
             background: rgba(255, 255, 255, 0.12);
             color: #ffffff !important;
@@ -106,29 +73,24 @@
             font-weight: 600;
             font-size: 0.9rem;
             transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            position: relative;
-            z-index: 1;
         }
 
         .btn-back-sms:hover {
             background: rgba(255, 255, 255, 0.25);
             color: #ffffff !important;
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
         }
 
-        /* ===== محتوى النموذج ===== */
         .sms-form-body {
             padding: 35px;
         }
 
-        /* ===== عنوان القسم ===== */
         .section-title-wrapper {
             display: flex;
             align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
             border-bottom: 2px solid #f0f2f5;
         }
 
@@ -156,13 +118,6 @@
             margin-bottom: 2px;
         }
 
-        .section-title-text p {
-            color: #8492a6;
-            font-size: 0.82rem;
-            margin-bottom: 0;
-        }
-
-        /* ===== بطاقة الحدث ===== */
         .event-card {
             background: #ffffff;
             border: 2px solid #eef1f6;
@@ -174,27 +129,10 @@
             height: 100%;
         }
 
-        .event-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(180deg, #001f3f, #004080);
-            border-radius: 0 4px 4px 0;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
         .event-card:hover {
             border-color: #001f3f;
             box-shadow: 0 8px 30px rgba(0, 31, 63, 0.1);
             transform: translateY(-4px);
-        }
-
-        .event-card:hover::before {
-            opacity: 1;
         }
 
         .event-card.active-event {
@@ -202,9 +140,9 @@
             background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
         }
 
-        .event-card.active-event::before {
-            background: linear-gradient(180deg, #28a745, #20c997);
-            opacity: 1;
+        .event-card.required-event {
+            border-color: #17a2b8;
+            background: linear-gradient(135deg, #e3f7fc 0%, #ffffff 100%);
         }
 
         .event-icon-wrapper {
@@ -216,26 +154,8 @@
             justify-content: center;
             margin-right: 15px;
             flex-shrink: 0;
-            transition: all 0.3s ease;
-        }
-
-        .event-icon-wrapper.icon-project {
             background: linear-gradient(135deg, #e8f4fd, #d1ecf9);
             color: #0066cc;
-        }
-
-        .event-icon-wrapper.icon-user {
-            background: linear-gradient(135deg, #f0e8fd, #e1d1f9);
-            color: #6f42c1;
-        }
-
-        .event-icon-wrapper.icon-default {
-            background: linear-gradient(135deg, #e8f8f0, #d1f5e3);
-            color: #28a745;
-        }
-
-        .event-icon-wrapper i {
-            font-size: 1.2rem;
         }
 
         .event-info h6 {
@@ -249,11 +169,17 @@
             color: #8492a6;
             font-size: 0.82rem;
             line-height: 1.5;
+            display: block;
         }
 
-        /* ===== مفتاح التبديل المخصص ===== */
-        .custom-switch-wrapper {
-            flex-shrink: 0;
+        .event-info .recipient-tag {
+            font-size: 0.75rem;
+            color: #004080;
+            background: #e6f0fa;
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-top: 4px;
         }
 
         .form-check-input.custom-sms-switch {
@@ -263,27 +189,18 @@
             border: 2px solid #d1d9e6;
             background-color: #e9ecef;
             transition: all 0.3s ease;
-            box-shadow: none !important;
         }
 
         .form-check-input.custom-sms-switch:checked {
             background-color: #28a745;
             border-color: #28a745;
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.15) !important;
         }
 
-        .form-check-input.custom-sms-switch:focus {
-            box-shadow: 0 0 0 3px rgba(0, 31, 63, 0.1) !important;
-        }
-
-        /* ===== شارة الحالة ===== */
         .status-badge {
             font-size: 0.7rem;
             font-weight: 700;
             padding: 4px 12px;
             border-radius: 20px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
             display: inline-block;
             margin-top: 6px;
         }
@@ -298,7 +215,11 @@
             color: #8492a6;
         }
 
-        /* ===== زر الحفظ ===== */
+        .status-badge.required {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
+
         .btn-save-sms {
             background: linear-gradient(135deg, #001f3f 0%, #004080 100%);
             color: #ffffff;
@@ -307,26 +228,8 @@
             padding: 14px 50px;
             font-weight: 700;
             font-size: 1rem;
-            letter-spacing: 0.5px;
             transition: all 0.3s ease;
             box-shadow: 0 6px 25px rgba(0, 31, 63, 0.25);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-save-sms::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .btn-save-sms:hover::before {
-            left: 100%;
         }
 
         .btn-save-sms:hover {
@@ -335,42 +238,6 @@
             color: #ffffff;
         }
 
-        .btn-save-sms:active {
-            transform: translateY(-1px);
-        }
-
-        /* ===== رسالة النجاح ===== */
-        .alert-success-custom {
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-            border: 1px solid #b1dfbb;
-            border-radius: 14px;
-            color: #155724;
-            padding: 16px 24px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            margin-bottom: 25px;
-            animation: slideDown 0.5s ease;
-        }
-
-        .alert-success-custom i {
-            font-size: 1.3rem;
-            margin-right: 12px;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-15px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ===== عداد الأحداث المفعّلة ===== */
         .events-counter {
             background: linear-gradient(135deg, #f8f9fa, #e9ecef);
             border-radius: 12px;
@@ -399,26 +266,6 @@
             font-weight: 600;
             font-size: 0.85rem;
         }
-
-        /* ===== التجاوب ===== */
-        @media (max-width: 768px) {
-            .sms-page-header {
-                padding: 20px;
-            }
-
-            .sms-form-body {
-                padding: 20px;
-            }
-
-            .event-card {
-                padding: 18px;
-            }
-
-            .btn-save-sms {
-                width: 100%;
-                padding: 14px;
-            }
-        }
     </style>
 
     <div class="sms-settings-wrapper">
@@ -433,9 +280,9 @@
                                 <i class="fas fa-sms"></i>
                             </div>
                             <div>
-                                <h2 class="mb-0">إعدادات أحداث SMS</h2>
+                                <h2 class="mb-0">إعدادات أحداث الرسائل النصية</h2>
                                 <div class="title-line"></div>
-                                <p class="subtitle mb-0">تفعيل أو تعطيل إشعارات الرسائل النصية لأحداث النظام</p>
+                                <p class="subtitle mb-0">التحكم المركزي التفاعلي لإشعارات SMS على مستوى أقسام النظام</p>
                             </div>
                         </div>
                         <div>
@@ -449,104 +296,97 @@
                 {{-- ===== محتوى النموذج ===== --}}
                 <div class="sms-form-body">
 
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
 
+                    @can('config.view')
                     <form action="{{ route('configuration.sms.update-settings') }}" method="POST">
+                    @endcan
                         @csrf
 
-                        {{-- عنوان القسم --}}
-                        <div class="section-title-wrapper">
-                            <div class="section-title-icon">
-                                <i class="fas fa-bell"></i>
-                            </div>
-                            <div class="section-title-text">
-                                <h5>الأحداث المتاحة</h5>
-                                <p>اختر الأحداث التي تريد إرسال إشعارات SMS عند حدوثها</p>
-                            </div>
-                        </div>
-
-                        {{-- عداد الأحداث --}}
+                        {{-- عداد الأحداث المفعّلة --}}
                         <div class="events-counter">
                             <div class="count-number" id="activeEventsCount">0</div>
-                            <div class="count-label">أحداث مفعّلة حالياً</div>
+                            <div class="count-label">أحداث مفعّلة حالياً في النظام</div>
                         </div>
 
-                        <div class="row g-4">
-
-                            {{-- حدث: اعتماد مشروع جديد --}}
-                            <div class="col-md-6">
-                                <div class="event-card {{ $events['project_approved'] === '1' ? 'active-event' : '' }}"
-                                    id="card-project-approved">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <div class="event-icon-wrapper icon-project">
-                                                <i class="fas fa-project-diagram"></i>
-                                            </div>
-                                            <div class="event-info">
-                                                <h6 class="mb-0">اعتماد مشروع جديد</h6>
-                                                <span class="event-desc">
-                                                    يتم إرسال رسالة عند اعتماد مشروع جديد
-                                                </span>
-                                                <span
-                                                    class="status-badge {{ $events['project_approved'] === '1' ? 'active' : 'inactive' }}"
-                                                    id="badge-project-approved">
-                                                    {{ $events['project_approved'] === '1' ? '● مفعّل' : '○ معطّل' }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="custom-switch-wrapper">
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input custom-sms-switch" type="checkbox"
-                                                    name="sms_event_project_approved" value="1" id="switch-project-approved"
-                                                    {{ $events['project_approved'] === '1' ? 'checked' : '' }}
-                                                    onchange="updateEventCard('project-approved', this)">
-                                            </div>
-                                        </div>
-                                    </div>
+                        {{-- ===== تكرار الأقسام والأحداث ديناميكياً من الـ Registry ===== --}}
+                        @foreach($registry as $moduleKey => $module)
+                            <div class="section-title-wrapper">
+                                <div class="section-title-icon">
+                                    <i class="{{ $module['icon'] ?? 'fas fa-cog' }}"></i>
+                                </div>
+                                <div class="section-title-text">
+                                    <h5>{{ $module['label'] ?? $moduleKey }}</h5>
+                                    <p>إدارة الأحداث التابعة لقسم {{ $module['label'] ?? $moduleKey }}</p>
                                 </div>
                             </div>
 
-                            {{-- حدث: تسجيل مستخدم جديد --}}
-                            <div class="col-md-6">
-                                <div class="event-card {{ $events['user_registered'] === '1' ? 'active-event' : '' }}"
-                                    id="card-user-registered">
-                                    <div class="d-flex align-items-center justify-content-between">
-                                        <div class="d-flex align-items-center">
-                                            <div class="event-icon-wrapper icon-user">
-                                                <i class="fas fa-user-plus"></i>
-                                            </div>
-                                            <div class="event-info">
-                                                <h6 class="mb-0">تسجيل مستخدم جديد</h6>
-                                                <span class="event-desc">
-                                                    يتم إرسال رسالة ترحيبية عند تفعيل حساب المستخدم
-                                                </span>
-                                                <span
-                                                    class="status-badge {{ $events['user_registered'] === '1' ? 'active' : 'inactive' }}"
-                                                    id="badge-user-registered">
-                                                    {{ $events['user_registered'] === '1' ? '● مفعّل' : '○ معطّل' }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="custom-switch-wrapper">
-                                            <div class="form-check form-switch">
-                                                <input class="form-check-input custom-sms-switch" type="checkbox"
-                                                    name="sms_event_user_registered" value="1" id="switch-user-registered"
-                                                    {{ $events['user_registered'] === '1' ? 'checked' : '' }}
-                                                    onchange="updateEventCard('user-registered', this)">
+                            <div class="row g-4 mb-4">
+                                @foreach($module['events'] as $eventKey => $event)
+                                    @php
+                                        $isEnabled = $eventManager->enabled($eventKey);
+                                        $isRequired = !empty($event['required']);
+                                        $elementId = str_replace('.', '-', $eventKey);
+                                    @endphp
+
+                                    <div class="col-md-6">
+                                        <div class="event-card {{ $isRequired ? 'required-event' : ($isEnabled ? 'active-event' : '') }}"
+                                            id="card-{{ $elementId }}">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="event-icon-wrapper">
+                                                        <i class="{{ $module['icon'] ?? 'fas fa-bell' }}"></i>
+                                                    </div>
+                                                    <div class="event-info">
+                                                        <h6 class="mb-0">{{ $event['label'] }}</h6>
+                                                        <span class="event-desc">{{ $event['description'] ?? '' }}</span>
+                                                        @if(!empty($event['recipient']))
+                                                            <span class="recipient-tag">
+                                                                <i class="fas fa-user-tag me-1"></i> المستلم: {{ $event['recipient'] }}
+                                                            </span>
+                                                        @endif
+                                                        <br>
+                                                        <span class="status-badge {{ $isRequired ? 'required' : ($isEnabled ? 'active' : 'inactive') }}"
+                                                            id="badge-{{ $elementId }}">
+                                                            @if($isRequired)
+                                                                ● مفعّل دائماً (مطلب أمان)
+                                                            @else
+                                                                {{ $isEnabled ? '● مفعّل' : '○ معطّل' }}
+                                                            @endif
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="custom-switch-wrapper">
+                                                    <div class="form-check form-switch">
+                                                        @if($isRequired)
+                                                            <input class="form-check-input custom-sms-switch" type="checkbox"
+                                                                checked disabled id="switch-{{ $elementId }}">
+                                                        @else
+                                                            <input class="form-check-input custom-sms-switch" type="checkbox"
+                                                                name="events[{{ $eventKey }}]" value="1"
+                                                                id="switch-{{ $elementId }}"
+                                                                {{ $isEnabled ? 'checked' : '' }}
+                                                                onchange="updateEventCard('{{ $elementId }}', this)">
+                                                        @endif
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                @endforeach
                             </div>
-
-                            {{-- يمكنك إضافة المزيد من الأحداث بنفس الطريقة --}}
-
-                        </div>
+                        @endforeach
 
                         {{-- زر الحفظ --}}
-                        <div class="col-12 mt-5 text-center">
+                        <div class="col-12 mt-4 text-center">
                             @can('sms.settings.update')
                             <button type="submit" class="btn btn-save-sms">
-                                <i class="fas fa-save me-2"></i> حفظ الإعدادات
+                                <i class="fas fa-save me-2"></i> حفظ إعدادات الـ SMS
                             </button>
                             @endcan
                         </div>
@@ -558,15 +398,14 @@
         </div>
     </div>
 
-    {{-- ===== JavaScript للتحديث التفاعلي ===== --}}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             updateCounter();
         });
 
-        function updateEventCard(eventId, checkbox) {
-            const card = document.getElementById('card-' + eventId);
-            const badge = document.getElementById('badge-' + eventId);
+        function updateEventCard(elementId, checkbox) {
+            const card = document.getElementById('card-' + elementId);
+            const badge = document.getElementById('badge-' + elementId);
 
             if (checkbox.checked) {
                 card.classList.add('active-event');
@@ -587,7 +426,10 @@
             switches.forEach(sw => {
                 if (sw.checked) count++;
             });
-            document.getElementById('activeEventsCount').textContent = count;
+            const counterEl = document.getElementById('activeEventsCount');
+            if (counterEl) {
+                counterEl.textContent = count;
+            }
         }
     </script>
 

@@ -119,6 +119,39 @@
         color: #2563eb;
         transform: translateY(-1px);
     }
+
+    @media print {
+        .btn, .response-card, nav, .breadcrumb, .no-print, form, .modal {
+            display: none !important;
+        }
+        .consultation-show-header {
+            background: none !important;
+            color: #000 !important;
+            box-shadow: none !important;
+            padding: 0 0 1rem 0 !important;
+            border-bottom: 2px solid #0f172a !important;
+            margin-bottom: 1rem !important;
+        }
+        .consultation-show-header h3, .consultation-show-header span, .consultation-show-header div, .consultation-show-header strong {
+            color: #000 !important;
+        }
+        .tracker-card {
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 1rem !important;
+        }
+        .col-12.col-xl-8 {
+            width: 100% !important;
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+        .badge {
+            border: 1px solid #94a3b8 !important;
+            color: #000 !important;
+            background: #fff !important;
+        }
+    }
 </style>
 @endsection
 
@@ -165,6 +198,9 @@
             </div>
 
             <div class="d-flex gap-2 flex-wrap">
+                <button type="button" onclick="window.print()" class="btn btn-outline-light rounded-pill px-3 btn-sm fw-semibold shadow-sm">
+                    <i class="fas fa-print me-1"></i> طباعة وثيقة الاستشارة
+                </button>
                 <a href="{{ route('consultations.index') }}" class="btn btn-outline-light rounded-pill px-4 btn-sm fw-semibold">
                     <i class="fas fa-arrow-right me-1"></i> العودة لقائمة الاستشارات
                 </a>
@@ -203,8 +239,8 @@
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <div class="info-label">الجهة المنشئة للمشروع</div>
-                            <div class="info-value">{{ $project->creatorEntity?->name ?? 'غير محدد' }}</div>
+                            <div class="info-label">الجهة المقدمة للمشروع</div>
+                            <div class="info-value">{{ $project->creator_entity_name }}</div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">المرحلة الحالية بالمسار</div>
@@ -237,14 +273,14 @@
                 <div class="card-body p-4">
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-md-6">
-                            <div class="info-label">الجهة المُحيلة</div>
+                            <div class="info-label">الجهة المُحيلة (من)</div>
                             <div class="info-value text-dark d-flex align-items-center gap-2">
                                 <i class="fas fa-building text-secondary"></i>
                                 <span>{{ $referral->referringEntity->name ?? 'غير محدد' }}</span>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
-                            <div class="info-label">الجهة المُستشارَة</div>
+                            <div class="info-label">الجهة المُستشارَة (إلى / التي وصل إليها الطلب)</div>
                             <div class="info-value text-primary d-flex align-items-center gap-2">
                                 <i class="fas fa-building text-primary"></i>
                                 <span>{{ $referral->referredEntity->name ?? 'غير محدد' }}</span>

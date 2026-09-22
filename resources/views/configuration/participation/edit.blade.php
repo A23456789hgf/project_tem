@@ -12,6 +12,7 @@
 
     
 
+    @can('participation.edit')
     <form action="{{ route('participation.update', $participant->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -44,5 +45,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

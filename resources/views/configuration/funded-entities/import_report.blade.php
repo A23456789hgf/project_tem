@@ -105,9 +105,11 @@
 
                     <!-- Action Buttons -->
                     <div class="d-flex justify-content-between mt-4">
+                        @can('fundedentities.import')
                         <a href="{{ route('fundedentities.import') }}" class="btn btn-info">
                             <i class="fas fa-upload"></i> استيراد ملف آخر
                         </a>
+                        @endcan
                         <a href="{{ route('fundedentities.index') }}" class="btn btn-primary">
                             <i class="fas fa-list"></i> عرض القائمة
                         </a>

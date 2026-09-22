@@ -10,7 +10,9 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('interventions.edit')
     <form action="{{ route('interventions.update', $intervention->id) }}" method="POST">
+    @endcan
         @csrf
         @method('PUT')
         

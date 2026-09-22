@@ -113,11 +113,49 @@
         color: #2563eb;
         transform: translateY(-1px);
     }
+
+    @media print {
+        .btn, .response-panel, nav, .breadcrumb, .no-print, form, .modal {
+            display: none !important;
+        }
+        .approval-show-header {
+            background: none !important;
+            color: #000 !important;
+            box-shadow: none !important;
+            padding: 0 0 1rem 0 !important;
+            border-bottom: 2px solid #0f172a !important;
+            margin-bottom: 1rem !important;
+        }
+        .approval-show-header h3, .approval-show-header span, .approval-show-header div, .approval-show-header strong {
+            color: #000 !important;
+        }
+        .tracker-card {
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 1rem !important;
+        }
+        .col-12.col-xl-8 {
+            width: 100% !important;
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+        .badge {
+            border: 1px solid #94a3b8 !important;
+            color: #000 !important;
+            background: #fff !important;
+        }
+    }
 </style>
 @endsection
 
 @section('content')
 <div class="container-fluid px-3 px-md-4 py-3">
+        @php
+            $lastActivity = $project->activityHistory->first();
+            $referredUser = $referral->referredUser ?? null;
+        @endphp
+
 
     {{-- Top Banner Header --}}
     <div class="approval-show-header">
@@ -151,10 +189,20 @@
                             <i class="fas fa-undo me-1"></i> تم الإرجاع
                         </span>
                     @endif
+
+                    @if($lastActivity)
+                        <span class="badge bg-info text-white px-3 py-1 rounded-pill fw-bold">
+                            <i class="fas fa-history me-1"></i>
+                            آخر إجراء: {{ $lastActivity->action_type }}
+                        </span>
+                    @endif
                 </div>
             </div>
 
             <div class="d-flex gap-2 flex-wrap">
+                <button type="button" onclick="window.print()" class="btn btn-outline-light rounded-pill px-3 btn-sm fw-semibold shadow-sm">
+                    <i class="fas fa-print me-1"></i> طباعة الاستشارة
+                </button>
                 <a href="{{ route('approvals.show', $project->id) }}" class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold shadow-sm">
                     <i class="fas fa-clipboard-check me-1"></i> صفحة المشروع بالاعتمادات
                 </a>
@@ -193,8 +241,8 @@
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
-                            <div class="info-label">الجهة المنشئة للمشروع</div>
-                            <div class="info-value">{{ $project->creatorEntity?->name ?? 'غير محدد' }}</div>
+                            <div class="info-label">الجهة المقدمة للمشروع</div>
+                            <div class="info-value">{{ $project->creator_entity_name }}</div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">المرحلة الحالية بالمسار</div>
@@ -227,17 +275,17 @@
                 <div class="card-body p-4">
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-md-6">
-                            <div class="info-label">الجهة التي قامت بالإحالة (المُحيلة)</div>
+                            <div class="info-label">الجهة التي قامت بالإحالة (من)</div>
                             <div class="info-value text-dark d-flex align-items-center gap-2">
                                 <i class="fas fa-building text-secondary"></i>
-                                <span>{{ $referral->referringEntity->name }}</span>
+                                <span>{{ $referral->referringEntity->name ?? 'غير محدد' }}</span>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
-                            <div class="info-label">الجهة المُحال إليها (المُستشارَة)</div>
+                            <div class="info-label">الجهة المُحال إليها (إلى / التي وصل إليها الطلب)</div>
                             <div class="info-value text-primary d-flex align-items-center gap-2">
                                 <i class="fas fa-building text-primary"></i>
-                                <span>{{ $referral->referredEntity->name }}</span>
+                                <span>{{ $referral->referredEntity->name ?? 'غير محدد' }}</span>
                             </div>
                         </div>
                         <div class="col-12 col-md-6">
@@ -367,6 +415,51 @@
 
         </div>
 
+        {{-- Activity & Audit History --}}
+        <div class="card tracker-card mt-4 mb-4">
+            <div class="card-header bg-white border-bottom p-4">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="fas fa-history text-secondary me-2"></i>
+                    سجل الإجراءات والتدقيق (Activity & Audit History)
+                </h5>
+            </div>
+
+            <div class="card-body p-4">
+                @if($project->activityHistory->isEmpty())
+                    <div class="text-center text-muted p-4">
+                        لا توجد إجراءات مسجلة على المشروع.
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>المستخدم</th>
+                                    <th>الإجراء</th>
+                                    <th>التفاصيل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($project->activityHistory as $history)
+                                    <tr>
+                                        <td>{{ $history->created_at?->format('Y-m-d H:i') }}</td>
+                                        <td>{{ $history->user?->name ?? 'النظام' }}</td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">
+                                                {{ $history->action_type }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $history->notes ?: '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         {{-- Left Column (Action Board) --}}
         <div class="col-12 col-xl-4">
             <div class="card tracker-card position-sticky" style="top: 85px;">
@@ -376,13 +469,12 @@
                     </h5>
                 </div>
                 <div class="card-body p-4">
-                    @if($referral->status === 'pending')
-                        @php
-                            $user = Auth::user();
-                            $canRespond = $user && $user->can('respond', $referral);
-                        @endphp
+                    @php
+                        $user = Auth::user();
+                        $canRespond = $user && $user->can('respond', $referral);
+                    @endphp
 
-                        @if($canRespond)
+                    @if($referral->status === 'pending' && $canRespond)
                             <div class="alert alert-primary border-0 rounded-3 mb-4 p-3">
                                 <h6 class="fw-bold mb-1"><i class="fas fa-info-circle me-1"></i> مطلوب إفادتكم</h6>
                                 <p class="small mb-0">يرجى دراسة تفاصيل الاستشارة وكتابة الرأي والملاحظات الفنية أدناه.</p>
@@ -422,7 +514,13 @@
                                 </div>
                                 <h6 class="fw-bold text-dark mb-1">الاستشارة قيد الانتظار</h6>
                                 <p class="text-muted small mb-0">
-                                    هذه الاستشارة موجهة إلى <strong>{{ $referral->referredEntity->name }}</strong>. فقط المستخدمون المخولون من تلك الجهة يحق لهم الرد.
+                                    هذه الاستشارة موجهة إلى 
+@if($referredUser)
+<strong>{{ $referredUser->name }}</strong>
+@else
+<strong>{{ $referral->referredEntity->name }}</strong>
+@endif
+. فقط المستخدمون المخولون يحق لهم الرد.
                                 </p>
                             </div>
                         @endif

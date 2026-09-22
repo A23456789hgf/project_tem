@@ -18,7 +18,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    @can('correspondence.edit')
                     <form action="{{ isset($correspondence) ? route('correspondence.update', $correspondence->id) : route('correspondence.store') }}" 
+                    @endcan
                           method="POST" enctype="multipart/form-data" id="correspondence-form">
                         @csrf
                         @if(isset($correspondence))

@@ -2,7 +2,9 @@
 
 @section('content')
     <div class="container-fluid py-4">
+        @can('plans.create')
         <form action="{{ route('plans.store') }}" method="POST" id="planForm">
+        @endcan
             @csrf
 
             <!-- Header Card -->

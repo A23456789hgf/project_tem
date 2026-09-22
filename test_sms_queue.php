@@ -1,4 +1,5 @@
 <?php
+
 require 'vendor/autoload.php';
 require 'bootstrap/app.php';
 $app = app();
@@ -15,7 +16,7 @@ try {
     $result = $service->sendSMS(1, '770000000', 'Test Message via Queue', 'test_event');
     echo "Queue Dispatch Result:\n";
     print_r($result);
-    echo "PENDING JOBS IN DB: " . \DB::table('jobs')->count() . "\n";
-} catch (\Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+    echo 'PENDING JOBS IN DB: '.DB::table('jobs')->count()."\n";
+} catch (Exception $e) {
+    echo 'Error: '.$e->getMessage()."\n";
 }

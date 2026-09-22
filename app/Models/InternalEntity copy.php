@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use App\Traits\Auditable;
+use App\Traits\HasCreatorTracking;
 use App\Traits\HasDomainScope;
 use App\Traits\HasModelVisibility;
-use App\Traits\HasCreatorTracking;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class InternalEntity extends Model
 {
-    use HasFactory, Auditable, HasModelVisibility, HasDomainScope, HasCreatorTracking {
+    use Auditable, HasCreatorTracking, HasDomainScope, HasFactory, HasModelVisibility {
         HasModelVisibility::scopeVisibleToUser insteadof HasDomainScope;
     }
 
@@ -68,18 +68,20 @@ class InternalEntity extends Model
     {
         return $this->hasMany(InternalEntity::class, 'parent_id');
     }
-public static function getAllChildrenIds($parentId)
-{
-    $ids = [$parentId];
 
-    $children = InternalEntity::where('parent_id', $parentId)->pluck('id');
+    public static function getAllChildrenIds($parentId)
+    {
+        $ids = [$parentId];
 
-    foreach ($children as $childId) {
-        $ids = array_merge($ids, InternalEntity::getAllChildrenIds($childId));
+        $children = InternalEntity::where('parent_id', $parentId)->pluck('id');
+
+        foreach ($children as $childId) {
+            $ids = array_merge($ids, InternalEntity::getAllChildrenIds($childId));
+        }
+
+        return $ids;
     }
 
-    return $ids;
-}
     public function users()
     {
         return $this->hasMany(User::class, 'entity_id');
@@ -124,6 +126,7 @@ public static function getAllChildrenIds($parentId)
         if ($directorateId) {
             $query->where('directorate_id', $directorateId);
         }
+
         return $query;
     }
 
@@ -211,12 +214,13 @@ public static function getAllChildrenIds($parentId)
     {
         if (empty($this->entity_code)) {
             $words = explode(' ', trim($this->name));
-            $code = count($words) >= 2 ? substr($words[0], 0, 1) . substr($words[1], 0, 1) : substr($this->name, 0, 2);
+            $code = count($words) >= 2 ? substr($words[0], 0, 1).substr($words[1], 0, 1) : substr($this->name, 0, 2);
             $code = strtoupper(preg_replace('/[^A-Z0-9]/', 'X', $code));
             $code = str_pad($code, 2, 'X');
             $this->entity_code = $code;
             $this->save();
         }
+
         return $this->entity_code;
     }
 
@@ -231,11 +235,12 @@ public static function getAllChildrenIds($parentId)
      */
     private function findGovernorateAncestor(InternalEntity $entity): ?InternalEntity
     {
-        if (is_null($entity->parent_id))
+        if (is_null($entity->parent_id)) {
             return $entity;
+        }
 
         $current = $entity;
-        while ($current->parent && !is_null($current->parent->parent_id)) {
+        while ($current->parent && ! is_null($current->parent->parent_id)) {
             $current = $current->parent;
         }
 

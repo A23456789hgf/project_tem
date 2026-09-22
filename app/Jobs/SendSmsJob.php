@@ -8,10 +8,17 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SendSmsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    public int $timeout = 30;
+
+    public array $backoff = [10, 30, 60];
 
     public $userId;
 
@@ -40,6 +47,19 @@ class SendSmsJob implements ShouldQueue
      */
     public function handle(SmppSmsService $smsService): void
     {
-        $smsService->sendSmsSync($this->userId, $this->mobileNo, $this->message, $this->eventName, $this->sentByUserId);
+        $smsService->sendSMS($this->userId, $this->mobileNo, $this->message, $this->eventName, $this->sentByUserId);
+    }
+
+    /**
+     * Handle job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('SendSmsJob queued processing failed', [
+            'user_id' => $this->userId,
+            'mobile' => $this->mobileNo,
+            'event' => $this->eventName,
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

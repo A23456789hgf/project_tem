@@ -12,6 +12,7 @@
 
     
 
+    @can('funded-entities.edit')
     <form action="{{ route('funded-entities.update', $fundedEntity->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -46,5 +47,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

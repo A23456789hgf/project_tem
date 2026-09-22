@@ -24,7 +24,7 @@ trait HasActiveScope
             }
 
             if ($column === 'status') {
-                $builder->where($table.'.status', 'Active');
+                $builder->whereIn($table.'.status', ['Active', 'active']);
             } else {
                 $builder->where($table.'.is_active', true);
             }

@@ -21,14 +21,23 @@ class DynamicEntityStagesVerificationTest extends TestCase
     use RefreshDatabase;
 
     protected $ministry;
+
     protected $entityBranch;
+
     protected $authority;
+
     protected $adminUser;
+
     protected $techUser;
+
     protected $finUser;
+
     protected $appUser;
+
     protected $branchUser;
+
     protected $authTechUser;
+
     protected $authAppUser;
 
     protected function setUp(): void
@@ -185,7 +194,7 @@ class DynamicEntityStagesVerificationTest extends TestCase
         ]);
 
         $service = app(ApprovalService::class);
-        $approvals1 = $service->startApprovalWorkflow($project1, $this->techUser);
+        $approvals1 = $service->closeDraftAndGenerateApprovalChain($project1, $this->techUser);
 
         $this->assertCount(3, $approvals1);
         $this->assertEquals(1, $approvals1[0]->step_order);
@@ -218,7 +227,7 @@ class DynamicEntityStagesVerificationTest extends TestCase
             'created_by_user_id' => $this->techUser->id,
         ]);
 
-        $approvals2 = $service->startApprovalWorkflow($project2, $this->techUser);
+        $approvals2 = $service->closeDraftAndGenerateApprovalChain($project2, $this->techUser);
 
         $this->assertCount(3, $approvals2);
         // Verify Project 2 received the NEW order dynamically
@@ -267,7 +276,7 @@ class DynamicEntityStagesVerificationTest extends TestCase
         ]);
 
         $service = app(ApprovalService::class);
-        $approvals = $service->startApprovalWorkflow($project, $this->techUser);
+        $approvals = $service->closeDraftAndGenerateApprovalChain($project, $this->techUser);
 
         $this->assertCount(2, $approvals);
         $this->assertEquals('technical_review', $approvals[0]->phase);
@@ -321,7 +330,7 @@ class DynamicEntityStagesVerificationTest extends TestCase
         ]);
 
         $service = app(ApprovalService::class);
-        $approvals = $service->startApprovalWorkflow($project, $this->authTechUser);
+        $approvals = $service->closeDraftAndGenerateApprovalChain($project, $this->authTechUser);
 
         // Chain should be: Step 1 (Authority Tech) -> Step 2 (Authority App) -> Step 3 (Ministry App)
         $this->assertCount(3, $approvals);
@@ -368,7 +377,7 @@ class DynamicEntityStagesVerificationTest extends TestCase
         ]);
 
         $service = app(ApprovalService::class);
-        $approvals = $service->startApprovalWorkflow($project, $this->techUser);
+        $approvals = $service->closeDraftAndGenerateApprovalChain($project, $this->techUser);
 
         $this->assertCount(2, $approvals);
         $step1Id = $approvals[0]->id;

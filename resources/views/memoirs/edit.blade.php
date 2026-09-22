@@ -12,7 +12,9 @@
                     </a>
                 </div>
                 <div class="card-body p-4">
+                    @can('memoirs.edit')
                     <form action="{{ route('memoirs.update', $memoir->id) }}" method="POST">
+                    @endcan
                         @csrf
                         @method('PUT')
                         

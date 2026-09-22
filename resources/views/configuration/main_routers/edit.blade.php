@@ -12,6 +12,7 @@
 
     
 
+    @can('main-routers.edit')
     <form action="{{ route('main-routers.update', $router->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -48,5 +49,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

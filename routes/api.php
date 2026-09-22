@@ -110,7 +110,7 @@ Route::prefix('locations')->group(function () {
 Route::prefix('completed-projects')->middleware(['auth:sanctum', 'can:projects.view'])->group(function () {
     Route::get('/', [CompletedProjectController::class, 'index']);
     Route::get('{project}', [CompletedProjectController::class, 'show']);
-    Route::post('/', [CompletedProjectController::class, 'store']);
+    Route::post('/', [CompletedProjectController::class, 'store'])->middleware('can:projects.create');
 });
 
 /**
@@ -128,19 +128,19 @@ Route::get('/erp/uoms', [ErpUomController::class, 'index']);
 |
 */
 
-Route::middleware('auth:sanctum')->prefix('frappe-project')->group(function () {
+Route::middleware(['auth:sanctum', 'can:projects.create'])->prefix('frappe-project')->group(function () {
 
     // إنشاء مشروع مسودة
     Route::post('save', [FrappeDataController::class, 'saveDraft']);
 
     // تحديث مشروع مسودة (PUT أو POST)
-    Route::match(['put', 'post'], 'update/{projectId}', [FrappeDataController::class, 'updateDraft']);
+    Route::match(['put', 'post'], 'update/{projectId}', [FrappeDataController::class, 'updateDraft'])->middleware('can:projects.edit');
 
     // جلب بيانات مشروع مسودة محدد
-    Route::get('{projectId}', [FrappeDataController::class, 'getDraft']);
+    Route::get('{projectId}', [FrappeDataController::class, 'getDraft'])->middleware('can:projects.view');
 
     // جلب كل المسودات الخاصة بالمستخدم
-    Route::get('my-drafts', [FrappeDataController::class, 'getUserDrafts']);
+    Route::get('my-drafts', [FrappeDataController::class, 'getUserDrafts'])->middleware('can:projects.view');
 
     // جلب البنود المالية من ERPNext (مع مزامنة الجهة المنشئة أولاً)
     Route::get('financial-items', [FrappeDataController::class, 'getFinancialItems'])->name('frappe.financial_items');
@@ -153,10 +153,10 @@ Route::middleware('auth:sanctum')->prefix('frappe-project')->group(function () {
     Route::post('submit/{projectId}', [FrappeDataController::class, 'submitToImplementation']);
 
     // حذف مشروع مسودة
-    Route::delete('delete/{projectId}', [FrappeDataController::class, 'deleteDraft']);
+    Route::delete('delete/{projectId}', [FrappeDataController::class, 'deleteDraft'])->middleware('can:projects.delete');
 
     // التحقق من صحة المشروع قبل الاعتماد
-    Route::get('validate/{projectId}', [FrappeDataController::class, 'validateDraft']);
+    Route::get('validate/{projectId}', [FrappeDataController::class, 'validateDraft'])->middleware('can:projects.view');
 });
 
 /**
@@ -164,21 +164,21 @@ Route::middleware('auth:sanctum')->prefix('frappe-project')->group(function () {
  */
 Route::prefix('projects')->middleware(['web', 'auth'])->group(function () {
     Route::post('{project}/approve', [ProjectApprovalController::class, 'approveProject'])->name('api.projects.approve')->middleware('can:approvals.approve');
-    Route::get('{project}/update-info', [ProjectApprovalController::class, 'getUpdateInfo'])->name('api.projects.update-info');
+    Route::get('{project}/update-info', [ProjectApprovalController::class, 'getUpdateInfo'])->name('api.projects.update-info')->middleware('can:projects.view');
 });
 
 /**
  * Project Referral API Routes
  */
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::post('projects/{project}/referrals', [ProjectReferralController::class, 'createReferral'])->name('api.projects.referrals.create');
-    Route::post('referrals/{referral}/respond', [ProjectReferralController::class, 'respondToReferral'])->name('api.referrals.respond');
-    Route::get('projects/{project}/referrals', [ProjectReferralController::class, 'getReferralsForProject'])->name('api.projects.referrals.index');
+    Route::post('projects/{project}/referrals', [ProjectReferralController::class, 'createReferral'])->name('api.projects.referrals.create')->middleware('can:referrals.create');
+    Route::post('referrals/{referral}/respond', [ProjectReferralController::class, 'respondToReferral'])->name('api.referrals.respond')->middleware('can:referrals.respond');
+    Route::get('projects/{project}/referrals', [ProjectReferralController::class, 'getReferralsForProject'])->name('api.projects.referrals.index')->middleware('can:referrals.view');
 });
 
 // Web-authenticated route for departments (supports both web session and API token auth)
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::get('entities/{entity}/departments', [ProjectReferralController::class, 'getDepartmentsInAdministration'])->name('api.entities.departments');
+    Route::get('entities/{entity}/departments', [ProjectReferralController::class, 'getDepartmentsInAdministration'])->name('api.entities.departments')->middleware('can:projects.view');
 });
 
 Route::middleware(['web', 'auth'])->group(function () {
@@ -191,7 +191,7 @@ Route::middleware(['web', 'auth'])->group(function () {
  * Uses FrappeAPIService for ERPNext connectivity
  * Authorization: entity-based company filtering
  */
-Route::middleware(['web', 'auth'])->prefix('budgets')->group(function () {
+Route::middleware(['web', 'auth', 'can:projects.view'])->prefix('budgets')->group(function () {
     Route::get('/', [BudgetController::class, 'index'])->name('api.budgets.index');
     Route::get('/{name}', [BudgetController::class, 'show'])->name('api.budgets.show');
 });

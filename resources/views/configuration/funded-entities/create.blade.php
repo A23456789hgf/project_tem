@@ -12,6 +12,7 @@
 
     
 
+    @can('funded-entities.create')
     <form action="{{ route('funded-entities.store') }}" method="POST">
         @csrf
         
@@ -46,5 +47,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

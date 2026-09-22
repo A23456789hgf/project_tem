@@ -521,12 +521,14 @@
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                             <i class="fas fa-times me-1"></i>إلغاء
                         </button>
+                        @can('projects.finalize')
                         <form action="{{ route('projects.finalize', $project->id) }}" method="POST" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-primary fw-bold">
                                 <i class="fas fa-check-circle me-2"></i>نعم، تأكيد المسودة
                             </button>
                         </form>
+                        @endcan
                     </div>
                 </div>
             </div>

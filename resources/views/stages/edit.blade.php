@@ -4,7 +4,9 @@
 <div class="container">
     <h1 class="mb-4">تعديل المرحلة: {{ $stage->name_ar }}</h1>
 
+    @can('stages.edit')
     <form action="{{ route('stages.update', $stage->id) }}" method="POST">
+    @endcan
         @csrf
         @method('PUT')
 

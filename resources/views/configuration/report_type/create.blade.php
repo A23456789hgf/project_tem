@@ -10,6 +10,7 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('reports.view')
     <form action="{{ route('report-types.store') }}" method="POST">
         @csrf
 
@@ -49,5 +50,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

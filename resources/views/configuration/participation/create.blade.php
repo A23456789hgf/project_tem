@@ -12,6 +12,7 @@
 
     
 
+    @can('participation.create')
     <form action="{{ route('participation.store') }}" method="POST">
         @csrf
         
@@ -34,5 +35,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

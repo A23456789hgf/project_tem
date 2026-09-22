@@ -112,9 +112,11 @@
                                                 <a href="{{ route('authorities.show', $child->id) }}" class="btn btn-sm btn-info">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
+                                                @can('authorities.edit')
                                                 <a href="{{ route('authorities.edit', $child->id) }}" class="btn btn-sm btn-warning">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
+                                                @endcan
                                             </td>
                                         </tr>
                                     @endforeach
@@ -124,9 +126,12 @@
                     @endif
 
                     <div class="mt-4">
+                        @can('authorities.edit')
                         <a href="{{ route('authorities.edit', $authority->id) }}" class="btn btn-primary">
                             <i class="fas fa-edit"></i> تعديل
                         </a>
+                        @endcan
+                        @can('authorities.delete')
                         <form action="{{ route('authorities.destroy', $authority->id) }}" method="POST" class="d-inline">
                             @csrf
                             @method('DELETE')
@@ -135,6 +140,7 @@
                                 <i class="fas fa-trash"></i> حذف
                             </button>
                         </form>
+                        @endcan
                     </div>
                 </div>
             </div>

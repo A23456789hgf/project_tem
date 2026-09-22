@@ -359,37 +359,25 @@
                 </a>
             @endcan
 
-            @if(
-                Gate::check('import', App\Models\Project::class) ||
-                Gate::check('exportExcel', App\Models\Project::class) ||
-                Gate::check('exportComprehensive', App\Models\Project::class) ||
-                Gate::check('exportPdf', App\Models\Project::class) ||
-                Gate::check('exportPivot', App\Models\Project::class)
-            )
+            @canany(['projects.import', 'projects.export'])
                 <div class="dropdown">
                     <button class="header-btn btn-outline-gradient dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <x-icon name="cogs" size="12" /> عمليات
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-artistic">
-                        @can('import', App\Models\Project::class)
+                        @can('projects.import')
                             <li><a class="dropdown-item auth-perm-projects-import" href="{{ route('projects.import') }}"><x-icon name="file-import" class="text-primary" size="12" /> استيراد</a></li>
                             <li><hr class="dropdown-divider"></li>
                         @endcan
-                        @can('exportExcel', App\Models\Project::class)
+                        @can('projects.export')
                             <li><button class="dropdown-item auth-perm-projects-export w-100 text-start border-0 bg-transparent" onclick="handleExport('excel')"><x-icon name="file-excel" class="text-success" size="12" /> Excel</button></li>
-                        @endcan
-                        @can('exportComprehensive', App\Models\Project::class)
                             <li><button class="dropdown-item auth-perm-projects-export w-100 text-start border-0 bg-transparent" onclick="handleExport('comprehensive')"><x-icon name="download" class="text-success" size="12" /> شامل</button></li>
-                        @endcan
-                        @can('exportPdf', App\Models\Project::class)
                             <li><button class="dropdown-item auth-perm-projects-export w-100 text-start border-0 bg-transparent" onclick="handleExport('pdf')"><x-icon name="file-pdf" class="text-danger" size="12" /> PDF</button></li>
-                        @endcan
-                        @can('exportPivot', App\Models\Project::class)
                             <li><button class="dropdown-item auth-perm-projects-export w-100 text-start border-0 bg-transparent" onclick="handleExport('pivot')"><x-icon name="table" class="text-info" size="12" /> Pivot</button></li>
                         @endcan
                     </ul>
                 </div>
-            @endif
+            @endcanany
         </x-slot>
 
         @php
@@ -646,7 +634,7 @@
                                     @endif
                                 </td>
                                 <td class="text-center hide-lg"><span class="fw-semibold text-dark" style="font-size:0.68rem;">{{ optional($project->createdBy)->name ?? 'ـ' }}</span></td>
-                                <td class="hide-xl"><div class="text-truncate-custom text-muted" title="{{ $project->created_by_entity }}">{{ $project->created_by_entity }}</div></td>
+                                <td class="hide-xl"><div class="text-truncate-custom text-muted" title="{{ $project->creator_entity_name }}">{{ $project->creator_entity_name }}</div></td>
                                 <td class="text-center">
                                     <div class="d-flex align-items-center justify-content-center gap-1 flex-wrap">
                                         @can('view', $project)

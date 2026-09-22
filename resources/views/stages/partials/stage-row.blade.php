@@ -37,12 +37,16 @@
         @endif
     </td>
     <td>
+        @can('stages.edit')
         <a href="{{ route('stages.edit', $stage->id) }}" class="btn btn-sm btn-warning">تعديل</a>
+        @endcan
+        @can('stages.delete')
         <form action="{{ route('stages.destroy', $stage->id) }}" method="POST" style="display:inline;" onsubmit="return confirmAction(this, 'هل تأكد من حذف هذه المرحلة؟')">
             @csrf
             @method('DELETE')
             <button type="submit" class="btn btn-sm btn-danger">حذف</button>
         </form>
+        @endcan
     </td>
 </tr>
 

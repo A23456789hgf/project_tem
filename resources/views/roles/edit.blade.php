@@ -4,7 +4,9 @@
     <div class="container-fluid py-4" dir="rtl">
         <div class="row">
             <div class="col-12">
+                @can('roles.edit')
                 <form method="POST" action="{{ route('roles.update', $role) }}" id="roleForm">
+                @endcan
                     @csrf
                     @method('PUT')
 

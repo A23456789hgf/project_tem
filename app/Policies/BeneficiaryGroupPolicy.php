@@ -41,4 +41,14 @@ class BeneficiaryGroupPolicy
     {
         return $user->hasPermission('beneficiary-groups.export') || $user->hasPermission('beneficiary-groups.view');
     }
+
+    public function approve(User $user, ?BeneficiaryGroup $model = null): bool
+    {
+        return $user->hasPermission('beneficiary-groups.approve');
+    }
+
+    public function reject(User $user, ?BeneficiaryGroup $model = null): bool
+    {
+        return $user->hasPermission('beneficiary-groups.reject');
+    }
 }

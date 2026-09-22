@@ -504,7 +504,9 @@
         </div>
         @endif
 
+        @can('projects.edit')
         <form id="projectForm" action="{{ route('projects.update', $project->id) }}" method="POST" novalidate>
+        @endcan
             @csrf
             @method('PUT')
             <input type="hidden" name="status" value="{{ $project->status }}">

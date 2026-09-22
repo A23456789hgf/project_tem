@@ -539,12 +539,14 @@
             
             {{-- ERP Sync Status & Actions --}}
             <div class="d-flex gap-2">
+                @can('projects.edit')
                 <form action="{{ route('projects.bulk-sync-to-erp') }}" method="POST" class="d-inline">
                     @csrf
                     <!-- <button type="submit" class="btn-modern btn-modern-outline" onclick="return confirmAction(this, 'هل أنت متأكد من رغبتك في مزامنة جميع المشاريع المؤهلة مع ERPNext؟')">
                         <i class="fas fa-sync me-2"></i>مزامنة الكل مع ERP
                     </button> -->
                 </form>
+                @endcan
 
                 <!-- <div class="dropdown">
                     <button class="btn-modern btn-modern-outline dropdown-toggle" type="button" id="erpStatusDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -564,12 +566,14 @@
                                     <span class="badge bg-light text-dark font-num w-100 p-2 border">{{ $project->erpnext_project_id }}</span>
                                 </div>
                                 <div class="text-center pt-2 border-top">
+                                    @can('projects.edit')
                                     <form action="{{ route('projects.sync-to-erp', $project->id) }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-link text-primary text-decoration-none">
                                             <i class="fas fa-redo me-1"></i> إعادة المزامنة
                                         </button>
                                     </form>
+                                    @endcan
                                 </div>
                             </li>
                         @else
@@ -582,12 +586,14 @@
                                 </li>
                             @endif
                             <li>
+                                @can('projects.edit')
                                 <form action="{{ route('projects.sync-to-erp', $project->id) }}" method="POST">
                                     @csrf
                                     <button type="submit" class="btn btn-primary btn-sm w-100">
                                         <i class="fas fa-cloud-upload-alt me-1"></i> مزامنة هذا المشروع الآن
                                     </button>
                                 </form>
+                                @endcan
                             </li>
                         @endif
                     </ul>

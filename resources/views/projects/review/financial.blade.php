@@ -128,7 +128,9 @@
             @endif
 
             {{-- Main Form for Financial Review & Cost Editing & File Upload --}}
+            @can('reviews.financial')
             <form method="POST" action="{{ route('projects.review.financial.submit', $project) }}" enctype="multipart/form-data">
+            @endcan
                 @csrf
 
                 {{-- Policy Notice Banner --}}
@@ -157,17 +159,35 @@
                     <div class="card-body">
                         @foreach($project->preliminaryActivities as $activity)
                             <div class="mb-4 p-3 bg-light rounded border">
-                                <h6 class="fw-bold text-info mb-2">
-                                    <i class="fas fa-tasks me-1"></i> النشاط التمهيدي: {{ $activity->name ?? $activity->activity }}
-                                </h6>
+                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                    <h6 class="fw-bold text-info mb-0">
+                                        <i class="fas fa-tasks me-1"></i> النشاط التمهيدي: {{ $activity->name ?? $activity->activity }}
+                                    </h6>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <label class="form-label small text-muted mb-0">وزن النشاط (%):</label>
+                                        <input type="number" step="0.01" min="0" max="100"
+                                               name="preliminary_activities[{{ $activity->id }}][weight]" 
+                                               class="form-control form-control-sm" style="width: 100px;" 
+                                               value="{{ $activity->weight ?? 0 }}">
+                                    </div>
+                                </div>
                                 @if($activity->procedures->count() > 0)
                                     @foreach($activity->procedures as $procedure)
                                         <div class="ms-3 mb-3 p-3 bg-white border rounded">
-                                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                                                 <strong class="text-dark"><i class="fas fa-angle-left me-1 text-info"></i> الإجراء: {{ $procedure->procedure }}</strong>
-                                                <span class="badge bg-secondary-subtle text-secondary border">
-                                                    {{ $procedure->start_date }} إلى {{ $procedure->end_date }} ({{ $procedure->duration_days }} يوم)
-                                                </span>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-secondary-subtle text-secondary border">
+                                                        {{ $procedure->start_date }} إلى {{ $procedure->end_date }} ({{ $procedure->duration_days }} يوم)
+                                                    </span>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <label class="form-label small text-muted mb-0">وزن الإجراء (%):</label>
+                                                        <input type="number" step="0.01" min="0" max="100"
+                                                               name="preliminary_procedures[{{ $procedure->id }}][weight]" 
+                                                               class="form-control form-control-sm" style="width: 90px;" 
+                                                               value="{{ $procedure->weight ?? 0 }}">
+                                                    </div>
+                                                </div>
                                             </div>
                                             @if($procedure->costs->count() > 0)
                                                 <div class="table-responsive mt-2">
@@ -228,24 +248,42 @@
                 <div class="card mb-4 border-0 shadow-sm">
                     <div class="card-header" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: white;">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold"><i class="fas fa-running me-2"></i>الأنشطة والإجراءات التنفيذية والتكاليف المالـية</h5>
-                            <span class="badge bg-white text-dark small"><i class="fas fa-lock me-1 text-secondary"></i>البيانات الفنية للعرض فقط</span>
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-running me-2"></i>الأنشطة والإجراءات التنفيذية والتكاليف المالـية والأوزان</h5>
+                            <span class="badge bg-white text-dark small"><i class="fas fa-edit me-1 text-info"></i>تعديل التكاليف والأوزان</span>
                         </div>
                     </div>
                     <div class="card-body">
                         @foreach($project->executiveActivities as $activity)
                             <div class="mb-4 p-3 bg-light rounded border">
-                                <h6 class="fw-bold style-purple mb-2" style="color: #6f42c1;">
-                                    <i class="fas fa-running me-1"></i> النشاط التنفيذي: {{ $activity->activity_name ?? $activity->name }}
-                                </h6>
+                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                    <h6 class="fw-bold style-purple mb-0" style="color: #6f42c1;">
+                                        <i class="fas fa-running me-1"></i> النشاط التنفيذي: {{ $activity->activity_name ?? $activity->name }}
+                                    </h6>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <label class="form-label small text-muted mb-0">وزن النشاط (%):</label>
+                                        <input type="number" step="0.01" min="0" max="100"
+                                               name="executive_activities[{{ $activity->id }}][weight]" 
+                                               class="form-control form-control-sm" style="width: 100px;" 
+                                               value="{{ $activity->weight ?? 0 }}">
+                                    </div>
+                                </div>
                                 @if($activity->actions->count() > 0)
                                     @foreach($activity->actions as $action)
                                         <div class="ms-3 mb-3 p-3 bg-white border rounded">
-                                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                                                 <strong class="text-dark"><i class="fas fa-angle-left me-1" style="color: #6f42c1;"></i> الإجراء التنفيذي: {{ $action->action_name }}</strong>
-                                                <span class="badge bg-secondary-subtle text-secondary border">
-                                                    {{ $action->start_date }} إلى {{ $action->end_date }}
-                                                </span>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-secondary-subtle text-secondary border">
+                                                        {{ $action->start_date }} إلى {{ $action->end_date }}
+                                                    </span>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        <label class="form-label small text-muted mb-0">وزن الإجراء (%):</label>
+                                                        <input type="number" step="0.01" min="0" max="100"
+                                                               name="executive_actions[{{ $action->id }}][weight]" 
+                                                               class="form-control form-control-sm" style="width: 90px;" 
+                                                               value="{{ $action->weight ?? 0 }}">
+                                                    </div>
+                                                </div>
                                             </div>
                                             @if($action->costs->count() > 0)
                                                 <div class="table-responsive mt-2">

@@ -85,7 +85,8 @@ class EntityApprovalStage extends Model
     /** Typed accessor for the stage enum. */
     public function stageEnum(): ?EntityResponsibilityType
     {
-        return EntityResponsibilityType::tryFrom($this->stage);
+        return EntityResponsibilityType::tryFrom($this->stage)
+            ?? EntityResponsibilityType::fromApprovalPhase($this->stage);
     }
 
     /**
@@ -99,7 +100,7 @@ class EntityApprovalStage extends Model
         $user = $this->responsibleUser;
 
         return $user !== null
-            && $user->status === 'Active'
+            && in_array($user->status, ['Active', 'active'])
             && (int) $user->entity_id === (int) $this->entity_id;
     }
 }

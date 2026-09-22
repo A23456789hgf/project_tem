@@ -10,7 +10,9 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('sub-routers.edit')
     <form action="{{ route('sub-routers.update', $subRouter->id) }}" method="POST">
+    @endcan
         @csrf
         @method('PUT')
         

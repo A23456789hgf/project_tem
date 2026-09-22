@@ -140,6 +140,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                @can('sub-areas.import')
                 <form action="{{ route('sub-areas.undo-import', $importedFile) }}" method="POST" style="display: inline;">
                     @csrf
                     <button type="submit" class="btn btn-warning">
@@ -147,6 +148,7 @@
                         تأكيد التراجع
                     </button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

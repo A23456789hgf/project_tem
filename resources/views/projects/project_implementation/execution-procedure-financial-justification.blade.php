@@ -83,7 +83,9 @@
                 </div>
             @else
                 <!-- Form Mode -->
+                @can('projects.execution.storeProcedureBudgetJustification')
                 <form action="{{ route('projects.execution.storeProcedureBudgetJustification', $project) }}" 
+                @endcan
                       method="POST" 
                       enctype="multipart/form-data"
                       class="procedure-financial-justification-form"

@@ -12,6 +12,7 @@
 
     
 
+    @can('financing-types.edit')
     <form action="{{ route('financing-types.update', $financingType) }}" method="POST">
         @csrf
         @method('PUT')
@@ -36,5 +37,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

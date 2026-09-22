@@ -341,9 +341,11 @@
                             </div>
                             <div class="col-md-6 text-start">
                                 <div class="btn-group">
+                                    @can('authorities.create')
                                     <a href="{{ route('authorities.create') }}" class="btn btn-success d-inline-flex align-items-center gap-1" title="إضافة جهة جديدة">
                                         <i class="fas fa-plus"></i>إضافة جهة
                                     </a>
+                                    @endcan
                                     <a href="{{ route('authorities.index', ['view' => 'list']) }}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-1" title="عرض القائمة">
                                         <i class="fas fa-list"></i>عرض القائمة
                                     </a>

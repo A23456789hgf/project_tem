@@ -68,15 +68,19 @@
                         <td class="text-name">{{ $association->name }}</td>
                         <td>
                             <div class="d-flex justify-content-center">
+                                @can('associations.edit')
                                 <a href="{{ route('associations.edit', $association) }}" class="btn-action btn btn-sm btn-outline-warning" title="تعديل">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                @endcan
+                                @can('associations.delete')
                                 <form action="{{ route('associations.destroy', $association) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn-action btn btn-sm btn-outline-danger" onclick="return confirmAction(this, 'هل تريد الحذف؟')">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
+                                @endcan
                             </div>
                         </td>
                     </tr>

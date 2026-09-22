@@ -223,7 +223,9 @@
                 </div>
 
                 <!-- نموذج تغيير كلمة المرور الإجبارية -->
+                @can('password.change.edit')
                 <form method="POST" action="{{ route('password.change.update') }}" id="changePasswordForm">
+                @endcan
                     @csrf
 
                     <!-- كلمة المرور الحالية -->
@@ -277,12 +279,14 @@
                     </button>
                 </form>
 
+                @can('logout')
                 <form action="{{ route('logout') }}" method="POST" class="mt-3 text-center">
                     @csrf
                     <button type="submit" class="btn btn-link text-decoration-none text-muted" formnovalidate>
                         <i class="fas fa-sign-out-alt ms-1"></i> تسجيل الخروج بدلاً من ذلك
                     </button>
                 </form>
+                @endcan
 
             </div>
         </div>

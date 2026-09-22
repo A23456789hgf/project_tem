@@ -11,9 +11,11 @@
                         <i class="fas fa-eye me-2"></i>تفاصيل الدور: {{ $role->name }}
                     </h5>
                     <div class="d-flex gap-2">
+                        @can('roles.edit')
                         <a href="{{ route('roles.edit', $role) }}" class="btn btn-primary px-4">
                             <i class="fas fa-edit me-2"></i>تعديل
                         </a>
+                        @endcan
                         <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary px-4">
                             <i class="fas fa-arrow-right me-2"></i>رجوع
                         </a>

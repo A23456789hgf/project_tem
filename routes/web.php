@@ -493,9 +493,9 @@ Route::middleware('auth')->group(function () {
         // الموازنات (ERPNext Budget DocType)
         Route::get('/budgets', [BudgetWebController::class, 'index'])->name('budgets.index')->middleware('can:projects.view');
         Route::post('/', [ProjectController::class, 'store'])->name('store')->middleware('can:projects.create');
-        Route::put('/{project}/update-entity', [ProjectController::class, 'updateEntity'])->name('update-entity');
+        Route::put('/{project}/update-entity', [ProjectController::class, 'updateEntity'])->name('update-entity')->middleware('can:projects.edit');
         Route::post('/bulk-destroy', [ProjectController::class, 'bulkDestroy'])->name('bulk-destroy')->middleware('can:projects.delete');
-        Route::post('/check-name', [ProjectController::class, 'checkName'])->name('check-name');
+        Route::post('/check-name', [ProjectController::class, 'checkName'])->name('check-name')->middleware('can:projects.view');
 
         // خطوات النموذج
         Route::post('/step/1', [ProjectController::class, 'storeStep1'])->name('step.1')->middleware('can:projects.create');
@@ -1091,11 +1091,6 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    // القرى
-    Route::middleware(['can:villages.view'])->group(function () {
-        Route::resource('villages', VillageController::class);
-    });
-
     // المناطق الفرعية
     Route::middleware('can:sub-areas.view')->group(function () {
         Route::prefix('sub-areas')->group(function () {
@@ -1279,7 +1274,7 @@ Route::middleware('auth')->group(function () {
     // ========================================
     Route::middleware(['can:internal-entities.view'])->group(function () {
         Route::prefix('internal-entities')->name('internal-entities.')->group(function () {
-            Route::delete('/bulk-destroy', [InternalEntityController::class, 'bulkDestroy'])->name('bulk-destroy');
+            Route::delete('/bulk-destroy', [InternalEntityController::class, 'bulkDestroy'])->name('bulk-destroy')->middleware('can:internal-entities.delete');
             Route::get('/', [InternalEntityController::class, 'index'])->name('index');
             Route::get('/active', [InternalEntityController::class, 'activeInternalEntities'])->name('active');
             Route::get('/create', [InternalEntityController::class, 'create'])->name('create')->middleware('can:internal-entities.create');
@@ -1326,13 +1321,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:villages.view')->group(function () {
         Route::prefix('villages')->group(function () {
             Route::get('/active', [VillageController::class, 'activeVillages'])->name('villages.active');
-            Route::get('/import', [VillageController::class, 'showImportForm'])->name('villages.import');
-            Route::post('/preview-import', [VillageController::class, 'previewImport'])->name('villages.preview-import');
-            Route::post('/process-import', [VillageController::class, 'processImport'])->name('villages.process-import');
+            Route::get('/import', [VillageController::class, 'showImportForm'])->name('villages.import')->middleware('can:villages.import');
+            Route::post('/preview-import', [VillageController::class, 'previewImport'])->name('villages.preview-import')->middleware('can:villages.import');
+            Route::post('/process-import', [VillageController::class, 'processImport'])->name('villages.process-import')->middleware('can:villages.import');
             Route::get('/download-template', [VillageController::class, 'downloadTemplate'])->name('villages.download-template');
             Route::get('/download-error-report', [VillageController::class, 'downloadErrorReport'])->name('villages.download-error-report');
-            Route::post('/undo-import/{fileName}', [VillageController::class, 'undoImport'])->name('villages.undo-import');
-            Route::get('/export', [VillageController::class, 'exportExcel'])->name('villages.export');
+            Route::post('/undo-import/{fileName}', [VillageController::class, 'undoImport'])->name('villages.undo-import')->middleware('can:villages.import');
+            Route::get('/export', [VillageController::class, 'exportExcel'])->name('villages.export')->middleware('can:villages.export');
             Route::get('/directorates/{governorate_id}', [VillageController::class, 'getDirectorates'])->name('villages.directorates');
             Route::get('/sub-areas/{directorate_id}', [VillageController::class, 'getSubAreas'])->name('villages.sub-areas');
             Route::get('/by-sub-area/{governorateId}/{directorateId}/{subAreaId}', [VillageController::class, 'getBySubArea'])->name('villages.by-sub-area');
@@ -1354,8 +1349,8 @@ Route::middleware('auth')->group(function () {
     // الوحدات (Units)
     // ========================================
     Route::middleware('can:units.view')->group(function () {
-        Route::post('/units/{unit}/approve', [UnitController::class, 'approve'])->name('units.approve');
-        Route::post('/units/{unit}/reject', [UnitController::class, 'reject'])->name('units.reject');
+        Route::post('/units/{unit}/approve', [UnitController::class, 'approve'])->name('units.approve')->middleware('can:units.approve');
+        Route::post('/units/{unit}/reject', [UnitController::class, 'reject'])->name('units.reject')->middleware('can:units.reject');
         Route::get('/units/active', [UnitController::class, 'activeUnits'])->name('units.active');
         Route::get('/units/api/fetch', [UnitController::class, 'apiFetch'])->name('units.api.fetch');
         Route::resource('units', UnitController::class);
@@ -1365,8 +1360,8 @@ Route::middleware('auth')->group(function () {
     // مجموعات المستفيدين (Beneficiary Groups)
     // ========================================
     Route::middleware('can:beneficiary-groups.view')->group(function () {
-        Route::post('/beneficiary-groups/{beneficiaryGroup}/approve', [BeneficiaryGroupController::class, 'approve'])->name('beneficiary-groups.approve');
-        Route::post('/beneficiary-groups/{beneficiaryGroup}/reject', [BeneficiaryGroupController::class, 'reject'])->name('beneficiary-groups.reject');
+        Route::post('/beneficiary-groups/{beneficiaryGroup}/approve', [BeneficiaryGroupController::class, 'approve'])->name('beneficiary-groups.approve')->middleware('can:beneficiary-groups.approve');
+        Route::post('/beneficiary-groups/{beneficiaryGroup}/reject', [BeneficiaryGroupController::class, 'reject'])->name('beneficiary-groups.reject')->middleware('can:beneficiary-groups.reject');
         Route::get('/beneficiary-groups/active', [BeneficiaryGroupController::class, 'activeBeneficiaryGroups'])->name('beneficiary-groups.active');
         Route::resource('beneficiary-groups', BeneficiaryGroupController::class);
     });
@@ -1444,12 +1439,15 @@ Route::middleware('auth')->group(function () {
     // ========================================
     // عناصر التمويل (Financial Items)
     // ========================================
-    Route::middleware(['can:configuration.view'])->group(function () {
-        Route::post('/financial-items/{financialItem}/approve', [FinancialItemController::class, 'approve'])->name('financial-items.approve');
-        Route::post('/financial-items/{financialItem}/reject', [FinancialItemController::class, 'reject'])->name('financial-items.reject');
+    Route::middleware(['can:financial-items.view'])->group(function () {
+        Route::post('/financial-items/{financialItem}/approve', [FinancialItemController::class, 'approve'])->name('financial-items.approve')->middleware('can:financial-items.approve');
+        Route::post('/financial-items/{financialItem}/reject', [FinancialItemController::class, 'reject'])->name('financial-items.reject')->middleware('can:financial-items.reject');
         Route::get('/financial-items/active', [FinancialItemController::class, 'activeFinancialItems'])->name('financial-items.active');
         Route::resource('financial-items', FinancialItemController::class);
         Route::patch('/financial-items/{financialItem}/toggle-status', [FinancialItemController::class, 'toggleStatus'])->name('financial-items.toggle-status')->middleware('can:financial-items.edit');
+    });
+
+    Route::middleware(['can:configuration.view'])->group(function () {
         Route::get('/target-categories/active', [TargetCategoryController::class, 'activeTargetCategories'])->name('target-categories.active');
         Route::resource('target-categories', TargetCategoryController::class);
         Route::get('/funding-sources/active', [FundingSourceController::class, 'activeFundingSources'])->name('funding-sources.active');

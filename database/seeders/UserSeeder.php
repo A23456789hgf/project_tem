@@ -25,6 +25,9 @@ class UserSeeder extends Seeder
             ]);
         }
 
+        $existingAdmin = User::withoutGlobalScopes()->where('username', 'admin')->first();
+        $adminPhone = $existingAdmin?->phone ?: '777777777';
+
         User::withoutGlobalScopes()->updateOrCreate(
             ['username' => 'admin'],
             [
@@ -32,7 +35,7 @@ class UserSeeder extends Seeder
                 'name' => 'Administrator',
                 'email' => 'admin@example.com',
                 'password' => Hash::make('password'),
-                'phone' => '777777778',
+                'phone' => $adminPhone,
                 'role_id' => $adminRole->id,
                 'status' => 'Active',
             ]

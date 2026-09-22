@@ -122,7 +122,9 @@
             </div>
 
             <!-- نموذج الحفظ وجدول البيانات -->
+            @can('authorities.bulk.save')
             <form action="{{ route('authorities.bulk.save') }}" method="POST" id="bulkSaveForm">
+            @endcan
                 @csrf
                 <div class="card shadow mb-4 border-0">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center bg-light">

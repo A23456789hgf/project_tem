@@ -25,6 +25,7 @@
                         </div>
                     </div>
 
+                    @can('programs.import')
                     <form action="{{ route('programs.preview-import') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="row">
@@ -60,6 +61,7 @@
                             </div>
                         </div>
                     </form>
+                    @endcan
                 </div>
             </div>
         </div>

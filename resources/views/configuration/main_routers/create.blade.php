@@ -12,6 +12,7 @@
 
     
 
+    @can('main-routers.create')
     <form action="{{ route('main-routers.store') }}" method="POST">
         @csrf
         
@@ -46,5 +47,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

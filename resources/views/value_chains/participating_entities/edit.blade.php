@@ -15,7 +15,9 @@
                 </div>
 
                 <div class="card-body p-4">
+                    @can('value_chains.edit')
                     <form action="{{ route('value-chains.participating-entities.update', [$valueChain, $participatingEntity]) }}" method="POST">
+                    @endcan
                         @csrf
                         @method('PUT')
                         <div class="row">

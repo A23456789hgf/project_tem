@@ -18,7 +18,9 @@
         </a>
     </div>
 
+    @can('users.create')
     <form action="{{ route('users.store') }}" method="POST" class="row g-3 needs-validation" novalidate>
+    @endcan
         @csrf
 
         @if ($errors->any())
@@ -71,9 +73,9 @@
         </div>
 
         {{-- الجهة الداخلية --}}
-        <div class="col-md-6" id="internal_entity_container">
+        <div class="col-md-6" id="internal_entity_container" style="{{ old('organization_type', 'internal') === 'external' ? 'display: none;' : '' }}">
             <label class="form-label fw-semibold text-muted small mb-1">الجهة الداخلية <span class="text-danger">*</span></label>
-            <select name="entity_id" id="entity_id" class="form-select search-select @error('entity_id') is-invalid @enderror">
+            <select name="entity_id" id="entity_id" class="form-select search-select @error('entity_id') is-invalid @enderror" {{ old('organization_type', 'internal') === 'external' ? 'disabled' : '' }}>
                 <option value="">-- اختر الجهة الداخلية --</option>
                 @foreach($entities as $entity)
                     <option value="{{ $entity->id }}" @selected(old('entity_id') == $entity->id)>{{ $entity->name }}</option>
@@ -83,9 +85,9 @@
         </div>
 
         {{-- الجهة الخارجية --}}
-        <div class="col-md-6" id="external_authority_container" style="display: none;">
+        <div class="col-md-6" id="external_authority_container" style="{{ old('organization_type', 'internal') === 'external' ? '' : 'display: none;' }}">
             <label class="form-label fw-semibold text-muted small mb-1">الجهة الخارجية <span class="text-danger">*</span></label>
-            <select name="authority_id" id="authority_id" class="form-select search-select @error('authority_id') is-invalid @enderror">
+            <select name="authority_id" id="authority_id" class="form-select search-select @error('authority_id') is-invalid @enderror" {{ old('organization_type', 'internal') === 'external' ? '' : 'disabled' }}>
                 <option value="">-- اختر الجهة الخارجية --</option>
                 @foreach($authorities as $authority)
                     <option value="{{ $authority->id }}" @selected(old('authority_id') == $authority->id)>{{ $authority->agency_name }}</option>
@@ -184,26 +186,45 @@
 @section('scripts')
     <script>
     $(document).ready(function () {
-        $('.search-select').select2({
-            dir: "rtl",
-            theme: "bootstrap-5",
-            width: '100%',
-            dropdownParent: $('body')
-        });
-
-        function toggleOrganizationFields() {
-            var type = $('#organization_type').val();
-            if (type === 'external') {
-                $('#internal_entity_container').hide();
-                $('#external_authority_container').show();
-            } else {
-                $('#internal_entity_container').show();
-                $('#external_authority_container').hide();
+        function initSelect2(element) {
+            if ($.fn.select2) {
+                $(element).select2({
+                    dir: "rtl",
+                    theme: "bootstrap-5",
+                    width: '100%'
+                });
             }
         }
 
-        $('#organization_type').on('change', toggleOrganizationFields);
-        toggleOrganizationFields();
+        // Initialize general select2 elements that are currently visible
+        $('.search-select:visible').each(function() {
+            initSelect2(this);
+        });
+
+        function toggleOrganizationFields(isInitial) {
+            var type = $('#organization_type').val();
+            if (type === 'external') {
+                $('#internal_entity_container').hide();
+                $('#entity_id').prop('disabled', true);
+
+                $('#external_authority_container').show();
+                $('#authority_id').prop('disabled', false);
+                initSelect2('#authority_id');
+            } else {
+                $('#external_authority_container').hide();
+                $('#authority_id').prop('disabled', true);
+
+                $('#internal_entity_container').show();
+                $('#entity_id').prop('disabled', false);
+                initSelect2('#entity_id');
+            }
+        }
+
+        $('#organization_type').on('change', function() {
+            toggleOrganizationFields(false);
+        });
+
+        toggleOrganizationFields(true);
     });
     </script>
 @endsection

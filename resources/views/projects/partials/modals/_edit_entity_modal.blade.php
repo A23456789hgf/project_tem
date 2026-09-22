@@ -6,7 +6,9 @@
                     <h6 class="modal-title mb-0" id="editEntityModalLabel{{ $project->id }}">تعديل الجهة المقدمة للمشروع</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                @can('projects.edit-entity')
                 <form action="{{ route('projects.update-entity', $project) }}" method="POST" onsubmit="return confirm('تنبيه: تغيير الجهة المقدمة هو إجراء نهائي لمرة واحدة فقط ولا يمكن التراجع عنه أو تعديله لاحقًا. هل أنت متأكد من الاستمرار؟');">
+                @endcan
                     @csrf
                     @method('PUT')
                     <div class="modal-body py-3">

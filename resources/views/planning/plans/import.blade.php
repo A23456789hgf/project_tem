@@ -36,7 +36,9 @@
                     <h5 class="mb-0"><i class="fas fa-file-excel text-success me-2"></i>رفع ملف Excel</h5>
                 </div>
                 <div class="card-body">
+                    @can('plans.import')
                     <form action="{{ route('plans.process-import') }}" method="POST" enctype="multipart/form-data" id="importForm">
+                    @endcan
                         @csrf
 
                         {{-- File drop zone --}}

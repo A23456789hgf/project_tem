@@ -10,6 +10,7 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('priorities.edit')
     <form action="{{ route('priorities.update', $priority->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -43,5 +44,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

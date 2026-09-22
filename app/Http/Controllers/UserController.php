@@ -6,7 +6,9 @@ use App\Enums\EntityResponsibilityType;
 use App\Enums\UserResponsibilityType;
 use App\Models\AuditLog;
 use App\Models\Authority;
+use App\Models\AuthorityApprovalStage;
 use App\Models\Directorate;
+use App\Models\EntityApprovalStage;
 use App\Models\Governorate;
 use App\Models\InternalEntity;
 use App\Models\Role;
@@ -133,14 +135,20 @@ class UserController extends Controller
             $request->merge(['password' => '123456']);
         }
 
+        // المستخدم الجديد يكون فعالاً افتراضياً إذا لم يتم إرسال الحالة من النموذج
         $request->merge([
-            'status' => $request->has('status') ? $request->status : 'Disabled',
+            'status' => $request->filled('status') ? $request->status : 'Active',
         ]);
 
+        // ضبط الجهة حسب نوع المستخدم
         if ($request->organization_type === 'internal') {
-            $request->merge(['authority_id' => null]);
+            $request->merge([
+                'authority_id' => null,
+            ]);
         } elseif ($request->organization_type === 'external') {
-            $request->merge(['entity_id' => null]);
+            $request->merge([
+                'entity_id' => null,
+            ]);
         }
 
         $validator = Validator::make($request->all(), [
@@ -150,30 +158,94 @@ class UserController extends Controller
             'status' => 'required|in:Active,Disabled',
             'phone' => 'nullable|string|max:20',
             'organization_type' => 'required|in:internal,external',
-            'entity_id' => 'nullable|required_if:organization_type,internal|exists:internal_entities,id',
-            'authority_id' => 'nullable|required_if:organization_type,external|exists:authorities,id',
-            'administrative_scope_id' => 'nullable|exists:internal_entities,id',
+
+            'entity_id' => [
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->organization_type === 'internal') {
+                        $role = ! empty($request->role_id) ? Role::find($request->role_id) : null;
+                        $isFullAccess = $role && ($role->full_access || in_array(strtolower($role->name), ['admin', 'مدير النظام']));
+
+                        if (empty($value) && ! $isFullAccess) {
+                            $fail('الجهة الداخلية مطلوبة للمستخدم الداخلي ذو النطاق المحدد.');
+                        }
+
+                        if (! empty($value) && ! InternalEntity::where('id', $value)->exists()) {
+                            $fail('الجهة الداخلية المحددة غير صالحة.');
+                        }
+                    }
+                },
+            ],
+
+            'authority_id' => [
+                'nullable',
+                'required_if:organization_type,external',
+                'exists:authorities,id',
+            ],
+
+            'administrative_scope_id' => [
+                'nullable',
+                function ($attribute, $value, $fail) use ($request) {
+                    if (! empty($value)) {
+                        if ($request->organization_type === 'external') {
+                            if (! Authority::where('id', $value)->exists()) {
+                                $fail('الجهة الخارجية المحددة للنطاق الإداري غير صالحة.');
+                            }
+                        } else {
+                            if (! InternalEntity::where('id', $value)->exists()) {
+                                $fail('الجهة الداخلية المحددة للنطاق الإداري غير صالحة.');
+                            }
+                        }
+                    }
+                },
+            ],
+
             'work' => 'nullable|string|max:255',
-            'responsibility' => ['nullable', Rule::in(array_column(UserResponsibilityType::cases(), 'value'))],
+
+            'responsibility' => [
+                'nullable',
+                Rule::in(array_column(
+                    UserResponsibilityType::cases(),
+                    'value'
+                )),
+            ],
+
             'geographic_scopes' => 'nullable|array',
-            'geographic_scopes.*.governorate_id' => ['nullable', function ($attribute, $value, $fail) {
-                if ($value !== 'all' && ! empty($value) && ! Governorate::where('id', $value)->exists()) {
-                    $fail('المحافظة المحددة غير صالحة.');
-                }
-            }],
-            'geographic_scopes.*.directorate_id' => ['nullable', function ($attribute, $value, $fail) {
-                if ($value !== 'all' && ! empty($value) && ! Directorate::where('id', $value)->exists()) {
-                    $fail('المديرية المحددة غير صالحة.');
-                }
-            }],
+
+            'geographic_scopes.*.governorate_id' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (
+                        $value !== 'all'
+                        && ! empty($value)
+                        && ! Governorate::where('id', $value)->exists()
+                    ) {
+                        $fail('المحافظة المحددة غير صالحة.');
+                    }
+                },
+            ],
+
+            'geographic_scopes.*.directorate_id' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (
+                        $value !== 'all'
+                        && ! empty($value)
+                        && ! Directorate::where('id', $value)->exists()
+                    ) {
+                        $fail('المديرية المحددة غير صالحة.');
+                    }
+                },
+            ],
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            return back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
-        // استخدام المعاملة لضمان تناسق البيانات
         DB::beginTransaction();
+
         try {
             $userId = User::generateNextUserId();
 
@@ -181,22 +253,47 @@ class UserController extends Controller
                 'username' => $userId,
                 'user_id' => $userId,
                 'name' => $request->name,
+                'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role_id' => $request->role_id,
+
+                // ستكون Active افتراضياً
                 'status' => $request->status,
+
                 'phone' => $request->phone,
-                'entity_id' => $request->entity_id,
+
+                // الداخلي يستخدم entity_id
+                'entity_id' => $request->organization_type === 'internal'
+                    ? $request->entity_id
+                    : null,
+
                 'organization_type' => $request->organization_type,
-                'authority_id' => $request->authority_id,
+
+                // الخارجي يستخدم authority_id
+                'authority_id' => $request->organization_type === 'external'
+                    ? $request->authority_id
+                    : null,
+
                 'administrative_scope_id' => $request->administrative_scope_id,
                 'work' => $request->work,
                 'responsibility' => $request->responsibility ?: null,
+
+                // إجبار المستخدم على تغيير كلمة المرور بعد أول دخول
+                'must_change_password' => true,
+
                 'created_by' => auth()->id(),
             ]);
 
-            // حفظ النطاقات الجغرافية (أو اعتبارها من دون نطاق إذا لم يتم اختيار شيء)
-            $this->syncGeographicScopes($user, $request->geographic_scopes ?? []);
+            // حفظ النطاقات الجغرافية
+            $this->syncGeographicScopes(
+                $user,
+                $request->geographic_scopes ?? []
+            );
 
+            // تحديث مسؤولية المرحلة تلقائياً
+            $this->syncUserStageResponsibility($user);
+
+            // تسجيل عملية إنشاء المستخدم
             AuditLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'create',
@@ -209,17 +306,44 @@ class UserController extends Controller
 
             DB::commit();
 
+            // إرسال إشعار إنشاء الحساب
             try {
-                app(NotificationService::class)->notifyUserAccount($user, 'created', auth()->user());
+                app(NotificationService::class)
+                    ->notifyUserAccount(
+                        $user,
+                        'created',
+                        auth()->user()
+                    );
             } catch (\Exception $e) {
-                \Log::error('Notification error in UserController store: '.$e->getMessage());
+                \Log::error(
+                    'Notification error in UserController store: '.
+                    $e->getMessage()
+                );
             }
 
-            return redirect()->route('users.index')->with('success', 'تم إنشاء المستخدم بنجاح');
+            return redirect()
+                ->route('users.index')
+                ->with(
+                    'success',
+                    'تم إنشاء المستخدم بنجاح والحساب مفعل ويمكنه تسجيل الدخول.'
+                );
+
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'حدث خطأ أثناء إنشاء المستخدم: '.$e->getMessage())->withInput();
+            \Log::error('User creation error: '.$e->getMessage(), [
+                'organization_type' => $request->organization_type,
+                'entity_id' => $request->entity_id,
+                'authority_id' => $request->authority_id,
+                'phone' => $request->phone,
+            ]);
+
+            return back()
+                ->with(
+                    'error',
+                    'حدث خطأ أثناء إنشاء المستخدم: '.$e->getMessage()
+                )
+                ->withInput();
         }
     }
 
@@ -270,17 +394,31 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         if ($user->username === 'root') {
-            return back()->with('error', 'لا يمكن تعديل المستخدم الافتراضي root.');
+            return back()->with(
+                'error',
+                'لا يمكن تعديل المستخدم الافتراضي root.'
+            );
         }
 
+        /*
+         * إذا لم يرسل النموذج status نحافظ على حالة المستخدم الحالية.
+         * هذا يمنع إعادة تفعيل مستخدم Disabled بالخطأ عند تعديل بياناته.
+         */
         $request->merge([
-            'status' => $request->has('status') ? $request->status : 'Disabled',
+            'status' => $request->filled('status')
+                ? $request->status
+                : $user->status,
         ]);
 
+        // ضبط الجهة حسب نوع المستخدم
         if ($request->organization_type === 'internal') {
-            $request->merge(['authority_id' => null]);
+            $request->merge([
+                'authority_id' => null,
+            ]);
         } elseif ($request->organization_type === 'external') {
-            $request->merge(['entity_id' => null]);
+            $request->merge([
+                'entity_id' => null,
+            ]);
         }
 
         $validator = Validator::make($request->all(), [
@@ -289,76 +427,217 @@ class UserController extends Controller
             'status' => 'required|in:Active,Disabled',
             'phone' => 'nullable|string|max:20',
             'organization_type' => 'required|in:internal,external',
-            'entity_id' => 'nullable|required_if:organization_type,internal|exists:internal_entities,id',
-            'authority_id' => 'nullable|required_if:organization_type,external|exists:authorities,id',
-            'administrative_scope_id' => 'nullable|exists:internal_entities,id',
+
+            'entity_id' => [
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->organization_type === 'internal') {
+                        $role = ! empty($request->role_id) ? Role::find($request->role_id) : null;
+                        $isFullAccess = $role && ($role->full_access || in_array(strtolower($role->name), ['admin', 'مدير النظام']));
+
+                        if (empty($value) && ! $isFullAccess) {
+                            $fail('الجهة الداخلية مطلوبة للمستخدم الداخلي ذو النطاق المحدد.');
+                        }
+
+                        if (! empty($value) && ! InternalEntity::where('id', $value)->exists()) {
+                            $fail('الجهة الداخلية المحددة غير صالحة.');
+                        }
+                    }
+                },
+            ],
+
+            'authority_id' => [
+                'nullable',
+                'required_if:organization_type,external',
+                'exists:authorities,id',
+            ],
+
+            'administrative_scope_id' => [
+                'nullable',
+                function ($attribute, $value, $fail) use ($request) {
+                    if (! empty($value)) {
+                        if ($request->organization_type === 'external') {
+                            if (! Authority::where('id', $value)->exists()) {
+                                $fail(
+                                    'الجهة الخارجية المحددة للنطاق الإداري غير صالحة.'
+                                );
+                            }
+                        } else {
+                            if (! InternalEntity::where('id', $value)->exists()) {
+                                $fail(
+                                    'الجهة الداخلية المحددة للنطاق الإداري غير صالحة.'
+                                );
+                            }
+                        }
+                    }
+                },
+            ],
+
             'work' => 'nullable|string|max:255',
-            'responsibility' => ['nullable', Rule::in(array_column(UserResponsibilityType::cases(), 'value'))],
+
+            'responsibility' => [
+                'nullable',
+                Rule::in(array_column(
+                    UserResponsibilityType::cases(),
+                    'value'
+                )),
+            ],
+
             'geographic_scopes' => 'nullable|array',
-            'geographic_scopes.*.governorate_id' => ['nullable', function ($attribute, $value, $fail) {
-                if ($value !== 'all' && $value !== null && $value !== '' && ! Governorate::where('id', $value)->exists()) {
-                    $fail('المحافظة المحددة غير صالحة.');
-                }
-            }],
-            'geographic_scopes.*.directorate_id' => ['nullable', function ($attribute, $value, $fail) {
-                if ($value !== 'all' && $value !== null && $value !== '' && ! Directorate::where('id', $value)->exists()) {
-                    $fail('المديرية المحددة غير صالحة.');
-                }
-            }],
+
+            'geographic_scopes.*.governorate_id' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (
+                        $value !== 'all'
+                        && $value !== null
+                        && $value !== ''
+                        && ! Governorate::where('id', $value)->exists()
+                    ) {
+                        $fail('المحافظة المحددة غير صالحة.');
+                    }
+                },
+            ],
+
+            'geographic_scopes.*.directorate_id' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (
+                        $value !== 'all'
+                        && $value !== null
+                        && $value !== ''
+                        && ! Directorate::where('id', $value)->exists()
+                    ) {
+                        $fail('المديرية المحددة غير صالحة.');
+                    }
+                },
+            ],
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            return back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
-        // Guard: prevent deactivating or changing entity/responsibility of a user
-        // who is currently configured as responsible for an enabled approval stage.
-        $isDeactivating = ($user->status === 'Active' && $request->status === 'Disabled');
-        $isChangingEntity = ($request->entity_id && (int) $request->entity_id !== (int) $user->entity_id);
-        $isChangingResp = ($request->responsibility !== ($user->responsibility?->value ?? null)
-            && $user->responsibility !== null);
+        /*
+         * منع تعطيل المستخدم أو تغيير الجهة/المسؤولية
+         * إذا كان مسؤولاً فعلياً عن مرحلة اعتماد مفعلة.
+         */
+        $isDeactivating = (
+            $user->status === 'Active'
+            && $request->status === 'Disabled'
+        );
 
-        if ($isDeactivating || $isChangingEntity || $isChangingResp) {
+        /*
+         * دعم تغيير الجهة للمستخدم الداخلي والخارجي.
+         */
+        $isChangingOrganization = false;
+
+        if ($request->organization_type !== $user->organization_type) {
+            $isChangingOrganization = true;
+        } elseif ($request->organization_type === 'internal') {
+            $isChangingOrganization =
+                (int) $request->entity_id !== (int) $user->entity_id;
+        } elseif ($request->organization_type === 'external') {
+            $isChangingOrganization =
+                (int) $request->authority_id !== (int) $user->authority_id;
+        }
+
+        $currentResponsibility = $user->responsibility instanceof UserResponsibilityType
+            ? $user->responsibility->value
+            : $user->responsibility;
+
+        $isChangingResp = (
+            $request->responsibility !== $currentResponsibility
+            && $user->responsibility !== null
+        );
+
+        if (
+            $isDeactivating
+            || $isChangingOrganization
+            || $isChangingResp
+        ) {
+            /*
+             * هذا الجزء موجود أصلاً للمستخدم الداخلي.
+             * نحافظ عليه كما هو لمنع كسر إعدادات مراحل الاعتماد.
+             */
             $user->loadMissing('responsibleApprovalStages.entity');
+
             if ($user->responsibleApprovalStages->isNotEmpty()) {
                 $stageNames = $user->responsibleApprovalStages
-                    ->map(fn ($s) => ($s->entity?->name ?? "#{$s->entity_id}").' – '.(EntityResponsibilityType::tryFrom($s->stage)?->label() ?? $s->stage))
+                    ->map(function ($stage) {
+                        $entityName = $stage->entity?->name
+                            ?? "#{$stage->entity_id}";
+
+                        $stageLabel =
+                            EntityResponsibilityType::tryFrom($stage->stage)?->label()
+                            ?? $stage->stage;
+
+                        return $entityName.' – '.$stageLabel;
+                    })
                     ->join('، ');
 
-                return back()->with('error',
-                    "لا يمكن تعديل هذا المستخدم لأنه مسؤول فعلي عن المراحل التالية: [{$stageNames}]. يرجى إعادة تعيين تلك المراحل أولاً من صفحة مراحل الجهات."
-                )->withInput();
+                return back()
+                    ->with(
+                        'error',
+                        "لا يمكن تعديل هذا المستخدم لأنه مسؤول فعلي عن المراحل التالية: [{$stageNames}]. يرجى إعادة تعيين تلك المراحل أولاً من صفحة مراحل الجهات."
+                    )
+                    ->withInput();
             }
         }
 
         $oldValues = $user->toArray();
 
-        // استخدام المعاملة لضمان تناسق البيانات
         DB::beginTransaction();
+
         try {
-            // تحديث بيانات المستخدم الأساسية
             $user->update([
                 'name' => $request->name,
                 'role_id' => $request->role_id,
                 'status' => $request->status,
                 'phone' => $request->phone,
+
                 'organization_type' => $request->organization_type,
-                'entity_id' => $request->entity_id,
-                'authority_id' => $request->authority_id,
+
+                // الجهة الداخلية
+                'entity_id' => $request->organization_type === 'internal'
+                    ? $request->entity_id
+                    : null,
+
+                // الجهة الخارجية
+                'authority_id' => $request->organization_type === 'external'
+                    ? $request->authority_id
+                    : null,
+
                 'administrative_scope_id' => $request->administrative_scope_id,
                 'work' => $request->work,
                 'responsibility' => $request->responsibility ?: null,
                 'updated_by' => auth()->id(),
             ]);
 
-            // تحديث النطاقات الجغرافية (أو اعتبارها من دون نطاق إذا لم يتم اختيار شيء)
-            $this->syncGeographicScopes($user, $request->geographic_scopes ?? []);
+            // تحديث النطاقات الجغرافية
+            $this->syncGeographicScopes(
+                $user,
+                $request->geographic_scopes ?? []
+            );
 
-            // تسجيل التغييرات في سجل التدقيق
+            // تحديث مسؤولية المرحلة تلقائياً
+            $this->syncUserStageResponsibility($user);
+
+            // تحديث البيانات من قاعدة البيانات
+            $user->refresh();
+
+            // تسجيل التغييرات
             $changes = [];
+
             foreach ($oldValues as $key => $value) {
-                if ($value !== $user->$key) {
-                    $changes[$key] = ['old' => $value, 'new' => $user->$key];
+                $newValue = $user->getAttribute($key);
+
+                if ($value != $newValue) {
+                    $changes[$key] = [
+                        'old' => $value,
+                        'new' => $newValue,
+                    ];
                 }
             }
 
@@ -377,11 +656,29 @@ class UserController extends Controller
 
             DB::commit();
 
-            return redirect()->route('users.show', $user)->with('success', 'تم تحديث المستخدم بنجاح');
+            return redirect()
+                ->route('users.show', $user)
+                ->with(
+                    'success',
+                    'تم تحديث بيانات المستخدم بنجاح'
+                );
+
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'حدث خطأ أثناء تحديث المستخدم: '.$e->getMessage())->withInput();
+            \Log::error('User update error: '.$e->getMessage(), [
+                'user_id' => $user->id,
+                'organization_type' => $request->organization_type,
+                'entity_id' => $request->entity_id,
+                'authority_id' => $request->authority_id,
+            ]);
+
+            return back()
+                ->with(
+                    'error',
+                    'حدث خطأ أثناء تحديث المستخدم: '.$e->getMessage()
+                )
+                ->withInput();
         }
     }
 
@@ -480,7 +777,10 @@ class UserController extends Controller
             return back()->withErrors($validator);
         }
 
-        $user->update(['password' => Hash::make($request->password)]);
+        $user->update([
+            'password' => Hash::make($request->password),
+            'must_change_password' => true,
+        ]);
 
         AuditLog::create([
             'user_id' => auth()->id(),
@@ -686,5 +986,53 @@ class UserController extends Controller
             $authority?->governorate_id,
             $authority?->directorate_id,
         ];
+    }
+
+    /**
+     * تلقائياً، في حال تعيين مسؤولية ونوع جهة للمستخدم النشط، يتم تعيينه كمسؤول عن مرحلة المراجعة في إعدادات المراحل.
+     */
+    private function syncUserStageResponsibility(User $user): void
+    {
+        if (! $user->responsibility || $user->status !== 'Active') {
+            return;
+        }
+
+        $responsibilityEnum = $user->responsibility instanceof UserResponsibilityType
+            ? $user->responsibility
+            : (is_string($user->responsibility) ? UserResponsibilityType::tryFrom($user->responsibility) : null);
+
+        if (! $responsibilityEnum) {
+            return;
+        }
+
+        $stageType = $responsibilityEnum->coversStage();
+
+        if ($user->organization_type === 'internal' && $user->entity_id) {
+            EntityApprovalStage::updateOrCreate(
+                [
+                    'entity_id' => $user->entity_id,
+                    'stage' => $stageType->value,
+                ],
+                [
+                    'stage_order' => $stageType->stageOrder(),
+                    'is_active' => true,
+                    'responsible_user_id' => $user->id,
+                    'updated_by' => auth()->id(),
+                ]
+            );
+        } elseif ($user->organization_type === 'external' && $user->authority_id) {
+            AuthorityApprovalStage::updateOrCreate(
+                [
+                    'authority_id' => $user->authority_id,
+                    'stage' => $stageType->value,
+                ],
+                [
+                    'stage_order' => $stageType->stageOrder(),
+                    'is_active' => true,
+                    'responsible_user_id' => $user->id,
+                    'updated_by' => auth()->id(),
+                ]
+            );
+        }
     }
 }

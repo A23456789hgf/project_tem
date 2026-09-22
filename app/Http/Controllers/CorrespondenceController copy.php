@@ -3,23 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\Correspondence;
-use App\Models\CorrespondenceReply;
 use App\Models\CorrespondenceForwarding;
 use App\Models\CorrespondenceReferral;
+use App\Models\CorrespondenceReply;
 use App\Models\InternalEntity;
 use App\Models\User;
 use App\Scopes\DomainScope;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use App\Traits\HandlesDataVisibility;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use App\Traits\HandlesDataVisibility;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
+use Mpdf\Mpdf;
 
 class CorrespondenceController extends Controller
 {
@@ -142,224 +144,224 @@ class CorrespondenceController extends Controller
 
     //     return view('correspondence.index', compact('correspondences', 'statistics', 'subDepartments'));
     // }
-    
-public function index(Request $request)
-{
-    $this->authorize('viewAny', Correspondence::class);
 
-    $user = Auth::user();
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', Correspondence::class);
 
-    // =====================================================
-    // 1. ENTITY SCOPE (نفس فكرة getProjects)
-    // =====================================================
+        $user = Auth::user();
 
-    // 1.1 النطاق الإداري (الجهة + الأبناء)
-    $entityIdsByEnt = \App\Models\InternalEntity::getAllChildrenIds(
-        $user->administrative_scope_id
-    );
+        // =====================================================
+        // 1. ENTITY SCOPE (نفس فكرة getProjects)
+        // =====================================================
 
-    // 1.2 النطاق الجغرافي
-    $entityIdsByGeo = [];
+        // 1.1 النطاق الإداري (الجهة + الأبناء)
+        $entityIdsByEnt = InternalEntity::getAllChildrenIds(
+            $user->administrative_scope_id
+        );
 
-    foreach ($user->geographicScopes as $scope) {
+        // 1.2 النطاق الجغرافي
+        $entityIdsByGeo = [];
 
-        if (!empty($scope->governorate_id) && empty($scope->directorate_id)) {
-            $ids = \App\Models\InternalEntity::getAllByGovernorate($scope->governorate_id);
-            $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
+        foreach ($user->geographicScopes as $scope) {
 
-        } elseif (!empty($scope->directorate_id)) {
-            $ids = \App\Models\InternalEntity::getAllByDirectorate($scope->directorate_id);
-            $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
+            if (! empty($scope->governorate_id) && empty($scope->directorate_id)) {
+                $ids = InternalEntity::getAllByGovernorate($scope->governorate_id);
+                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
+
+            } elseif (! empty($scope->directorate_id)) {
+                $ids = InternalEntity::getAllByDirectorate($scope->directorate_id);
+                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
+            }
         }
-    }
 
-    // 1.3 دمج كل الصلاحيات
-    $entityIds = array_unique(array_merge(
-        $entityIdsByEnt ?? [],
-        $entityIdsByGeo ?? []
-    ));
+        // 1.3 دمج كل الصلاحيات
+        $entityIds = array_unique(array_merge(
+            $entityIdsByEnt ?? [],
+            $entityIdsByGeo ?? []
+        ));
 
-    // =====================================================
-    // 2. BASE QUERY (مع نطاق الرؤية)
-    // =====================================================
+        // =====================================================
+        // 2. BASE QUERY (مع نطاق الرؤية)
+        // =====================================================
 
-    $query = Correspondence::with([
-        'senderEntity',
-        'recipientEntity',
-        'senderUser'
-    ])
-    ->where(function ($q) use ($entityIds, $user) {
+        $query = Correspondence::with([
+            'senderEntity',
+            'recipientEntity',
+            'senderUser',
+        ])
+            ->where(function ($q) use ($entityIds, $user) {
 
-        // رؤية أساسية: إرسال + استلام ضمن النطاق
-        $q->whereIn('sender_entity_id', $entityIds)
-          ->orWhereIn('recipient_entity_id', $entityIds);
+                // رؤية أساسية: إرسال + استلام ضمن النطاق
+                $q->whereIn('sender_entity_id', $entityIds)
+                    ->orWhereIn('recipient_entity_id', $entityIds);
 
-        // صلاحية رؤية شاملة
-        if ($user->canViewAllCorrespondence()) {
-            $q->orWhereNotNull('id');
+                // صلاحية رؤية شاملة
+                if ($user->canViewAllCorrespondence()) {
+                    $q->orWhereNotNull('id');
+                }
+            });
+
+        // =====================================================
+        // 3. FILTER (نوع المراسلة)
+        // =====================================================
+
+        if ($request->filled('filter')) {
+            switch ($request->filter) {
+
+                case 'sent':
+                    $query->whereIn('sender_entity_id', $entityIds);
+                    break;
+
+                case 'received':
+                    $query->whereIn('recipient_entity_id', $entityIds);
+                    break;
+
+                case 'referred':
+                    $query->whereHas('referrals', function ($q) use ($entityIds) {
+                        $q->whereIn('referred_to_entity_id', $entityIds);
+                    });
+                    break;
+
+                case 'replied':
+                case 'pending':
+                case 'closed':
+                    $query->where('status', $request->filter);
+                    break;
+
+                case 'overdue':
+                    $query->whereIn('recipient_entity_id', $entityIds)
+                        ->where('status', 'pending')
+                        ->where('created_at', '<', now()->subDays(7));
+                    break;
+            }
         }
-    });
 
-    // =====================================================
-    // 3. FILTER (نوع المراسلة)
-    // =====================================================
+        // =====================================================
+        // 4. ADVANCED FILTERS
+        // =====================================================
 
-    if ($request->filled('filter')) {
-        switch ($request->filter) {
-
-            case 'sent':
-                $query->whereIn('sender_entity_id', $entityIds);
-                break;
-
-            case 'received':
-                $query->whereIn('recipient_entity_id', $entityIds);
-                break;
-
-            case 'referred':
-                $query->whereHas('referrals', function ($q) use ($entityIds) {
-                    $q->whereIn('referred_to_entity_id', $entityIds);
-                });
-                break;
-
-            case 'replied':
-            case 'pending':
-            case 'closed':
-                $query->where('status', $request->filter);
-                break;
-
-            case 'overdue':
-                $query->whereIn('recipient_entity_id', $entityIds)
-                      ->where('status', 'pending')
-                      ->where('created_at', '<', now()->subDays(7));
-                break;
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
-    }
 
-    // =====================================================
-    // 4. ADVANCED FILTERS
-    // =====================================================
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
 
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
-    }
+        if ($request->has('confidential')) {
+            $query->where('confidential', $request->boolean('confidential'));
+        }
 
-    if ($request->filled('priority')) {
-        $query->where('priority', $request->priority);
-    }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
 
-    if ($request->has('confidential')) {
-        $query->where('confidential', $request->boolean('confidential'));
-    }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
 
-    if ($request->filled('date_from')) {
-        $query->whereDate('created_at', '>=', $request->date_from);
-    }
+        // =====================================================
+        // 5. SEARCH
+        // =====================================================
 
-    if ($request->filled('date_to')) {
-        $query->whereDate('created_at', '<=', $request->date_to);
-    }
+        if ($request->filled('search')) {
+            $search = $request->search;
 
-    // =====================================================
-    // 5. SEARCH
-    // =====================================================
+            $query->where(function ($q) use ($search) {
+                $q->where('subject', 'like', "%{$search}%")
+                    ->orWhere('correspondence_number', 'like', "%{$search}%")
+                    ->orWhere('message_body', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhereHas('senderEntity', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('recipientEntity', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
 
-    if ($request->filled('search')) {
-        $search = $request->search;
+        // =====================================================
+        // 6. SORTING
+        // =====================================================
 
-        $query->where(function ($q) use ($search) {
-            $q->where('subject', 'like', "%{$search}%")
-              ->orWhere('correspondence_number', 'like', "%{$search}%")
-              ->orWhere('message_body', 'like', "%{$search}%")
-              ->orWhere('notes', 'like', "%{$search}%")
-              ->orWhereHas('senderEntity', function ($q) use ($search) {
-                  $q->where('name', 'like', "%{$search}%");
-              })
-              ->orWhereHas('recipientEntity', function ($q) use ($search) {
-                  $q->where('name', 'like', "%{$search}%");
-              });
+        $orderBy = $request->get('order_by', 'created_at');
+        $orderDir = $request->get('order_dir', 'desc');
+
+        $allowedSorts = [
+            'created_at',
+            'status',
+            'priority',
+            'subject',
+            'correspondence_number',
+        ];
+
+        if (! in_array($orderBy, $allowedSorts)) {
+            $orderBy = 'created_at';
+        }
+
+        $query->orderBy($orderBy, $orderDir === 'asc' ? 'asc' : 'desc');
+
+        // =====================================================
+        // 7. PAGINATION
+        // =====================================================
+
+        $perPage = in_array((int) $request->get('per_page'), [15, 50, 100, 500])
+            ? (int) $request->get('per_page')
+            : 20;
+
+        $correspondences = $query->paginate($perPage)->withQueryString();
+
+        // =====================================================
+        // 8. STATISTICS (بنفس نطاق الصلاحيات)
+        // =====================================================
+
+        $baseStatsQuery = Correspondence::where(function ($q) use ($entityIds) {
+            $q->whereIn('sender_entity_id', $entityIds)
+                ->orWhereIn('recipient_entity_id', $entityIds);
         });
+
+        $statistics = [
+            'total_received' => (clone $baseStatsQuery)
+                ->whereIn('recipient_entity_id', $entityIds)
+                ->count(),
+
+            'pending' => (clone $baseStatsQuery)
+                ->whereIn('recipient_entity_id', $entityIds)
+                ->where('status', 'pending')
+                ->count(),
+
+            'overdue' => (clone $baseStatsQuery)
+                ->whereIn('recipient_entity_id', $entityIds)
+                ->where('status', 'pending')
+                ->where('created_at', '<', now()->subDays(7))
+                ->count(),
+
+            'replied' => (clone $baseStatsQuery)
+                ->whereIn('recipient_entity_id', $entityIds)
+                ->where('status', 'replied')
+                ->count(),
+        ];
+
+        // =====================================================
+        // 9. DROPDOWN ENTITIES
+        // =====================================================
+
+        $subDepartments = InternalEntity::where('is_active', true)
+            ->when($user->canViewEntitiesInDropdowns(), function ($q) {
+                $q->withoutGlobalScope(DomainScope::class);
+            })
+            ->whereIn('id', $entityIds)
+            ->orderBy('name')
+            ->get();
+
+        return view('correspondence.index', compact(
+            'correspondences',
+            'statistics',
+            'subDepartments'
+        ));
     }
-
-    // =====================================================
-    // 6. SORTING
-    // =====================================================
-
-    $orderBy = $request->get('order_by', 'created_at');
-    $orderDir = $request->get('order_dir', 'desc');
-
-    $allowedSorts = [
-        'created_at',
-        'status',
-        'priority',
-        'subject',
-        'correspondence_number'
-    ];
-
-    if (!in_array($orderBy, $allowedSorts)) {
-        $orderBy = 'created_at';
-    }
-
-    $query->orderBy($orderBy, $orderDir === 'asc' ? 'asc' : 'desc');
-
-    // =====================================================
-    // 7. PAGINATION
-    // =====================================================
-
-    $perPage = in_array((int) $request->get('per_page'), [15, 50, 100, 500])
-        ? (int) $request->get('per_page')
-        : 20;
-
-    $correspondences = $query->paginate($perPage)->withQueryString();
-
-    // =====================================================
-    // 8. STATISTICS (بنفس نطاق الصلاحيات)
-    // =====================================================
-
-    $baseStatsQuery = Correspondence::where(function ($q) use ($entityIds) {
-        $q->whereIn('sender_entity_id', $entityIds)
-          ->orWhereIn('recipient_entity_id', $entityIds);
-    });
-
-    $statistics = [
-        'total_received' => (clone $baseStatsQuery)
-            ->whereIn('recipient_entity_id', $entityIds)
-            ->count(),
-
-        'pending' => (clone $baseStatsQuery)
-            ->whereIn('recipient_entity_id', $entityIds)
-            ->where('status', 'pending')
-            ->count(),
-
-        'overdue' => (clone $baseStatsQuery)
-            ->whereIn('recipient_entity_id', $entityIds)
-            ->where('status', 'pending')
-            ->where('created_at', '<', now()->subDays(7))
-            ->count(),
-
-        'replied' => (clone $baseStatsQuery)
-            ->whereIn('recipient_entity_id', $entityIds)
-            ->where('status', 'replied')
-            ->count(),
-    ];
-
-    // =====================================================
-    // 9. DROPDOWN ENTITIES
-    // =====================================================
-
-    $subDepartments = InternalEntity::where('is_active', true)
-        ->when($user->canViewEntitiesInDropdowns(), function ($q) {
-            $q->withoutGlobalScope(\App\Scopes\DomainScope::class);
-        })
-        ->whereIn('id', $entityIds)
-        ->orderBy('name')
-        ->get();
-
-    return view('correspondence.index', compact(
-        'correspondences',
-        'statistics',
-        'subDepartments'
-    ));
-}
 
     /**
      * Get movement log for a correspondence (AJAX)
@@ -368,14 +370,14 @@ public function index(Request $request)
     {
         $correspondence = Correspondence::findOrFail($id);
         $this->authorize('view', $correspondence);
-        
+
         // جلب سجل الحركة الكامل للمراسلة وجميع أبنائها
         $timeline = $correspondence->getFullThreadTimeline();
-        
+
         return response()->json([
             'success' => true,
             'timeline' => $timeline,
-            'count' => $timeline->count()
+            'count' => $timeline->count(),
         ]);
     }
 
@@ -413,7 +415,7 @@ public function index(Request $request)
             'forwardings.toEntity',
             'forwardings.fromEntity',
             'forwardings.forwardedByUser.entity',
-            'movements.user'
+            'movements.user',
         ])->findOrFail($id);
 
         $this->authorize('view', $correspondence);
@@ -423,7 +425,7 @@ public function index(Request $request)
         $qrCode = QrCode::create($url);
         $qrCode->setSize(120);
         $qrCode->setMargin(5);
-        $writer = new PngWriter();
+        $writer = new PngWriter;
         $result = $writer->write($qrCode);
         $qrCodeData = $result->getDataUri();
 
@@ -438,21 +440,21 @@ public function index(Request $request)
             'printDate' => now()->format('Y-m-d H:i'),
         ];
 
-        $fileName = 'correspondence_' . $correspondence->correspondence_number . '.pdf';
+        $fileName = 'correspondence_'.$correspondence->correspondence_number.'.pdf';
 
-        if (!class_exists('\\Mpdf\\Mpdf')) {
+        if (! class_exists('\\Mpdf\\Mpdf')) {
             return view('correspondence.print', $pdfData);
         }
 
         $html = view('correspondence.print', $pdfData)->render();
 
-        $defaultConfig = (new \Mpdf\Config\ConfigVariables())->getDefaults();
+        $defaultConfig = (new ConfigVariables)->getDefaults();
         $fontDirs = $defaultConfig['fontDir'];
 
-        $defaultFontConfig = (new \Mpdf\Config\FontVariables())->getDefaults();
+        $defaultFontConfig = (new FontVariables)->getDefaults();
         $fontData = $defaultFontConfig['fontdata'];
 
-        $mpdf = new \Mpdf\Mpdf([
+        $mpdf = new Mpdf([
             'mode' => 'utf-8',
             'format' => 'A4-L',
             'fontDir' => array_merge($fontDirs, [
@@ -470,7 +472,7 @@ public function index(Request $request)
                     'useOTL' => 0xFF,
                     'useKashida' => 75,
                     'unsetFontPostscriptNames' => true,
-                ]
+                ],
             ],
             'default_font' => 'cairo',
             'margin_left' => 10,
@@ -481,14 +483,15 @@ public function index(Request $request)
 
         $mpdf->SetDirectionality('rtl');
         $mpdf->SetTitle($fileName);
-        
-        if (!empty($html) && is_string($html)) {
+
+        if (! empty($html) && is_string($html)) {
             // تجاهل التحذيرات المعروفة في mPDF 8.x مثل "Uninitialized string offset" و "contains MarkGlyphSets"
-            set_error_handler(function($errno, $errstr) {
-                if (strpos($errstr, 'Uninitialized string offset 0') !== false || 
+            set_error_handler(function ($errno, $errstr) {
+                if (strpos($errstr, 'Uninitialized string offset 0') !== false ||
                     strpos($errstr, 'contains MarkGlyphSets') !== false) {
                     return true; // تجاهل هذه التحذيرات فقط
                 }
+
                 return false; // تمرير باقي الأخطاء
             }, E_WARNING);
 
@@ -501,6 +504,7 @@ public function index(Request $request)
             }
         } else {
             Log::error('PDF Generation failed: HTML content is empty or invalid.', ['file_name' => $fileName]);
+
             return back()->withErrors(['error' => 'تعذر توليد ملف PDF: المحتوى فارغ.']);
         }
 
@@ -523,13 +527,13 @@ public function index(Request $request)
 
         // الحصول على الجهة المرسلة (سيتم توليد الرمز تلقائياً إذا كان مفقوداً)
         $senderEntity = InternalEntity::find($user->entity_id);
-        if (!$senderEntity) {
+        if (! $senderEntity) {
             return redirect()->route('correspondence.index')
                 ->withErrors(['error' => 'تعذر العثور على الجهة التابعة للمستخدم.']);
         }
 
         $entities = InternalEntity::where('is_active', true)
-            ->when($user->canViewEntitiesInDropdowns(), fn($q) => $q->withoutGlobalScope(DomainScope::class));
+            ->when($user->canViewEntitiesInDropdowns(), fn ($q) => $q->withoutGlobalScope(DomainScope::class));
 
         // إذا كان رداً أو إرجاعاً، الجهة المستلمة هي الجهة المرسلة للمراسلة الأصلية
         if ($parent) {
@@ -553,7 +557,7 @@ public function index(Request $request)
             'user_id' => Auth::id(),
             'sender_entity_id' => Auth::user()->entity_id,
             'recipient_entity_id' => $request->recipient_entity_id,
-            'subject' => $request->subject
+            'subject' => $request->subject,
         ]);
 
         $validator = Validator::make($request->all(), [
@@ -569,8 +573,9 @@ public function index(Request $request)
         if ($validator->fails()) {
             Log::warning('فشل التحقق من البيانات عند إنشاء المراسلة', [
                 'errors' => $validator->errors()->toArray(),
-                'input' => $request->except(['attachments'])
+                'input' => $request->except(['attachments']),
             ]);
+
             return back()->withErrors($validator)->withInput();
         }
 
@@ -578,8 +583,9 @@ public function index(Request $request)
 
         // الحصول على الجهة المرسلة (سيتم توليد الرمز تلقائياً إذا كان مفقوداً)
         $senderEntity = InternalEntity::find($user->entity_id);
-        if (!$senderEntity) {
+        if (! $senderEntity) {
             Log::error('فشل إنشاء المراسلة: تعذر العثور على الجهة التابعة للمستخدم', ['entity_id' => $user->entity_id]);
+
             return back()->withErrors(['error' => 'تعذر العثور على الجهة التابعة للمستخدم.'])
                 ->withInput();
         }
@@ -587,6 +593,7 @@ public function index(Request $request)
         // التحقق من عدم إرسال مراسلة إلى الجهة نفسها
         if ($user->entity_id == $request->recipient_entity_id) {
             Log::warning('محاولة إرسال مراسلة إلى نفس الجهة', ['entity_id' => $user->entity_id]);
+
             return back()->withErrors(['error' => 'لا يمكن إرسال مراسلة إلى الجهة نفسها.'])
                 ->withInput();
         }
@@ -598,7 +605,7 @@ public function index(Request $request)
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $originalName = $file->getClientOriginalName();
-                    $fileName = time() . '_' . $originalName;
+                    $fileName = time().'_'.$originalName;
                     $path = $file->storeAs('correspondence/attachments', $fileName, 'public');
                     $attachments[] = [
                         'path' => $path,
@@ -619,7 +626,7 @@ public function index(Request $request)
                 'priority' => $request->priority ?? 'normal',
                 'confidential' => $request->boolean('confidential'),
                 'notes' => $request->notes,
-                'attachments' => !empty($attachments) ? $attachments : null,
+                'attachments' => ! empty($attachments) ? $attachments : null,
                 'status' => $request->correspondence_type === 'return' ? 'returned' : 'pending',
                 'sent_at' => now(),
                 'parent_id' => $request->parent_id,
@@ -629,7 +636,7 @@ public function index(Request $request)
             // تسجيل الحركة في السجل الجديد
             $movementType = 'create';
             $movementDescription = 'إنشاء مراسلة جديدة';
-            
+
             if ($request->correspondence_type === 'reply') {
                 $movementType = 'reply';
                 $movementDescription = 'إضافة رد جديد';
@@ -646,14 +653,18 @@ public function index(Request $request)
                     'priority' => $request->priority ?? 'normal',
                     'confidential' => $request->boolean('confidential'),
                     'correspondence_number' => $correspondence->correspondence_number,
-                    'recipient_entity_id' => $request->recipient_entity_id
+                    'recipient_entity_id' => $request->recipient_entity_id,
                 ]
             );
 
             // تسجيل النشاط (Legacy)
             $action = 'created';
-            if ($request->correspondence_type === 'reply') $action = 'replied';
-            if ($request->correspondence_type === 'return') $action = 'returned';
+            if ($request->correspondence_type === 'reply') {
+                $action = 'replied';
+            }
+            if ($request->correspondence_type === 'return') {
+                $action = 'returned';
+            }
             $correspondence->logActivity($action, $request->notes);
 
             // إذا كان رداً، نقوم بتحديث حالة المراسلة الأب
@@ -673,31 +684,33 @@ public function index(Request $request)
                         "تمت الإضافة من خلال مراسلة رقم: {$correspondence->correspondence_number}",
                         [
                             'child_correspondence_id' => $correspondence->id,
-                            'child_correspondence_number' => $correspondence->correspondence_number
+                            'child_correspondence_number' => $correspondence->correspondence_number,
                         ]
                     );
 
                     // تسجيل النشاط في المراسلة الأب أيضاً
-                    $parent->logActivity($action, 'تمت الإضافة من خلال مراسلة رقم: ' . $correspondence->correspondence_number);
+                    $parent->logActivity($action, 'تمت الإضافة من خلال مراسلة رقم: '.$correspondence->correspondence_number);
                 }
             }
 
             DB::commit();
             Log::info('تم إنشاء المراسلة بنجاح', [
                 'correspondence_id' => $correspondence->id,
-                'correspondence_number' => $correspondence->correspondence_number
+                'correspondence_number' => $correspondence->correspondence_number,
             ]);
 
-                            session()->flash('success', 'تم إنشاء المراسلة بنجاح. رقم المراسلة: ' . $correspondence->correspondence_number);
-                return redirect()->route('correspondence.show', $correspondence->id);;
+            session()->flash('success', 'تم إنشاء المراسلة بنجاح. رقم المراسلة: '.$correspondence->correspondence_number);
+
+            return redirect()->route('correspondence.show', $correspondence->id);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('خطأ استثنائي أثناء إنشاء المراسلة', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return back()->withErrors(['error' => 'حدث خطأ أثناء إنشاء المراسلة: ' . $e->getMessage()])
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء إنشاء المراسلة: '.$e->getMessage()])
                 ->withInput();
         }
     }
@@ -720,7 +733,7 @@ public function index(Request $request)
             'forwardings.toEntity',
             'forwardings.fromEntity',
             'forwardings.forwardedByUser.entity',
-            'movements.user'
+            'movements.user',
         ])->findOrFail($id);
 
         $this->authorize('view', $correspondence);
@@ -736,7 +749,7 @@ public function index(Request $request)
          * هذا يضمن عرض سجل الحركة الكامل للموضوع بغض النظر عن أي جزء من السلسلة يتم عرضه
          */
         $threadIds = [$root->id];
-        $collectChildren = function($parent) use (&$threadIds, &$collectChildren) {
+        $collectChildren = function ($parent) use (&$threadIds, &$collectChildren) {
             $children = Correspondence::where('parent_id', $parent->id)->get();
             foreach ($children as $child) {
                 $threadIds[] = $child->id;
@@ -757,7 +770,7 @@ public function index(Request $request)
             'forwardings.toEntity',
             'forwardings.fromEntity',
             'forwardings.forwardedByUser.entity',
-            'movements.user'
+            'movements.user',
         ])->whereIn('id', $threadIds)->get();
 
         $user = Auth::user();
@@ -813,7 +826,7 @@ public function index(Request $request)
                         [
                             'forwarding_id' => $forward->id,
                             'from_entity' => $forward->fromEntity->name,
-                            'to_entity' => $forward->toEntity->name
+                            'to_entity' => $forward->toEntity->name,
                         ]
                     );
 
@@ -824,7 +837,7 @@ public function index(Request $request)
                 // (الردود التي أرسلتها جهات أخرى لهذه الجهة)
                 $pendingReplies = $correspondence->replies()
                     ->where('status', '!=', 'acknowledged')
-                    ->whereHas('repliedByUser', function($q) use ($user) {
+                    ->whereHas('repliedByUser', function ($q) use ($user) {
                         $q->where('entity_id', '!=', $user->entity_id);
                     })
                     ->get();
@@ -842,7 +855,7 @@ public function index(Request $request)
                         "تم تأكيد استلام رد من: {$reply->repliedByUser->entity->name}",
                         [
                             'reply_id' => $reply->id,
-                            'replied_by' => $reply->repliedByUser->name
+                            'replied_by' => $reply->repliedByUser->name,
                         ]
                     );
 
@@ -880,20 +893,20 @@ public function index(Request $request)
                 }
             } catch (\Exception $e) {
                 DB::rollBack();
-                Log::error('Error in automatic status update: ' . $e->getMessage());
+                Log::error('Error in automatic status update: '.$e->getMessage());
             }
         }
 
         // Fetch all active entities for referral (contacts)
         $entities = InternalEntity::where('is_active', true)
-            ->when($user->canViewEntitiesInDropdowns(), fn($q) => $q->withoutGlobalScope(DomainScope::class))
+            ->when($user->canViewEntitiesInDropdowns(), fn ($q) => $q->withoutGlobalScope(DomainScope::class))
             ->where('id', '!=', $user->entity_id)
             ->orderBy('name')
             ->get();
 
         // Fetch all active entities for forwarding (contacts)
         $subDepartments = InternalEntity::where('is_active', true)
-            ->when($user->canViewEntitiesInDropdowns(), fn($q) => $q->withoutGlobalScope(DomainScope::class))
+            ->when($user->canViewEntitiesInDropdowns(), fn ($q) => $q->withoutGlobalScope(DomainScope::class))
             ->where('id', '!=', $user->entity_id)
             ->orderBy('name')
             ->get();
@@ -907,7 +920,7 @@ public function index(Request $request)
         // توليد رمز QR للمراسلة
         $qrCodeUrl = route('correspondence.show', $correspondence->id);
         $qrCode = QrCode::create($qrCodeUrl);
-        $writer = new PngWriter();
+        $writer = new PngWriter;
         $result = $writer->write($qrCode);
         $qrCodeData = $result->getDataUri();
 
@@ -936,7 +949,7 @@ public function index(Request $request)
         $user = Auth::user();
 
         $entities = InternalEntity::where('is_active', true)
-            ->when($user->canViewEntitiesInDropdowns(), fn($q) => $q->withoutGlobalScope(DomainScope::class))
+            ->when($user->canViewEntitiesInDropdowns(), fn ($q) => $q->withoutGlobalScope(DomainScope::class))
             ->where('id', '!=', $correspondence->sender_entity_id)
             ->get();
 
@@ -989,7 +1002,7 @@ public function index(Request $request)
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $originalName = $file->getClientOriginalName();
-                    $fileName = time() . '_' . $originalName;
+                    $fileName = time().'_'.$originalName;
                     $path = $file->storeAs('correspondence/attachments', $fileName, 'public');
                     $existingAttachments[] = [
                         'path' => $path,
@@ -1008,7 +1021,7 @@ public function index(Request $request)
                 'priority' => $request->priority ?? 'normal',
                 'confidential' => $request->boolean('confidential'),
                 'notes' => $request->notes,
-                'attachments' => !empty($existingAttachments) ? $existingAttachments : null,
+                'attachments' => ! empty($existingAttachments) ? $existingAttachments : null,
             ]);
 
             // تسجيل حركة التعديل
@@ -1018,18 +1031,20 @@ public function index(Request $request)
                 [
                     'updated_fields' => array_keys($request->except(['_token', '_method', 'attachments', 'remove_attachments'])),
                     'subject' => $request->subject,
-                    'priority' => $request->priority ?? 'normal'
+                    'priority' => $request->priority ?? 'normal',
                 ]
             );
 
             DB::commit();
 
-                            session()->flash('success', 'تم تحديث المراسلة بنجاح.');
-                return redirect()->route('correspondence.show', $correspondence->id);;
+            session()->flash('success', 'تم تحديث المراسلة بنجاح.');
+
+            return redirect()->route('correspondence.show', $correspondence->id);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'حدث خطأ أثناء تحديث المراسلة: ' . $e->getMessage()])
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء تحديث المراسلة: '.$e->getMessage()])
                 ->withInput();
         }
     }
@@ -1043,7 +1058,7 @@ public function index(Request $request)
         $this->authorize('delete', $correspondence);
         $user = Auth::user();
 
-        if (!$correspondence->canBeDeleted()) {
+        if (! $correspondence->canBeDeleted()) {
             return back()->withErrors(['error' => 'لا يمكن حذف المراسلة بعد إضافة ردود أو إحالات أو بعد إرسالها.']);
         }
 
@@ -1083,7 +1098,7 @@ public function index(Request $request)
                 'تم حذف المراسلة',
                 [
                     'correspondence_number' => $correspondence->correspondence_number,
-                    'subject' => $correspondence->subject
+                    'subject' => $correspondence->subject,
                 ]
             );
 
@@ -1093,12 +1108,14 @@ public function index(Request $request)
 
             DB::commit();
 
-                            session()->flash('success', 'تم حذف المراسلة بنجاح.');
-                return redirect()->route('correspondence.index');;
+            session()->flash('success', 'تم حذف المراسلة بنجاح.');
+
+            return redirect()->route('correspondence.index');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'حدث خطأ أثناء حذف المراسلة: ' . $e->getMessage()]);
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء حذف المراسلة: '.$e->getMessage()]);
         }
     }
 
@@ -1132,7 +1149,7 @@ public function index(Request $request)
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $originalName = $file->getClientOriginalName();
-                    $fileName = time() . '_' . $originalName;
+                    $fileName = time().'_'.$originalName;
                     $path = $file->storeAs('correspondence/replies', $fileName, 'public');
                     $attachments[] = [
                         'path' => $path,
@@ -1147,7 +1164,7 @@ public function index(Request $request)
             $replyData = [
                 'correspondence_id' => $correspondence->id,
                 'reply_text' => $request->reply_text,
-                'attachments' => !empty($attachments) ? $attachments : null,
+                'attachments' => ! empty($attachments) ? $attachments : null,
                 'return_date' => $request->return_date,
                 'confidential' => $request->boolean('confidential'),
                 'replied_by_user_id' => $user->id,
@@ -1179,7 +1196,7 @@ public function index(Request $request)
                     'reply_id' => $reply->id,
                     'reply_text' => Str::limit($request->reply_text, 100),
                     'return_date' => $request->return_date,
-                    'confidential' => $request->boolean('confidential')
+                    'confidential' => $request->boolean('confidential'),
                 ]
             );
 
@@ -1188,13 +1205,14 @@ public function index(Request $request)
 
             DB::commit();
 
-
             session()->flash('success', 'تم إضافة الرد بنجاح.');
+
             return back();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'حدث خطأ أثناء إضافة الرد: ' . $e->getMessage()]);
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء إضافة الرد: '.$e->getMessage()]);
         }
     }
 
@@ -1218,8 +1236,9 @@ public function index(Request $request)
             Log::warning('فشل التحقق من صحة المراسلة/الإحالة', [
                 'errors' => $validator->errors()->toArray(),
                 'input' => $request->except(['attachments', 'password']),
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
+
             return back()->withErrors($validator)->withInput();
         }
 
@@ -1239,7 +1258,7 @@ public function index(Request $request)
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $originalName = $file->getClientOriginalName();
-                    $fileName = time() . '_' . $originalName;
+                    $fileName = time().'_'.$originalName;
                     $path = $file->storeAs('correspondence/referrals', $fileName, 'public');
                     $attachments[] = [
                         'path' => $path,
@@ -1255,7 +1274,7 @@ public function index(Request $request)
                 'correspondence_id' => $correspondence->id,
                 'referred_to_entity_id' => $request->referred_to_entity_id,
                 'referral_text' => $request->referral_text,
-                'attachments' => !empty($attachments) ? $attachments : null,
+                'attachments' => ! empty($attachments) ? $attachments : null,
                 'deadline' => $request->deadline,
                 'priority' => $request->priority ?? 'normal',
                 'notes' => $request->notes,
@@ -1271,17 +1290,17 @@ public function index(Request $request)
 
             // تسجيل الحركة في السجل الجديد
             $toEntity = InternalEntity::find($request->referred_to_entity_id);
-            
+
             $correspondence->logMovement(
                 'referral',
-                'تم إحالة المراسلة إلى: ' . ($toEntity->name ?? 'غير معروف'),
+                'تم إحالة المراسلة إلى: '.($toEntity->name ?? 'غير معروف'),
                 [
                     'referral_id' => $referral->id,
                     'referral_text' => Str::limit($request->referral_text, 100),
                     'referred_to_entity_id' => $request->referred_to_entity_id,
                     'referred_to_entity_name' => $toEntity->name ?? null,
                     'deadline' => $request->deadline,
-                    'priority' => $request->priority ?? 'normal'
+                    'priority' => $request->priority ?? 'normal',
                 ]
             );
 
@@ -1291,11 +1310,13 @@ public function index(Request $request)
             DB::commit();
 
             session()->flash('success', 'تم إضافة الإحالة بنجاح.');
+
             return back();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'حدث خطأ أثناء إضافة الإحالة: ' . $e->getMessage()]);
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء إضافة الإحالة: '.$e->getMessage()]);
         }
     }
 
@@ -1338,21 +1359,23 @@ public function index(Request $request)
                 [
                     'reason' => $request->close_reason,
                     'closed_by_user_id' => $user->id,
-                    'closed_by_user_name' => $user->name
+                    'closed_by_user_name' => $user->name,
                 ]
             );
 
             // تسجيل النشاط
-            $correspondence->logActivity('closed', 'تم إغلاق المراسلة: ' . $request->close_reason);
+            $correspondence->logActivity('closed', 'تم إغلاق المراسلة: '.$request->close_reason);
 
             DB::commit();
 
             session()->flash('success', 'تم إغلاق المراسلة بنجاح.');
+
             return back();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'حدث خطأ أثناء إغلاق المراسلة: ' . $e->getMessage()]);
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء إغلاق المراسلة: '.$e->getMessage()]);
         }
     }
 
@@ -1375,36 +1398,36 @@ public function index(Request $request)
                     break;
                 case 'reply':
                     $reply = CorrespondenceReply::where('correspondence_id', $id)
-                        ->whereHas('correspondence', function($q) use ($user) {
-                            $q->where(function($subQ) use ($user) {
+                        ->whereHas('correspondence', function ($q) use ($user) {
+                            $q->where(function ($subQ) use ($user) {
                                 $subQ->where('sender_entity_id', $user->entity_id)
                                     ->orWhere('recipient_entity_id', $user->entity_id)
-                                    ->orWhereHas('referrals', function($refQ) use ($user) {
+                                    ->orWhereHas('referrals', function ($refQ) use ($user) {
                                         $refQ->where('referred_to_entity_id', $user->entity_id);
                                     });
                             });
                         })->firstOrFail();
 
                     // التحقق من صلاحية الوصول إلى الرد
-                    if (!$reply->canBeViewedBy($user)) {
+                    if (! $reply->canBeViewedBy($user)) {
                         abort(403, 'غير مصرح لك بتنزيل هذا المرفق.');
                     }
                     $attachments = json_decode($reply->attachments, true) ?? [];
                     break;
                 case 'referral':
                     $referral = CorrespondenceReferral::where('correspondence_id', $id)
-                        ->whereHas('correspondence', function($q) use ($user) {
-                            $q->where(function($subQ) use ($user) {
+                        ->whereHas('correspondence', function ($q) use ($user) {
+                            $q->where(function ($subQ) use ($user) {
                                 $subQ->where('sender_entity_id', $user->entity_id)
                                     ->orWhere('recipient_entity_id', $user->entity_id)
-                                    ->orWhereHas('referrals', function($refQ) use ($user) {
+                                    ->orWhereHas('referrals', function ($refQ) use ($user) {
                                         $refQ->where('referred_to_entity_id', $user->entity_id);
                                     });
                             });
                         })->firstOrFail();
 
                     // التحقق من صلاحية الوصول إلى الإحالة
-                    if (!$referral->canBeViewedBy($user)) {
+                    if (! $referral->canBeViewedBy($user)) {
                         abort(403, 'غير مصرح لك بتنزيل هذا المرفق.');
                     }
                     $attachments = json_decode($referral->attachments, true) ?? [];
@@ -1413,7 +1436,7 @@ public function index(Request $request)
                     abort(404, 'نوع المرفق غير صحيح.');
             }
 
-            if (!isset($attachments[$attachmentIndex])) {
+            if (! isset($attachments[$attachmentIndex])) {
                 abort(404, 'الملف غير موجود.');
             }
 
@@ -1421,14 +1444,14 @@ public function index(Request $request)
             $path = $attachment['path'];
             $originalName = $attachment['original_name'];
 
-            if (!Storage::disk('public')->exists($path)) {
+            if (! Storage::disk('public')->exists($path)) {
                 abort(404, 'الملف غير موجود على الخادم.');
             }
 
             return response()->download(Storage::disk('public')->path($path), $originalName);
 
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'حدث خطأ أثناء تنزيل الملف: ' . $e->getMessage()]);
+            return back()->withErrors(['error' => 'حدث خطأ أثناء تنزيل الملف: '.$e->getMessage()]);
         }
     }
 
@@ -1453,7 +1476,7 @@ public function index(Request $request)
         // البحث
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('subject', 'like', "%{$search}%")
                     ->orWhere('correspondence_number', 'like', "%{$search}%");
             });
@@ -1595,10 +1618,10 @@ public function index(Request $request)
         // البحث
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('referral_text', 'like', "%{$search}%")
                     ->orWhere('notes', 'like', "%{$search}%")
-                    ->orWhereHas('correspondence', function($q) use ($search) {
+                    ->orWhereHas('correspondence', function ($q) use ($search) {
                         $q->where('subject', 'like', "%{$search}%")
                             ->orWhere('correspondence_number', 'like', "%{$search}%");
                     });
@@ -1644,7 +1667,7 @@ public function index(Request $request)
             }
 
             if ($request->filled('notes')) {
-                $updateData['notes'] = $referral->notes ? $referral->notes . "\n" . $request->notes : $request->notes;
+                $updateData['notes'] = $referral->notes ? $referral->notes."\n".$request->notes : $request->notes;
             }
 
             $referral->update($updateData);
@@ -1667,13 +1690,13 @@ public function index(Request $request)
                     'status' => $request->status,
                     'status_label' => $statusLabel,
                     'notes' => $request->notes,
-                    'to_entity' => $referral->referredToEntity->name
+                    'to_entity' => $referral->referredToEntity->name,
                 ]
             );
 
             $referral->correspondence->logActivity(
                 'referral_updated',
-                "تحديث حالة الإحالة (إلى {$referral->referredToEntity->name}) إلى: {$statusLabel}" . ($request->filled('notes') ? " - ملاحظات: " . $request->notes : ""),
+                "تحديث حالة الإحالة (إلى {$referral->referredToEntity->name}) إلى: {$statusLabel}".($request->filled('notes') ? ' - ملاحظات: '.$request->notes : ''),
                 $user->id
             );
 
@@ -1700,7 +1723,7 @@ public function index(Request $request)
                         'تغيرت حالة المراسلة إلى: قيد المعالجة (بعد إنجاز الإحالات)',
                         [
                             'action' => 'all_referrals_completed',
-                            'completed_referral_id' => $referral->id
+                            'completed_referral_id' => $referral->id,
                         ]
                     );
                 }
@@ -1711,12 +1734,13 @@ public function index(Request $request)
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث حالة الإحالة بنجاح.',
-                'referral' => $referral->fresh()
+                'referral' => $referral->fresh(),
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'حدث خطأ أثناء تحديث حالة الإحالة: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'حدث خطأ أثناء تحديث حالة الإحالة: '.$e->getMessage()], 500);
         }
     }
 
@@ -1772,7 +1796,7 @@ public function index(Request $request)
                     'reply_id' => $reply->id,
                     'status' => $request->status,
                     'status_label' => $statusLabel,
-                    'replied_by' => $reply->repliedByUser->name
+                    'replied_by' => $reply->repliedByUser->name,
                 ]
             );
 
@@ -1787,12 +1811,13 @@ public function index(Request $request)
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث حالة الرد بنجاح.',
-                'reply' => $reply->fresh()
+                'reply' => $reply->fresh(),
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'حدث خطأ أثناء تحديث حالة الرد: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'حدث خطأ أثناء تحديث حالة الرد: '.$e->getMessage()], 500);
         }
     }
 
@@ -1810,7 +1835,7 @@ public function index(Request $request)
             abort(403, 'غير مصرح لك باستعادة هذه المراسلة.');
         }
 
-        if (!$correspondence->trashed()) {
+        if (! $correspondence->trashed()) {
             return back()->withErrors(['error' => 'المراسلة غير محذوفة.']);
         }
 
@@ -1824,7 +1849,7 @@ public function index(Request $request)
                 'تم استعادة المراسلة',
                 [
                     'correspondence_number' => $correspondence->correspondence_number,
-                    'subject' => $correspondence->subject
+                    'subject' => $correspondence->subject,
                 ]
             );
 
@@ -1833,12 +1858,14 @@ public function index(Request $request)
 
             DB::commit();
 
-                            session()->flash('success', 'تم استعادة المراسلة بنجاح.');
-                return redirect()->route('correspondence.show', $correspondence->id);;
+            session()->flash('success', 'تم استعادة المراسلة بنجاح.');
+
+            return redirect()->route('correspondence.show', $correspondence->id);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['error' => 'حدث خطأ أثناء استعادة المراسلة: ' . $e->getMessage()]);
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء استعادة المراسلة: '.$e->getMessage()]);
         }
     }
 
@@ -1876,7 +1903,7 @@ public function index(Request $request)
 
         foreach ($request->to_entity_ids as $toEntityId) {
             $notes = $request->forward_notes[$toEntityId] ?? $request->general_notes;
-            
+
             $forwarding = CorrespondenceForwarding::create([
                 'correspondence_id' => $correspondence->id,
                 'from_entity_id' => $user->entity_id,
@@ -1889,10 +1916,10 @@ public function index(Request $request)
 
             // تسجيل في سجل العمليات
             $toEntity = InternalEntity::find($toEntityId);
-            
+
             $correspondence->logActivity(
                 'forwarded',
-                "تم توجيه المراسلة داخلياً إلى: " . ($toEntity->name ?? 'قسم فرعي'),
+                'تم توجيه المراسلة داخلياً إلى: '.($toEntity->name ?? 'قسم فرعي'),
                 $user->id
             );
 
@@ -1906,7 +1933,7 @@ public function index(Request $request)
                     'from_entity_name' => $user->entity->name ?? null,
                     'to_entity_id' => $toEntityId,
                     'to_entity_name' => $toEntity->name,
-                    'notes' => $notes
+                    'notes' => $notes,
                 ]
             );
         }
@@ -1924,12 +1951,13 @@ public function index(Request $request)
                 'تم توجيه المراسلة داخلياً',
                 [
                     'to_entity_ids' => $request->to_entity_ids,
-                    'count' => count($request->to_entity_ids)
+                    'count' => count($request->to_entity_ids),
                 ]
             );
         }
 
         session()->flash('success', 'تم توجيه المراسلة بنجاح.');
+
         return redirect()->back();
     }
 
@@ -1955,7 +1983,7 @@ public function index(Request $request)
 
         $forwarding->correspondence->logActivity(
             'acknowledged',
-            "تم تأكيد استلام التوجيه الداخلي بواسطة: " . ($forwarding->toEntity->name ?? ''),
+            'تم تأكيد استلام التوجيه الداخلي بواسطة: '.($forwarding->toEntity->name ?? ''),
             $user->id
         );
 
@@ -1967,7 +1995,7 @@ public function index(Request $request)
                 'forwarding_id' => $forwarding->id,
                 'from_entity' => $forwarding->fromEntity->name,
                 'to_entity' => $forwarding->toEntity->name,
-                'acknowledged_by' => $user->name
+                'acknowledged_by' => $user->name,
             ]
         );
 
@@ -1984,12 +2012,13 @@ public function index(Request $request)
                 'تغيرت حالة المراسلة إلى: قيد المعالجة (بعد تأكيد الاستلام)',
                 [
                     'action' => 'acknowledge_forward',
-                    'forwarding_id' => $forwarding->id
+                    'forwarding_id' => $forwarding->id,
                 ]
             );
         }
 
         session()->flash('success', 'تم تأكيد استلام التوجيه بنجاح.');
+
         return redirect()->back();
     }
 }

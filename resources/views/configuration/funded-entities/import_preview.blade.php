@@ -77,11 +77,14 @@
                     <!-- Action Buttons -->
                     <div class="d-flex justify-content-between">
                         <div>
+                            @can('fundedentities.import')
                             <a href="{{ route('fundedentities.import') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-right"></i> العودة
                             </a>
+                            @endcan
                         </div>
                         <div>
+                            @can('fundedentities.process-import')
                             <form action="{{ route('fundedentities.process-import') }}" method="POST" style="display: inline;">
                                 @csrf
                                 <input type="hidden" name="file_name" value="{{ $fileName }}">
@@ -89,6 +92,7 @@
                                     <i class="fas fa-check"></i> تأكيد الاستيراد
                                 </button>
                             </form>
+                            @endcan
                         </div>
                     </div>
                 </div>

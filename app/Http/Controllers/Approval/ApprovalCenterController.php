@@ -61,9 +61,12 @@ class ApprovalCenterController extends Controller
         $inboxQuery = ProjectApproval::query()
             ->with([
                 'project.creatorEntity',
+                'project.authority',
                 'project.createdBy',
                 'project.cost',
                 'entity',
+                'authority',
+                'assignedUser',
                 'reviewedByUser',
                 'technicalReviewer',
                 'financialReviewer',
@@ -132,9 +135,12 @@ class ApprovalCenterController extends Controller
 
         $defaultRelations = [
             'project.creatorEntity',
+            'project.authority',
             'project.createdBy',
             'project.cost',
             'entity',
+            'authority',
+            'assignedUser',
             'reviewedByUser',
             'technicalReviewer',
             'financialReviewer',
@@ -162,7 +168,18 @@ class ApprovalCenterController extends Controller
         }
 
         // Pagination after applying all scopes
-        $approvalRecords = $approvalsQuery->orderBy('updated_at', 'desc')->paginate(12)->withQueryString();
+        $approvalRecords = $approvalsQuery
+            ->orderBy('updated_at', 'desc')
+            ->paginate(12)
+            ->withQueryString();
+
+        // العرض الرئيسي يعتمد على آخر حالة فقط لكل مشروع
+        // مع إبقاء سجل الحركات الكامل داخل صفحة التفاصيل.
+        $approvalRecords->setCollection(
+            $approvalRecords->getCollection()
+                ->unique('project_id')
+                ->values()
+        );
 
         // Compute can_user_act for each record (admin can act on all)
         foreach ($approvalRecords as $record) {
@@ -172,8 +189,11 @@ class ApprovalCenterController extends Controller
         // Filter out records the user cannot act on (except admin)
         if (! $isAdmin) {
             $filtered = $approvalRecords->getCollection()->filter(function ($rec) {
-                return $rec->can_user_act;
+                // تظهر للمستخدم فقط المهمة الحالية المسندة له
+                // وبعد الإنجاز تختفي من صندوق المهام.
+                return $rec->can_user_act && $rec->status === 'pending' && $rec->is_active;
             });
+
             $approvalRecords->setCollection($filtered);
         }
 
@@ -227,14 +247,16 @@ class ApprovalCenterController extends Controller
         $project->load([
             'createdBy.entity',
             'creatorEntity',
+            'authority',
             'cost',
             'executiveActionCosts',
             'financings.fundingSource',
             'projectApprovals' => function ($q) {
-                $q->with(['entity', 'reviewedByUser'])->orderBy('step_order');
+                $q->with(['entity', 'authority', 'assignedUser', 'reviewedByUser', 'technicalReviewer', 'financialReviewer'])
+                    ->orderBy('step_order');
             },
             'activityHistory' => function ($q) {
-                $q->with('user')->orderBy('created_at', 'desc');
+                $q->with('user')->orderByDesc('created_at');
             },
             'referrals' => function ($q) {
                 $q->with(['referringEntity', 'referredEntity', 'referringUser', 'respondingUser'])
@@ -244,14 +266,12 @@ class ApprovalCenterController extends Controller
         ]);
 
         $activeStep = $this->approvalService->getActiveStep($project);
+        if ($activeStep) {
+            $activeStep->loadMissing(['entity', 'authority', 'assignedUser']);
+        }
         $canActOnActiveStep = false;
         if ($activeStep && $user) {
-            $canActOnActiveStep = $this->approvalService->canUserActOnStep($user, $activeStep);
-        }
-
-        // Prevent non-admin users from accessing projects they cannot act on
-        if (! $isAdmin && ! $canActOnActiveStep) {
-            abort(403, 'Unauthorized');
+            $canActOnActiveStep = $isAdmin || $this->approvalService->canUserActOnStep($user, $activeStep);
         }
 
         $approvalChain = $project->projectApprovals;

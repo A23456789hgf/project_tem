@@ -275,6 +275,7 @@
                     <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> طلب إجراء</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                @can('approvals.request-action')
                 <form action="{{ route('projects.approval.requestAction', $project) }}" method="POST">
                     @csrf
                     <div class="modal-body">
@@ -292,6 +293,7 @@
                         <button type="submit" class="btn btn-warning">طلب إجراء</button>
                     </div>
                 </form>
+                @endcan
             </div>
         </div>
     </div>
@@ -303,6 +305,7 @@
                     <h5 class="modal-title"><i class="fas fa-times-circle"></i> رفض المشروع</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                @can('approvals.reject')
                 <form action="{{ route('projects.approval.reject', $project) }}" method="POST">
                     @csrf
                     <div class="modal-body">
@@ -316,6 +319,7 @@
                         <button type="submit" class="btn btn-danger">رفض</button>
                     </div>
                 </form>
+                @endcan
             </div>
         </div>
     </div>
@@ -327,6 +331,7 @@
                     <h5 class="modal-title"><i class="fas fa-redo"></i> إعادة إرسال المشروع</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                @can('projects.submit')
                 <form action="{{ route('projects.approval.resubmit', $project) }}" method="POST">
                     @csrf
                     <div class="modal-body">
@@ -343,6 +348,7 @@
                         <button type="submit" class="btn btn-danger">إعادة إرسال</button>
                     </div>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

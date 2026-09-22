@@ -43,14 +43,19 @@
                    class="btn btn-sm" title="عرض التفاصيل">
                     <i class="fas fa-eye"></i>
                 </a>
+                @can('authorities.edit')
                 <a href="{{ route('authorities.edit', $authority->id) }}" 
                    class="btn btn-sm" title="تعديل">
                     <i class="fas fa-edit"></i>
                 </a>
+                @endcan
+                @can('authorities.create')
                 <a href="{{ route('authorities.create', ['parent_id' => $authority->id]) }}" 
                    class="btn btn-sm" title="إضافة جهة تابعة">
                     <i class="fas fa-plus"></i>
                 </a>
+                @endcan
+                @can('authorities.delete')
                 <form action="{{ route('authorities.destroy', $authority->id) }}" 
                       method="POST" class="d-inline">
                     @csrf
@@ -61,6 +66,7 @@
                         <i class="fas fa-trash"></i>
                     </button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

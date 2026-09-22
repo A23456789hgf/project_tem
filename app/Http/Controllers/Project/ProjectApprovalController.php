@@ -189,7 +189,7 @@ class ProjectApprovalController extends Controller
                 ], 200);
             }
 
-            return redirect()->route('projects.show', $project)->with('success', $result['message']);
+            return redirect()->route('approvals.show', $project)->with('success', $result['message']);
         } catch (\Exception $e) {
             Log::error('Approve step error', [
                 'project_id' => $project->id,
@@ -233,7 +233,7 @@ class ProjectApprovalController extends Controller
                 ], 200);
             }
 
-            return redirect()->route('projects.show', $project)->with('success', 'تم رفض المشروع.');
+            return redirect()->route('approvals.show', $project)->with('success', 'تم رفض المشروع.');
         } catch (\Exception $e) {
             Log::error('Reject step error', [
                 'project_id' => $project->id,
@@ -279,7 +279,7 @@ class ProjectApprovalController extends Controller
                 ], 200);
             }
 
-            return redirect()->route('projects.show', $project)->with('success', $result['message']);
+            return redirect()->route('approvals.show', $project)->with('success', $result['message']);
         } catch (\Exception $e) {
             Log::error('Request action error', [
                 'project_id' => $project->id,
@@ -322,7 +322,7 @@ class ProjectApprovalController extends Controller
                 ], 200);
             }
 
-            return redirect()->route('projects.show', $project)->with('success', 'تمت إعادة تقديم المشروع بنجاح.');
+            return redirect()->route('approvals.show', $project)->with('success', 'تمت إعادة تقديم المشروع بنجاح.');
         } catch (\Exception $e) {
             Log::error('Resubmit project error', [
                 'project_id' => $project->id,
@@ -652,7 +652,7 @@ class ProjectApprovalController extends Controller
                 $attachmentPath = $this->storeAttachment($request->file('attachment'), $project);
             }
 
-            // Update preliminary costs if submitted (Financial reviewer can ONLY modify costs)
+            // Update preliminary costs if submitted (Financial reviewer can modify costs)
             if ($request->has('preliminary_costs') && is_array($request->preliminary_costs)) {
                 foreach ($request->preliminary_costs as $costId => $data) {
                     $cost = PreliminaryCost::withoutGlobalScopes()->find($costId);
@@ -668,7 +668,7 @@ class ProjectApprovalController extends Controller
                 }
             }
 
-            // Update executive costs if submitted (Financial reviewer can ONLY modify costs)
+            // Update executive costs if submitted (Financial reviewer can modify costs)
             if ($request->has('executive_costs') && is_array($request->executive_costs)) {
                 foreach ($request->executive_costs as $costId => $data) {
                     $cost = ExecutiveActionCost::withoutGlobalScopes()->find($costId);
@@ -680,6 +680,43 @@ class ProjectApprovalController extends Controller
                             'amount' => $price,
                             'total' => $qty * $price,
                         ]);
+                    }
+                }
+            }
+
+            // Update weights during financial review if provided
+            if ($request->has('preliminary_activities') && is_array($request->preliminary_activities)) {
+                foreach ($request->preliminary_activities as $actId => $data) {
+                    if (isset($data['weight'])) {
+                        $activity = PreliminaryActivity::withoutGlobalScopes()->find($actId);
+                        $activity?->update(['weight' => (float) $data['weight']]);
+                    }
+                }
+            }
+
+            if ($request->has('preliminary_procedures') && is_array($request->preliminary_procedures)) {
+                foreach ($request->preliminary_procedures as $procId => $data) {
+                    if (isset($data['weight'])) {
+                        $procedure = PreliminaryProcedure::withoutGlobalScopes()->find($procId);
+                        $procedure?->update(['weight' => (float) $data['weight']]);
+                    }
+                }
+            }
+
+            if ($request->has('executive_activities') && is_array($request->executive_activities)) {
+                foreach ($request->executive_activities as $actId => $data) {
+                    if (isset($data['weight'])) {
+                        $activity = ExecutiveActivity::withoutGlobalScopes()->find($actId);
+                        $activity?->update(['weight' => (float) $data['weight']]);
+                    }
+                }
+            }
+
+            if ($request->has('executive_actions') && is_array($request->executive_actions)) {
+                foreach ($request->executive_actions as $actId => $data) {
+                    if (isset($data['weight'])) {
+                        $action = ExecutiveActivityAction::withoutGlobalScopes()->find($actId);
+                        $action?->update(['weight' => (float) $data['weight']]);
                     }
                 }
             }
@@ -813,20 +850,27 @@ class ProjectApprovalController extends Controller
                 $attachmentPath = $this->storeAttachment($request->file('attachment'), $project);
             }
 
-            // Update preliminary activities (Technical reviewer can modify activities/procedures)
+            // Update preliminary activities (Technical reviewer can modify activities/procedures/weights)
             if ($request->has('preliminary_activities') && is_array($request->preliminary_activities)) {
                 foreach ($request->preliminary_activities as $actId => $data) {
                     $activity = PreliminaryActivity::withoutGlobalScopes()->find($actId);
                     if ($activity) {
+                        $updateData = [];
                         $name = $data['name'] ?? $data['activity'] ?? null;
                         if (! empty($name)) {
-                            $activity->update(['name' => $name]);
+                            $updateData['name'] = $name;
+                        }
+                        if (isset($data['weight'])) {
+                            $updateData['weight'] = (float) $data['weight'];
+                        }
+                        if (! empty($updateData)) {
+                            $activity->update($updateData);
                         }
                     }
                 }
             }
 
-            // Update preliminary procedures (Technical reviewer can modify procedures and timelines)
+            // Update preliminary procedures (Technical reviewer can modify procedures, timelines and weights)
             if ($request->has('preliminary_procedures') && is_array($request->preliminary_procedures)) {
                 foreach ($request->preliminary_procedures as $procId => $data) {
                     $procedure = PreliminaryProcedure::withoutGlobalScopes()->find($procId);
@@ -842,6 +886,9 @@ class ProjectApprovalController extends Controller
                         if (! empty($data['end_date'])) {
                             $updateData['end_date'] = $data['end_date'];
                         }
+                        if (isset($data['weight'])) {
+                            $updateData['weight'] = (float) $data['weight'];
+                        }
 
                         if (! empty($updateData['start_date']) && ! empty($updateData['end_date'])) {
                             $start = Carbon::parse($updateData['start_date']);
@@ -855,20 +902,27 @@ class ProjectApprovalController extends Controller
                 }
             }
 
-            // Update executive activities (Technical reviewer can modify activities)
+            // Update executive activities (Technical reviewer can modify activities and weights)
             if ($request->has('executive_activities') && is_array($request->executive_activities)) {
                 foreach ($request->executive_activities as $actId => $data) {
                     $activity = ExecutiveActivity::withoutGlobalScopes()->find($actId);
                     if ($activity) {
+                        $updateData = [];
                         $actName = $data['name'] ?? $data['activity_name'] ?? null;
                         if (! empty($actName)) {
-                            $activity->update(['name' => $actName]);
+                            $updateData['name'] = $actName;
+                        }
+                        if (isset($data['weight'])) {
+                            $updateData['weight'] = (float) $data['weight'];
+                        }
+                        if (! empty($updateData)) {
+                            $activity->update($updateData);
                         }
                     }
                 }
             }
 
-            // Update executive actions (Technical reviewer can modify actions and timelines)
+            // Update executive actions (Technical reviewer can modify actions, timelines, and weights)
             if ($request->has('executive_actions') && is_array($request->executive_actions)) {
                 foreach ($request->executive_actions as $actId => $data) {
                     $action = ExecutiveActivityAction::withoutGlobalScopes()->find($actId);
@@ -883,6 +937,9 @@ class ProjectApprovalController extends Controller
                         }
                         if (! empty($data['end_date'])) {
                             $updateData['end_date'] = $data['end_date'];
+                        }
+                        if (isset($data['weight'])) {
+                            $updateData['weight'] = (float) $data['weight'];
                         }
                         if (! empty($updateData)) {
                             $action->update($updateData);

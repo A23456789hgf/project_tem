@@ -41,4 +41,14 @@ class InterventionPolicy
     {
         return $user->hasPermission('interventions.export') || $user->hasPermission('interventions.view');
     }
+
+    public function approve(User $user, ?Intervention $model = null): bool
+    {
+        return $user->hasPermission('interventions.approve');
+    }
+
+    public function reject(User $user, ?Intervention $model = null): bool
+    {
+        return $user->hasPermission('interventions.reject');
+    }
 }

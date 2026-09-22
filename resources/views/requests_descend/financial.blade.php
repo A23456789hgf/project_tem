@@ -10,6 +10,7 @@
                 </h5>
                 <div class="d-flex align-items-center gap-2">
                     @if($requestDescend->financial_status !== 'approved')
+                        @can('project-requests.view')
                         <form action="{{ route('requests_descend.financial.status', $requestDescend->id) }}" method="POST"
                             class="d-inline">
                             @csrf
@@ -27,13 +28,16 @@
                                     onclick="document.getElementById('revert-draft').submit();">إعادة للمسودة</button>
                             @endif
                         </form>
+                        @endcan
                     @endif
                     @if($requestDescend->financial_status === 'confirmed')
+                        @can('project-requests.view')
                         <form id="revert-draft" action="{{ route('requests_descend.financial.status', $requestDescend->id) }}"
                             method="POST" class="d-none">
                             @csrf
                             <input type="hidden" name="financial_status" value="draft">
                         </form>
+                        @endcan
                     @endif
 
                     <a href="{{ route('requests_descend.show', $requestDescend->id) }}"
@@ -60,6 +64,7 @@
                     <div class="card bg-light mb-4 border-0">
                         <div class="card-body">
                             <h6 class="font-weight-bold mb-3">إضافة عضو جديد للنزول</h6>
+                            @can('project-requests.create')
                             <form action="{{ route('requests_descend.financial.member.store', $requestDescend->id) }}"
                                 method="POST">
                                 @csrf
@@ -96,6 +101,7 @@
                                     </div>
                                 </div>
                             </form>
+                            @endcan
                         </div>
                     </div>
                 @endif

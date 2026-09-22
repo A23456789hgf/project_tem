@@ -792,6 +792,9 @@ class ProjectController extends Controller
      */
     public function update(Request $request, Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+        $this->authorize('update', $project);
+
         return $this->handleProjectUpdate($request, $project);
     }
 
@@ -802,6 +805,9 @@ class ProjectController extends Controller
      */
     public function destroy(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+        $this->authorize('delete', $project);
+
         try {
             if ($project->status !== 'draft') {
                 return redirect()->route('projects.index')
@@ -1147,6 +1153,8 @@ class ProjectController extends Controller
 
     public function execution(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         // للمشاريع القديمة: توجيه المستخدم لرفع وتسجيل الإنجازات عبر achievements
         if ($project->project_type === 'old') {
             return redirect()->route('projects.achievements.create', $project->id);
@@ -1204,6 +1212,8 @@ class ProjectController extends Controller
 
     public function schedule(Project $project)
     {
+        $this->projectService->authorizeProjectAccess($project);
+
         try {
             $project->load([
                 'preliminaryActivities.procedures.costs.financialItem',

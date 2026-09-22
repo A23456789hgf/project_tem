@@ -10,7 +10,9 @@
                 </div>
                 <div class="card-body">
                     @if(isset($headers) && isset($rows))
+                    @can('villages.import')
                     <form action="{{ route('villages.process-import') }}" method="POST" class="import-form">
+                    @endcan
                         @csrf
                         <input type="hidden" name="file_path" value="{{ $filePath }}">
 
@@ -65,13 +67,17 @@
                         </div>
 
                         <button type="submit" class="btn btn-primary">بدء الاستيراد</button>
+                        @can('villages.import')
                         <a href="{{ route('villages.import') }}" class="btn btn-secondary">إلغاء</a>
+                        @endcan
                     </form>
                     @else
                     <div class="alert alert-danger">
                         لم يتم تحميل بيانات للمعاينة. يرجى المحاولة مرة أخرى.
                     </div>
+                    @can('villages.import')
                     <a href="{{ route('villages.import') }}" class="btn btn-secondary">العودة</a>
+                    @endcan
                     @endif
                 </div>
             </div>

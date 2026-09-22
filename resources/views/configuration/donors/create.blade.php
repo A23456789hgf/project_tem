@@ -10,6 +10,7 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('donors.create')
     <form action="{{ route('donors.store') }}" method="POST">
         @csrf
         
@@ -33,5 +34,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

@@ -113,6 +113,7 @@
                         </div>
                     </div>
                     <div class="card-footer bg-white border-top text-end p-3">
+                        @can('value_chains.import')
                         <form id="processForm" action="{{ route('chain_plans.import.process') }}" method="POST">
                             @csrf
                             <input type="hidden" name="file_path" id="file_path_input">
@@ -120,6 +121,7 @@
                                 <i class="fas fa-check me-1"></i> تأكيد الاستيراد
                             </button>
                         </form>
+                        @endcan
                     </div>
                 </div>
 

@@ -12,6 +12,7 @@
 
     
 
+    @can('value-chain-financing-types.edit')
     <form action="{{ route('value-chain-financing-types.update', $type->id) }}" method="POST">
         @csrf
         @method('PUT')
@@ -49,5 +50,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

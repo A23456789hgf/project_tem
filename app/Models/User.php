@@ -148,12 +148,36 @@ class User extends Authenticatable
 
     public function isInternal(): bool
     {
-        return $this->organization_type === 'internal';
+        if ($this->organization_type === 'internal') {
+            return true;
+        }
+        if ($this->organization_type === 'external') {
+            return false;
+        }
+
+        // Ambiguous corrupted state: both entity_id and authority_id are present without organization_type
+        if (! empty($this->entity_id) && ! empty($this->authority_id)) {
+            return false;
+        }
+
+        return empty($this->authority_id);
     }
 
     public function isExternal(): bool
     {
-        return $this->organization_type === 'external';
+        if ($this->organization_type === 'external') {
+            return true;
+        }
+        if ($this->organization_type === 'internal') {
+            return false;
+        }
+
+        // Ambiguous corrupted state: both entity_id and authority_id are present without organization_type
+        if (! empty($this->entity_id) && ! empty($this->authority_id)) {
+            return false;
+        }
+
+        return ! empty($this->authority_id);
     }
 
     public function geographicScope()
@@ -164,6 +188,11 @@ class User extends Authenticatable
     public function internalEntity()
     {
         return $this->belongsTo(InternalEntity::class, 'administrative_scope_id');
+    }
+
+    public function administrativeAuthority()
+    {
+        return $this->belongsTo(Authority::class, 'administrative_scope_id');
     }
 
     public function auditLogs(): HasMany
@@ -256,13 +285,20 @@ class User extends Authenticatable
     public static function generateNextUserId(): string
     {
         $prefix = 'MAFWRPRO';
-        $lastUser = static::where('user_id', 'LIKE', $prefix.'%')
-            ->orderByRaw('CAST(SUBSTRING(user_id, 9) AS UNSIGNED) DESC')
-            ->first();
+        $userIds = static::where('user_id', 'LIKE', $prefix.'%')
+            ->pluck('user_id');
 
-        $nextNumber = $lastUser ? (int) substr($lastUser->user_id, 8) + 1 : 1;
+        $maxNumber = 0;
+        foreach ($userIds as $uid) {
+            $num = (int) substr((string) $uid, strlen($prefix));
+            if ($num > $maxNumber) {
+                $maxNumber = $num;
+            }
+        }
 
-        return $prefix.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        $nextNumber = $maxNumber + 1;
+
+        return $prefix.str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function getFormattedUserIdAttribute(): string
@@ -385,13 +421,56 @@ class User extends Authenticatable
         if ($hasUserRolesTable) {
             $this->loadMissing('userRoles.role');
             $additionalRoles = $this->userRoles
-                ->map(fn ($ur) => $ur->role?->name)
+                ->map(fn ($ur) => $ur->role?->name ?? (is_string($ur->role) ? $ur->role : null))
                 ->filter()
                 ->toArray();
             $roles = array_unique(array_merge($roles, $additionalRoles));
         }
 
-        return $this->rolesCache = array_filter($roles);
+        return $this->rolesCache = array_values(array_filter($roles));
+    }
+
+    public function getAllRoleIds(): array
+    {
+        $ids = [];
+        if ($this->role_id) {
+            $ids[] = (int) $this->role_id;
+        }
+
+        $hasUserRolesTable = Cache::remember('sys_has_user_roles_table', now()->addDays(30), function () {
+            return Schema::hasTable('user_roles');
+        });
+
+        if ($hasUserRolesTable) {
+            $this->loadMissing('userRoles.role');
+            $additionalRoleIds = $this->userRoles
+                ->map(fn ($ur) => $ur->role_id ?? $ur->role?->id)
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->toArray();
+            $ids = array_merge($ids, $additionalRoleIds);
+        }
+
+        $ids = array_values(array_unique(array_filter($ids)));
+        sort($ids);
+
+        return $ids;
+    }
+
+    public function getCompositePermissionsVersionHash(): string
+    {
+        $roleIds = $this->getAllRoleIds();
+        if (empty($roleIds)) {
+            return md5('r0_v1');
+        }
+
+        $parts = [];
+        foreach ($roleIds as $roleId) {
+            $version = static::getRolePermissionsVersion($roleId);
+            $parts[] = "r{$roleId}_v{$version}";
+        }
+
+        return md5(implode('_', $parts));
     }
 
     public function permissions()
@@ -409,10 +488,9 @@ class User extends Authenticatable
             return PermissionResolver::getMatrixSlugs();
         }
 
-        $roleId = $this->role_id ?? 0;
-        $version = static::getRolePermissionsVersion($roleId);
+        $compositeHash = $this->getCompositePermissionsVersionHash();
 
-        return \Cache::remember("user_slugs_v3_{$this->id}_v{$version}", now()->addDays(1), function () {
+        return \Cache::remember("user_slugs_v4_{$this->id}_{$compositeHash}", now()->addDays(1), function () {
             // Matrix is the boundary for what's "active" in the system
             $matrixSlugs = PermissionResolver::getMatrixSlugs();
 
@@ -593,6 +671,14 @@ class User extends Authenticatable
     {
         $this->localPermissionsCache = [];
         $this->rolesCache = null;
+        $this->unsetRelation('role');
+        $this->unsetRelation('userRoles');
+        $compositeHash = $this->getCompositePermissionsVersionHash();
+        \Cache::forget("user_slugs_v4_{$this->id}_{$compositeHash}");
+
+        // Also purge legacy v3 key if present
+        $version = static::getRolePermissionsVersion($this->role_id ?? 0);
+        \Cache::forget("user_slugs_v3_{$this->id}_v{$version}");
     }
 
     public static function getRolePermissionsVersion($roleId): int
@@ -1285,6 +1371,9 @@ class User extends Authenticatable
 
         // Clear user-specific slugs and assignments
         Cache::forget("my_assignments_{$userId}");
+
+        $compositeHash = $this->getCompositePermissionsVersionHash();
+        Cache::forget("user_slugs_v4_{$userId}_{$compositeHash}");
 
         $version = static::getRolePermissionsVersion($roleId);
         Cache::forget("user_slugs_v3_{$userId}_v{$version}");

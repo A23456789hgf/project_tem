@@ -430,7 +430,9 @@
         </div>
         @endif
 
+        @can('projects.edit')
         <form action="{{ route('projects.update', $project->id) }}" method="POST" id="completeDataForm">
+        @endcan
             @csrf
             @method('PUT')
 

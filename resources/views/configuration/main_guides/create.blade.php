@@ -10,6 +10,7 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('configuration.main_guides.create')
     <form action="{{ route('configuration.main_guides.store') }}" method="POST">
         @csrf
         
@@ -45,5 +46,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

@@ -41,4 +41,14 @@ class UnitPolicy
     {
         return $user->hasPermission('units.export') || $user->hasPermission('units.view');
     }
+
+    public function approve(User $user, ?Unit $model = null): bool
+    {
+        return $user->hasPermission('units.approve');
+    }
+
+    public function reject(User $user, ?Unit $model = null): bool
+    {
+        return $user->hasPermission('units.reject');
+    }
 }

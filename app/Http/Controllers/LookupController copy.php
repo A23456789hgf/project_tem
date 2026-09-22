@@ -2,9 +2,29 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\Authority;
+use App\Models\BeneficiaryGroup;
+use App\Models\Directorate;
+use App\Models\Domain;
+use App\Models\FinancialItem;
+use App\Models\FinancingForm;
+use App\Models\FinancingType;
+use App\Models\FundingSource;
+use App\Models\Governorate;
+use App\Models\InternalEntity;
+use App\Models\Intervention;
+use App\Models\MainRouter;
+use App\Models\Priority;
+use App\Models\Program;
+use App\Models\SubArea;
+use App\Models\Subdomain;
+use App\Models\SubFinancingForm;
+use App\Models\SubRouter;
+use App\Models\TargetCategory;
+use App\Models\Unit;
+use App\Models\Village;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 
 class LookupController extends Controller
 {
@@ -38,12 +58,12 @@ class LookupController extends Controller
                 if ($user->administrative_scope_id) {
 
                     // الأبناء
-                    $childrenIds = \App\Models\InternalEntity::getAllChildrenIds(
+                    $childrenIds = InternalEntity::getAllChildrenIds(
                         $user->administrative_scope_id
                     );
 
                     // الآباء
-                    $parentIds = \App\Models\InternalEntity::getAllParentIds(
+                    $parentIds = InternalEntity::getAllParentIds(
                         $user->administrative_scope_id
                     );
 
@@ -66,11 +86,11 @@ class LookupController extends Controller
                 foreach ($user->geographicScopes as $scope) {
 
                     if (
-                        !empty($scope->governorate_id)
+                        ! empty($scope->governorate_id)
                         && empty($scope->directorate_id)
                     ) {
 
-                        $ids = \App\Models\InternalEntity::getAllByGovernorate(
+                        $ids = InternalEntity::getAllByGovernorate(
                             $scope->governorate_id
                         );
 
@@ -79,9 +99,9 @@ class LookupController extends Controller
                             $ids
                         );
 
-                    } elseif (!empty($scope->directorate_id)) {
+                    } elseif (! empty($scope->directorate_id)) {
 
-                        $ids = \App\Models\InternalEntity::getAllByDirectorate(
+                        $ids = InternalEntity::getAllByDirectorate(
                             $scope->directorate_id
                         );
 
@@ -101,7 +121,7 @@ class LookupController extends Controller
                     $entityIdsByGeo ?? []
                 ));
 
-                $query = \App\Models\Authority::withoutGlobalScope(
+                $query = Authority::withoutGlobalScope(
                     'entity_display_filtering'
                 )
                     ->with('parent', 'entity');
@@ -115,6 +135,7 @@ class LookupController extends Controller
                 $query->where(function ($q) use ($entityIds) {
                     if (empty($entityIds)) {
                         $q->whereRaw('0=1');
+
                         return;
                     }
                     $q->whereIn('creator_entity_id', $entityIds);
@@ -122,101 +143,99 @@ class LookupController extends Controller
 
                 break;
 
+            case 'internal_entity':
 
+                $user = auth()->user();
 
+                $query = InternalEntity::withoutGlobalScope('entity_display_filtering')
+                    ->with('parent');
 
-         case 'internal_entity':
+                $entityIds = [];
 
-    $user = auth()->user();
+                foreach ($user->geographicScopes as $scope) {
 
-    $query = \App\Models\InternalEntity::withoutGlobalScope('entity_display_filtering')
-        ->with('parent');
+                    if ($scope->governorate_id) {
 
-    $entityIds = [];
+                        $entityIds = array_merge(
+                            $entityIds,
+                            InternalEntity::getAllByGovernorate(
+                                $scope->governorate_id
+                            )
+                        );
+                    }
+                }
 
-    foreach ($user->geographicScopes as $scope) {
+                $entityIds = array_unique($entityIds);
 
-        if ($scope->governorate_id) {
+                if (empty($entityIds)) {
+                    $query->whereRaw('0 = 1');
+                } else {
+                    $query->whereIn('id', $entityIds);
+                }
 
-            $entityIds = array_merge(
-                $entityIds,
-                \App\Models\InternalEntity::getAllByGovernorate(
-                    $scope->governorate_id
-                )
-            );
-        }
-    }
-
-    $entityIds = array_unique($entityIds);
-
-    if (empty($entityIds)) {
-        $query->whereRaw('0 = 1');
-    } else {
-        $query->whereIn('id', $entityIds);
-    }
-
-    break;  case 'program':
-                $query = \App\Models\Program::query();
+                break;
+            case 'program':
+                $query = Program::query();
                 break;
 
             case 'domain':
-                $query = \App\Models\Domain::query();
+                $query = Domain::query();
                 break;
 
             case 'subdomain':
-                $query = \App\Models\Subdomain::query();
+                $query = Subdomain::query();
                 if ($request->has('domain_id')) {
                     $query->where('domain_id', $request->get('domain_id'));
                 }
                 break;
 
             case 'intervention':
-                $query = \App\Models\Intervention::query();
+                $query = Intervention::query();
                 if ($request->has('subdomain_id')) {
                     $query->where('subdomain_id', $request->get('subdomain_id'));
                 }
                 break;
 
             case 'financial_item':
-                $query = \App\Models\FinancialItem::query();
+                $query = FinancialItem::query();
                 break;
 
             case 'unit':
-                $query = \App\Models\Unit::query();
+                $query = Unit::query();
                 $textField = 'unit_name';
                 break;
 
             case 'funding_source':
-                $query = \App\Models\FundingSource::query();
+                $query = FundingSource::query();
                 break;
 
             case 'financing_type':
-                $query = \App\Models\FinancingType::query();
+                $query = FinancingType::query();
                 break;
 
             case 'financing_form':
-                $query = \App\Models\FinancingForm::query();
+                $query = FinancingForm::query();
                 break;
 
             case 'sub_financing_form':
-                $query = \App\Models\SubFinancingForm::query();
+                $query = SubFinancingForm::query();
                 if ($request->has('financing_form_id')) {
                     $query->where('financing_form_id', $request->get('financing_form_id'));
                 }
                 break;
 
             case 'priority':
-                $query = \App\Models\Priority::query();
+                $query = Priority::query();
                 $textField = 'priority';
                 break;
 
             case 'main_router':
-                $query = \App\Models\MainRouter::query();
+                $query = MainRouter::query();
                 $textField = 'main_router';
                 break;
 
             case 'sub_router':
-                $query = \App\Models\SubRouter::query();
+                $query = SubRouter::query();
                 $textField = 'sub_router';
                 if ($request->has('main_router_id')) {
                     $query->where('main_router_id', $request->get('main_router_id'));
@@ -225,7 +244,7 @@ class LookupController extends Controller
 
             case 'governorate':
 
-                $query = \App\Models\Governorate::query();
+                $query = Governorate::query();
 
                 /*
                 |--------------------------------------------------------------------------
@@ -236,7 +255,7 @@ class LookupController extends Controller
                 */
 
                 if (
-                    !(
+                    ! (
                         $user->administrative_scope_id
                         && empty($geographicScope['governorate_id'])
                         && empty($geographicScope['directorate_id'])
@@ -254,7 +273,7 @@ class LookupController extends Controller
 
             case 'directorate':
 
-                $query = \App\Models\Directorate::query();
+                $query = Directorate::query();
 
                 /*
                 |--------------------------------------------------------------------------
@@ -265,7 +284,7 @@ class LookupController extends Controller
                 */
 
                 if (
-                    !(
+                    ! (
                         $user->administrative_scope_id
                         && empty($geographicScope['governorate_id'])
                         && empty($geographicScope['directorate_id'])
@@ -303,32 +322,32 @@ class LookupController extends Controller
                 break;
 
             case 'sub_area':
-                $query = \App\Models\SubArea::query();
+                $query = SubArea::query();
                 $this->applyGeographicScope($query, $type, $geographicScope);
                 // فلترة إضافية بناءً على request
                 if ($request->filled('directorate_id') && $request->get('directorate_id') != '0') {
-                    if (!$geographicScope['directorate_id']) {
+                    if (! $geographicScope['directorate_id']) {
                         $query->where('directorate_id', $request->get('directorate_id'));
                     }
                 }
                 break;
 
             case 'village':
-                $query = \App\Models\Village::query();
+                $query = Village::query();
                 $this->applyGeographicScope($query, $type, $geographicScope);
                 if ($request->filled('sub_area_id') && $request->get('sub_area_id') != '0') {
-                    if (!$geographicScope['directorate_id']) {
+                    if (! $geographicScope['directorate_id']) {
                         $query->where('sub_area_id', $request->get('sub_area_id'));
                     }
                 }
                 break;
 
             case 'target_category':
-                $query = \App\Models\TargetCategory::query();
+                $query = TargetCategory::query();
                 break;
 
             case 'beneficiary_group':
-                $query = \App\Models\BeneficiaryGroup::query();
+                $query = BeneficiaryGroup::query();
                 break;
 
             default:
@@ -341,7 +360,7 @@ class LookupController extends Controller
         }
 
         // 3. البحث النصي
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where($textField, 'like', "%{$search}%");
         }
 
@@ -368,6 +387,7 @@ class LookupController extends Controller
                 $data['parent_id'] = $item->parent_id;
                 $data['parent_name'] = $item->parent?->name ?? 'لا توجد جهة أب';
             }
+
             return $data;
         });
 
@@ -394,30 +414,32 @@ class LookupController extends Controller
      */
     private function applyAuthorityFilter(Builder $query, $user): void
     {
-        if (!$user)
+        if (! $user) {
             return;
+        }
 
-        $entityIdsByEnt = \App\Models\InternalEntity::getAllChildrenIds($user->administrative_scope_id) ?? [];
+        $entityIdsByEnt = InternalEntity::getAllChildrenIds($user->administrative_scope_id) ?? [];
         $entityIdsByGeo = [];
 
         foreach ($user->geographicScopes as $scope) {
-            if (!empty($scope->governorate_id) && empty($scope->directorate_id)) {
-                $ids = \App\Models\InternalEntity::getAllByGovernorate($scope->governorate_id);
-            } elseif (!empty($scope->directorate_id)) {
-                $ids = \App\Models\InternalEntity::getAllByDirectorate($scope->directorate_id);
+            if (! empty($scope->governorate_id) && empty($scope->directorate_id)) {
+                $ids = InternalEntity::getAllByGovernorate($scope->governorate_id);
+            } elseif (! empty($scope->directorate_id)) {
+                $ids = InternalEntity::getAllByDirectorate($scope->directorate_id);
             } else {
                 $ids = [];
             }
-            if (!empty($ids))
+            if (! empty($ids)) {
                 $entityIdsByGeo[] = $ids;
+            }
         }
 
-        if (!empty($entityIdsByGeo)) {
+        if (! empty($entityIdsByGeo)) {
             $entityIdsByGeo = array_merge(...$entityIdsByGeo);
         }
         $entityIds = array_unique(array_merge($entityIdsByEnt, $entityIdsByGeo));
 
-        if (!empty($entityIds)) {
+        if (! empty($entityIds)) {
             $query->whereIn('creator_entity_id', $entityIds);
         }
     }
@@ -427,24 +449,25 @@ class LookupController extends Controller
      */
     private function applyInternalEntityFilter(Builder $query, $user): void
     {
-        if (!$user || $user->geographicScopes->isEmpty()) {
+        if (! $user || $user->geographicScopes->isEmpty()) {
             return; // مركزي - لا فلتر
         }
 
         $entityIds = [];
         foreach ($user->geographicScopes as $scope) {
-            if (!empty($scope->governorate_id) && empty($scope->directorate_id)) {
-                $ids = \App\Models\InternalEntity::getAllByGovernorate($scope->governorate_id);
-            } elseif (!empty($scope->directorate_id)) {
-                $ids = \App\Models\InternalEntity::getAllByDirectorate($scope->directorate_id);
+            if (! empty($scope->governorate_id) && empty($scope->directorate_id)) {
+                $ids = InternalEntity::getAllByGovernorate($scope->governorate_id);
+            } elseif (! empty($scope->directorate_id)) {
+                $ids = InternalEntity::getAllByDirectorate($scope->directorate_id);
             } else {
                 $ids = [];
             }
-            if (!empty($ids))
+            if (! empty($ids)) {
                 $entityIds[] = $ids;
+            }
         }
 
-        if (!empty($entityIds)) {
+        if (! empty($entityIds)) {
             $entityIds = array_unique(array_merge(...$entityIds));
             $query->whereIn('id', $entityIds);
         }
@@ -460,7 +483,7 @@ class LookupController extends Controller
 
         switch ($type) {
             case 'governorate':
-                if ($govId && !$dirId) {
+                if ($govId && ! $dirId) {
                     $query->where('id', $govId);
                 }
                 break;
@@ -477,15 +500,15 @@ class LookupController extends Controller
                 if ($dirId) {
                     $query->where('directorate_id', $dirId);
                 } elseif ($govId) {
-                    $query->whereHas('directorate', fn($q) => $q->where('governorate_id', $govId));
+                    $query->whereHas('directorate', fn ($q) => $q->where('governorate_id', $govId));
                 }
                 break;
 
             case 'village':
                 if ($dirId) {
-                    $query->whereHas('subArea', fn($q) => $q->where('directorate_id', $dirId));
+                    $query->whereHas('subArea', fn ($q) => $q->where('directorate_id', $dirId));
                 } elseif ($govId) {
-                    $query->whereHas('subArea.directorate', fn($q) => $q->where('governorate_id', $govId));
+                    $query->whereHas('subArea.directorate', fn ($q) => $q->where('governorate_id', $govId));
                 }
                 break;
         }
@@ -497,9 +520,10 @@ class LookupController extends Controller
     private function getUserGeographicScope(): array
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return ['governorate_id' => null, 'directorate_id' => null];
         }
+
         return [
             'governorate_id' => $user->getAssignedGovernorateId(),
             'directorate_id' => $user->getAssignedDirectorateId(),

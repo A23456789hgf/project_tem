@@ -30,7 +30,9 @@
             @if($technicalJustifications->count() === 0)
                 @if($isOverTime)
                     <!-- Form Mode (First Justification) -->
+                    @can('projects.execution.storeExecutiveTechnicalJustification')
                     <form action="{{ route('projects.execution.storeExecutiveTechnicalJustification', $project) }}" 
+                    @endcan
                           method="POST" 
                           enctype="multipart/form-data"
                           class="executive-technical-justification-form"
@@ -178,6 +180,7 @@
                                 <!-- Add More Attachments Form -->
                                 @if($justification->approval_status !== 'approved')
                                     <div class="collapse" id="addAttachments-exec-{{ $justification->id }}">
+                                        @can('projects.execution.storeExecutiveTechnicalJustification')
                                         <form action="{{ route('projects.execution.storeExecutiveTechnicalJustification', ['project' => $project]) }}" 
                                               method="POST" 
                                               enctype="multipart/form-data"
@@ -207,6 +210,7 @@
                                                 </div>
                                             </div>
                                         </form>
+                                        @endcan
                                     </div>
                                 @endif
                             </div>
@@ -249,7 +253,9 @@
                 
                 @if($isOverTime)
                     <div class="collapse mt-3" id="addNewExecutiveJustification-{{ $action->id }}">
+                        @can('projects.execution.storeExecutiveTechnicalJustification')
                         <form action="{{ route('projects.execution.storeExecutiveTechnicalJustification', $project) }}" 
+                        @endcan
                               method="POST" 
                               enctype="multipart/form-data"
                               class="executive-technical-justification-form"

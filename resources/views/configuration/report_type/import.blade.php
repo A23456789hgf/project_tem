@@ -23,6 +23,7 @@
                     </a>
                 </div>
 
+                @can('reports.view')
                 <form action="{{ route('report-types.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
@@ -50,6 +51,7 @@
                         </button>
                     </div>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

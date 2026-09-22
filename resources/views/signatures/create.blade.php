@@ -16,7 +16,9 @@
                     </div>
                 </div>
 
+                @can('signatures.create')
                 <form action="{{ route('signatures.store') }}" method="POST" enctype="multipart/form-data" class="modern-form">
+                @endcan
                     @csrf
                     
                     <div class="row g-4">

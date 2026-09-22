@@ -5,9 +5,11 @@
 
     <x-index-page title="إدارة التواقيع" icon="pen-tool">
         <x-slot name="headerActions">
+            @can('signatures.create')
             <a href="{{ route('signatures.create') }}" class="btn btn-primary auth-perm-signatures-create">
                 <x-icon name="plus" size="14" /> إضافة توقيع جديد
             </a>
+            @endcan
         </x-slot>
 
         <x-slot name="filters">
@@ -65,15 +67,19 @@
                         </td>
                         <td>
                             <div class="d-flex justify-content-center gap-1">
+                                @can('signatures.edit')
                                 <a href="{{ route('signatures.edit', $signature) }}" class="btn btn-action-edit btn-icon" title="تعديل">
                                     <x-icon name="edit-2" class="action-icon" />
                                 </a>
+                                @endcan
+                                @can('signatures.delete')
                                 <form action="{{ route('signatures.destroy', $signature) }}" method="POST" class="d-inline">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn btn-action-delete btn-icon" onclick="return confirmAction(this, 'هل تريد حذف هذا المسمى؟')">
                                         <x-icon name="trash-2" class="action-icon" />
                                     </button>
                                 </form>
+                                @endcan
                             </div>
                         </td>
                     </tr>

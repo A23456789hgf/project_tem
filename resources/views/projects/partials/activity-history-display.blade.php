@@ -182,11 +182,13 @@
             </div>
             
             @if(Route::has('projects.activity.export'))
+                @can('projects.export')
                 <a href="{{ route('projects.activity.export', $project) }}" 
                    class="btn btn-sm btn-outline-primary" 
                    style="padding: 0.4rem 1rem; border-radius: 6px; text-decoration: none;">
                     <i class="fas fa-download"></i> تصدير السجل
                 </a>
+                @endcan
             @endif
         </div>
         @endif

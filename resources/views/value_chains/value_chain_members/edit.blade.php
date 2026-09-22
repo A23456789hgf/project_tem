@@ -6,7 +6,9 @@
 
         <h3 class="mb-4">تعديل عضو</h3>
 
+        @can('value_chain_members.edit')
         <form method="POST" action="{{ route('value-chain-members.update', $member->id) }}" class="row g-4">
+        @endcan
 
             @csrf
             @method('PUT')

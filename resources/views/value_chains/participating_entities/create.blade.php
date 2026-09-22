@@ -15,7 +15,9 @@
                 </div>
 
                 <div class="card-body p-4">
+                    @can('value_chains.create')
                     <form action="{{ route('value-chains.participating-entities.store', $valueChain) }}" method="POST">
+                    @endcan
                         @csrf
                         <div class="row">
 

@@ -7,6 +7,7 @@
 
 <div class="container py-4">
     <x-ui.card title="إضافة وحدة جديدة" subtitle="يرجى تعبئة البيانات المطلوبة" icon="fas fa-plus-circle">
+        @can('units.create')
         <form action="{{ route('units.store') }}" method="POST">
             @csrf
             
@@ -23,6 +24,7 @@
                 </div>
             </div>
         </form>
+        @endcan
     </x-ui.card>
 </div>
 @endsection

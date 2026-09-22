@@ -384,12 +384,17 @@ class NotificationService
             }
         }
 
-        // Add users from the entity that created the project
+        // Add users from the entity/authority that created the project
         if ($project->creator_entity_id) {
             $entityUsers = User::where('entity_id', $project->creator_entity_id)
                 ->where('status', 'active')
                 ->get();
             $users = $users->merge($entityUsers);
+        } elseif ($project->authority_id) {
+            $authorityUsers = User::where('authority_id', $project->authority_id)
+                ->where('status', 'active')
+                ->get();
+            $users = $users->merge($authorityUsers);
         } elseif ($project->created_by_entity) {
             $entityUsers = User::where('department', $project->created_by_entity)
                 ->where('status', 'active')
@@ -540,15 +545,20 @@ class NotificationService
             // مستخدمو الجهة المقدمة
             if ($project->creator_entity_id) {
                 $entityUsers = User::where('entity_id', $project->creator_entity_id)
-                    ->where('status', 'active')
+                    ->whereIn('status', ['active', 'Active'])
                     ->get();
                 $users = $users->merge($entityUsers);
+            } elseif ($project->authority_id) {
+                $authorityUsers = User::where('authority_id', $project->authority_id)
+                    ->whereIn('status', ['active', 'Active'])
+                    ->get();
+                $users = $users->merge($authorityUsers);
             }
 
             // المنشئ الأصلي
             if ($project->created_by_user_id) {
                 $creator = User::find($project->created_by_user_id);
-                if ($creator && $creator->status === 'active') {
+                if ($creator && in_array($creator->status, ['active', 'Active'])) {
                     $users->push($creator);
                 }
             }
@@ -570,7 +580,7 @@ class NotificationService
                 'entity_name' => $entityName,
                 'achievement_pct' => $percentage,
                 'message' => "تم تسجيل إنجاز جديد ({$percentage}%) للمشروع \"{$project->project_name}\" بواسطة جهة ({$entityName}).",
-                'action_url' => route('projects.show', $project->id),
+                'action_url' => url("/projects/{$project->id}"),
                 'icon' => 'fa-trophy',
                 'color' => 'info',
             ];
@@ -614,7 +624,7 @@ class NotificationService
             }
 
             $uniqueUsers = $recipients->filter(function ($user) {
-                return $user instanceof User && $user->status === 'active';
+                return $user instanceof User && in_array($user->status, ['active', 'Active']);
             })->unique('id');
 
             $currentUserId = auth()->id();

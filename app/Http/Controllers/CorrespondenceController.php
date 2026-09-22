@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Project\Services\ProjectService;
 use App\Models\Correspondence;
 use App\Models\CorrespondenceForwarding;
 use App\Models\CorrespondenceReferral;
@@ -2065,22 +2066,24 @@ class CorrespondenceController extends Controller
 
     /**
      * Search projects for correspondence linkage
-     * Returns all projects of all types as requested by user
+     * Returns accessible projects based on user scoping and permissions
      */
     public function searchProjects(Request $request)
     {
         $search = $request->get('q');
+        $user = auth()->user();
 
-        $projectsQuery = Project::query();
+        $projectService = app(ProjectService::class);
+        $projectsQuery = Project::withoutGlobalScopes();
+        $projectService->applyAccessibleProjectsQuery($projectsQuery, $user, $request);
 
         if ($search) {
             $projectsQuery->where(function ($q) use ($search) {
-                $q->where('project_name', 'like', "%{$search}%")
-                    ->orWhere('form_number', 'like', "%{$search}%");
+                $q->where('projects.project_name', 'like', "%{$search}%")
+                    ->orWhere('projects.form_number', 'like', "%{$search}%");
             });
         }
 
-        // إرجاع جميع المشاريع بدون فلترة حسب الجهة بناءً على طلب المستخدم
         $projects = $projectsQuery->limit(50)->get()
             ->map(fn ($p) => ['id' => $p->id, 'text' => $p->project_name.' ('.$p->form_number.')']);
 

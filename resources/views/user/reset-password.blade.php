@@ -26,6 +26,7 @@
                         <i class="fas fa-info-circle"></i> أدخل كلمة مرور جديدة للمستخدم
                     </div>
 
+                    @can('users.reset-password')
                     <form action="{{ route('users.updatePassword', $user) }}" method="POST">
                         @csrf
 
@@ -63,6 +64,7 @@
                             </div>
                         </div>
                     </form>
+                    @endcan
                 </div>
             </div>
         </div>

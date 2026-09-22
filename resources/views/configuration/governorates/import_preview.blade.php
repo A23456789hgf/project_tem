@@ -13,10 +13,12 @@
                     <i class="fas fa-eye text-primary me-2"></i>
                     مراجعة بيانات المحافظات
                 </h2>
+                @can('governorates.import')
                 <a href="{{ route('governorates.import') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-right me-1"></i>
                     العودة
                 </a>
+                @endcan
             </div>
 
             <!-- Import Configuration Card -->
@@ -28,7 +30,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    @can('governorates.import')
                     <form action="{{ route('governorates.process-import') }}" method="POST" id="importForm" class="import-form">
+                    @endcan
                         @csrf
                         <input type="hidden" name="file_path" value="{{ $filePath }}">
                         

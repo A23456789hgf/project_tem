@@ -85,6 +85,47 @@
     .hover-primary:hover {
         color: #2563eb !important;
     }
+
+    @media print {
+        .btn, .nav-tabs, .alert, .stat-card-link, nav, .breadcrumb, .no-print, form, .modal, .pagination {
+            display: none !important;
+        }
+        .consultation-center-header {
+            background: none !important;
+            color: #000 !important;
+            box-shadow: none !important;
+            padding: 0 0 1rem 0 !important;
+            border-bottom: 2px solid #0f172a !important;
+            margin-bottom: 1rem !important;
+        }
+        .consultation-center-header h3, .consultation-center-header p {
+            color: #000 !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .table-responsive {
+            overflow: visible !important;
+        }
+        table {
+            width: 100% !important;
+            font-size: 0.78rem !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        th, td {
+            border: 1px solid #cbd5e1 !important;
+            padding: 6px 8px !important;
+        }
+        th:last-child, td:last-child {
+            display: none !important;
+        }
+        .badge {
+            border: 1px solid #94a3b8 !important;
+            color: #000 !important;
+            background: #fff !important;
+        }
+    }
 </style>
 @endsection
 
@@ -110,6 +151,9 @@
                 </p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
+                <button type="button" onclick="window.print()" class="btn btn-outline-light rounded-pill px-3 btn-sm fw-semibold shadow-sm">
+                    <i class="fas fa-print me-1"></i> طباعة القائمة
+                </button>
                 <a href="{{ route('approvals.index') }}" class="btn btn-outline-light rounded-pill px-4 btn-sm fw-semibold">
                     <i class="fas fa-clipboard-check me-1"></i> مركز المراجعة والاعتمادات
                 </a>
@@ -334,11 +378,14 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="px-4 py-3">رقم / المشروع</th>
+                            <th class="px-3 py-3">رقم المشروع</th>
+                            <th class="py-3">اسم المشروع</th>
+                            <th class="py-3">الجهة المقدمة</th>
+                            <th class="py-3">الجهة المُحيلة (من)</th>
+                            <th class="py-3">الجهة المُستشارة (التي وصل إليها)</th>
                             <th class="py-3">الحالة</th>
-                            <th class="py-3">الجهة المحيلة / المستشارة</th>
                             <th class="py-3">مدة الانتظار</th>
-                            <th class="px-4 py-3 text-end">إجراءات</th>
+                            <th class="px-3 py-3 text-end">إجراءات</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -359,13 +406,33 @@
                                 }
                             @endphp
                             <tr>
-                                <td class="px-4 py-3">
-                                    <h6 class="mb-1 fw-bold">
+                                <td class="px-3 py-3 font-monospace small text-muted">
+                                    {{ $referral->project?->form_number ?: 'PRJ-'.$referral->project_id }}
+                                </td>
+                                <td class="py-3">
+                                    <h6 class="mb-0 fw-bold">
                                         <a href="{{ route('consultations.show', $referral) }}" class="text-decoration-none text-dark">
                                             {{ $referral->project?->project_name ?? 'مشروع #'.$referral->project_id }}
                                         </a>
                                     </h6>
-                                    <small class="text-muted">{{ $referral->project?->form_number ?: 'PRJ-'.$referral->project_id }}</small>
+                                </td>
+                                <td class="py-3">
+                                    <div class="fw-semibold text-dark">
+                                        <i class="fas fa-building text-secondary me-1 small"></i>
+                                        {{ $referral->project?->creator_entity_name ?? 'غير محدد' }}
+                                    </div>
+                                </td>
+                                <td class="py-3">
+                                    <div class="fw-semibold text-dark">
+                                        <i class="fas fa-paper-plane text-secondary me-1 small"></i>
+                                        {{ $referral->referringEntity?->name ?? 'غير محدد' }}
+                                    </div>
+                                </td>
+                                <td class="py-3">
+                                    <div class="fw-bold text-primary">
+                                        <i class="fas fa-map-marker-alt text-primary me-1 small"></i>
+                                        {{ $referral->referredEntity?->name ?? 'غير محدد' }}
+                                    </div>
                                 </td>
                                 <td class="py-3">
                                     @if($isPending)
@@ -378,16 +445,10 @@
                                         <span class="badge bg-dark px-3 py-1.5 rounded-pill"><i class="fas fa-lock me-1"></i> مغلقة</span>
                                     @endif
                                 </td>
-                                <td class="py-3">
-                                    <div class="small">
-                                        <div class="mb-1"><span class="text-muted">من:</span> <span class="fw-semibold">{{ $referral->referringEntity?->name ?? 'غير محدد' }}</span></div>
-                                        <div><span class="text-muted">إلى:</span> <span class="text-primary fw-semibold">{{ $referral->referredEntity?->name ?? 'غير محدد' }}</span></div>
-                                    </div>
-                                </td>
                                 <td class="py-3 text-muted small fw-semibold">
                                     <i class="far fa-hourglass text-secondary me-1"></i> {{ $waitingDuration }}
                                 </td>
-                                <td class="px-4 py-3 text-end">
+                                <td class="px-3 py-3 text-end">
                                     <a href="{{ route('consultations.show', $referral) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm">
                                         <i class="fas fa-eye me-1"></i> التفاصيل
                                     </a>
@@ -395,7 +456,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-5">
+                                <td colspan="8" class="text-center py-5">
                                     <div class="text-muted">
                                         <i class="fas fa-comments fs-2 mb-3 opacity-50"></i>
                                         <h5 class="fw-bold text-dark">لا توجد استشارات حالياً</h5>

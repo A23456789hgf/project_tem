@@ -4,7 +4,9 @@
 <div class="container-fluid py-4" dir="rtl">
     <div class="row">
         <div class="col-12">
+            @can('roles.create')
             <form method="POST" action="{{ route('roles.store') }}" id="roleForm">
+            @endcan
                 @csrf
 
                 {{-- Role Basic Info --}}

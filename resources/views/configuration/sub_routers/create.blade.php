@@ -10,6 +10,7 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('sub-routers.create')
     <form action="{{ route('sub-routers.store') }}" method="POST">
         @csrf
         
@@ -50,5 +51,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

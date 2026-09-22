@@ -7,7 +7,9 @@
 
 <div class="container py-4">
     <x-ui.card title="تعديل القرية" subtitle="قم بتحديث بيانات القرية وموقعها الإداري" icon="fas fa-edit">
+        @can('villages.edit')
         <form action="{{ route('villages.update', $village->id) }}" method="POST">
+        @endcan
             @csrf @method('PUT')
             
             <div class="row g-4">

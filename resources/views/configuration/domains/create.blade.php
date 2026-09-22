@@ -12,6 +12,7 @@
 
     
 
+    @can('domains.create')
     <form method="POST" action="{{ route('domains.store') }}">
         @csrf
         
@@ -47,5 +48,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

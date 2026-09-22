@@ -56,7 +56,9 @@
                 <h5>تفاصيل المهمة</h5>
             </div>
 
+            @can('task.edit')
             <form action="{{ route('tasks.updateGlobal', $task->id) }}" method="POST" enctype="multipart/form-data">
+            @endcan
                 @csrf
                 @method('PUT')
 

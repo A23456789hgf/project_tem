@@ -28,7 +28,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
+                    @can('sub-areas.import')
                     <form action="{{ route('sub-areas.process-import') }}" method="POST" id="importForm" class="import-form">
+                    @endcan
                         @csrf
                         <input type="hidden" name="file_path" value="{{ $filePath }}">
                         

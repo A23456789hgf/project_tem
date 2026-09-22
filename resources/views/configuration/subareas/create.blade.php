@@ -7,6 +7,7 @@
 
 <div class="container py-4">
     <x-ui.card title="إضافة عزلة / منطقة جديدة" subtitle="يرجى اختيار المحافظة والمديرية ثم إدخال اسم العزلة" icon="fas fa-plus-circle">
+        @can('sub-areas.create')
         <form action="{{ route('sub-areas.store') }}" method="POST" id="subarea-form">
             @csrf
             
@@ -39,6 +40,7 @@
                 </div>
             </div>
         </form>
+        @endcan
     </x-ui.card>
 </div>
 </div>

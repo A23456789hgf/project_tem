@@ -21,6 +21,7 @@
             </a>
         </div>
 
+        @can('type-entity.edit')
         <form method="POST" action="{{ route('type-entity.update', $type->id) }}" class="mt-4">
             @csrf
             @method('PUT')
@@ -61,6 +62,7 @@
             </div>
 
         </form>
+        @endcan
 
     </div>
 </div>

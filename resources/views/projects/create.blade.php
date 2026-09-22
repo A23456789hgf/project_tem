@@ -500,7 +500,9 @@
         @endif
 
         <!-- النموذج الرئيسي (Main Form) -->
+        @can('projects.create')
         <form id="projectForm" action="{{ route('projects.store') }}" method="POST" novalidate>
+        @endcan
             @csrf
             <input type="hidden" name="status" value="draft">
             <input type="hidden" id="project_id" name="project_id" value="{{ $project->id ?? '' }}">

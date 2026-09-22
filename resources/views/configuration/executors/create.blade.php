@@ -10,6 +10,7 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('executors.create')
     <form action="{{ route('executors.store') }}" method="POST">
         @csrf
         
@@ -33,5 +34,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

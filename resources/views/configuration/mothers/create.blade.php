@@ -12,6 +12,7 @@
 
     
 
+    @can('mothers.create')
     <form action="{{ route('mothers.store') }}" method="POST">
         @csrf
         
@@ -47,5 +48,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

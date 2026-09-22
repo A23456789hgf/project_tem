@@ -1048,17 +1048,17 @@
                     @csrf
 
                     <div class="custom-input-group">
-                        <label for="username">اسم المستخدم أو رقم الهاتف</label>
+                        <label for="phone">رقم الهاتف</label>
                         <div class="input-wrapper">
-                            <input type="text" id="username" name="username" class="custom-form-control"
-                                placeholder="أدخل اسم المستخدم أو رقم الهاتف" value="{{ old('username', old('phone')) }}" required autofocus
-                                autocomplete="username" inputmode="text">
+                            <input type="tel" id="phone" name="phone" class="custom-form-control"
+                                placeholder="أدخل رقم الهاتف" value="{{ old('phone') }}" required autofocus
+                                autocomplete="tel" inputmode="tel">
                             <!-- أيقونة Font Awesome -->
-                            <i class="fas fa-user input-icon"></i>
+                            <i class="fas fa-phone-alt input-icon"></i>
                         </div>
-                        <div class="error-msg" role="alert" style="{{ $errors->has('username') || $errors->has('phone') ? 'display: flex;' : 'display: none;' }}">
+                        <div class="error-msg" role="alert" style="{{ $errors->has('phone') || $errors->has('username') ? 'display: flex;' : 'display: none;' }}">
                             <i class="fas fa-exclamation-circle" style="width: 12px; height: 12px;"></i>
-                            <span class="error-text">{{ $errors->first('username') ?: $errors->first('phone') }}</span>
+                            <span class="error-text">{{ $errors->first('phone') ?: $errors->first('username') }}</span>
                         </div>
                     </div>
 
@@ -1118,7 +1118,7 @@
             <div class="brand-content">
                 <div class="logo-container">
                     <!-- تم استبدال asset() بمسار ثابت -->
-                    <img src="images/logo.png" alt="شعار وزارة الزراعة والثروة السمكية والموارد المائية">
+                    <img src="{{ asset('images/logo.png') }}" alt="شعار وزارة الزراعة والثروة السمكية والموارد المائية">
                 </div>
                 <h1 class="ministry-title">وزارة الزراعة والثروة السمكية والموارد المائية</h1>
                 <div class="divider"></div>
@@ -1149,7 +1149,8 @@
 
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             // فحص بسيط للتحقق من صحة الحقول
-            const username = document.getElementById('username').value.trim();
+            const phoneInput = document.getElementById('phone') || document.getElementById('username');
+            const phone = phoneInput ? phoneInput.value.trim() : '';
             const password = document.getElementById('password').value.trim();
 
             // إخفاء أي رسائل خطأ سابقة تمت إضافتها بواسطة JS
@@ -1161,9 +1162,9 @@
             });
 
             let hasError = false;
-            if (!username) {
+            if (!phone) {
                 const phoneError = document.querySelector('.custom-input-group:first-child .error-msg');
-                phoneError.querySelector('.error-text').textContent = 'يرجى إدخال اسم المستخدم أو رقم الهاتف';
+                phoneError.querySelector('.error-text').textContent = 'يرجى إدخال رقم الهاتف';
                 phoneError.style.display = 'flex';
                 hasError = true;
             }
@@ -1309,7 +1310,7 @@
 
             btnSendOtp.addEventListener('click', function() {
                 const username = document.getElementById('reset-username').value.trim();
-                if (!username) { showAlert('يرجى إدخال اسم المستخدم أو رقم الهاتف'); return; }
+                if (!username) { showAlert('يرجى إدخال اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني'); return; }
                 resetAlert.style.display = 'none';
                 toggleLoading('send-otp', true);
                 

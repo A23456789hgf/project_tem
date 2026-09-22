@@ -25,6 +25,7 @@
                         </div>
                     </div>
 
+                    @can('value-chain-financing-types.import.preview')
                     <form action="{{ route('value-chain-financing-types.import.preview') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="row">
@@ -60,6 +61,7 @@
                             </div>
                         </div>
                     </form>
+                    @endcan
                 </div>
             </div>
         </div>

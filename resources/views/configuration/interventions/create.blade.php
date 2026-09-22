@@ -10,7 +10,9 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('interventions.create')
     <form action="{{ route('interventions.store') }}" method="POST">
+    @endcan
         @csrf
         
         <div class="row g-4 align-items-end">

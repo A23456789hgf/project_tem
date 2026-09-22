@@ -16,7 +16,9 @@
                 </a>
             </div>
 
+            @can('value_chains.create')
             <form action="{{ route('chain_plans.store') }}" method="POST">
+            @endcan
                 @csrf
                 <div class="row g-4">
                     <div class="col-md-6">

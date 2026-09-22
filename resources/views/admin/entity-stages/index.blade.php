@@ -7,9 +7,11 @@
             <h4 class="mb-0 text-primary fw-bold">مراحل المراجعة والاعتماد</h4>
             <small class="text-muted">إدارة مراحل الموافقات والمسارات</small>
         </div>
+        @can('stages.create')
         <a href="{{ route('admin.entity-stages.create', ['tab' => $tab]) }}" class="btn btn-primary shadow-sm">
             <i class="fas fa-plus me-1"></i> إضافة إعدادات جديدة
         </a>
+        @endcan
     </div>
 
     <!-- Tabs -->
@@ -114,6 +116,7 @@
                                     @endif
                                 </td>
                                 <td class="px-4 text-center">
+                                    @can('stages.edit')
                                     <form action="{{ route('admin.entity-stages.toggle', ['stage' => $stage->id, 'tab' => $tab]) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('PATCH')
@@ -121,12 +124,16 @@
                                             <input class="form-check-input fs-5" style="cursor:pointer;" type="checkbox" role="switch" onchange="if(confirm('هل أنت متأكد من تغيير حالة هذه المرحلة؟')) { this.form.submit(); } else { this.checked = !this.checked; }" {{ $stage->is_active ? 'checked' : '' }} title="{{ $stage->is_active ? 'إيقاف المرحلة' : 'تفعيل المرحلة' }}">
                                         </div>
                                     </form>
+                                    @endcan
                                 </td>
                                 <td class="px-4 text-center">
                                     <div class="d-flex justify-content-center gap-2">
+                                        @can('stages.edit')
                                         <a href="{{ route('admin.entity-stages.edit', ['entity' => $tab === 'internal' ? $stage->entity_id : $stage->authority_id, 'tab' => $tab]) }}" class="btn btn-sm btn-outline-primary" title="تعديل الإعدادات">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        @endcan
+                                        @can('stages.delete')
                                         <form action="{{ route('admin.entity-stages.destroy', ['entity' => $stage->id, 'tab' => $tab]) }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من حذف هذه المرحلة؟');">
                                             @csrf
                                             @method('DELETE')
@@ -134,6 +141,7 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

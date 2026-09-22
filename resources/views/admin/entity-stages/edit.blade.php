@@ -27,7 +27,9 @@
 
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-5">
+            @can('stages.edit')
             <form action="{{ route('admin.entity-stages.update', $tab === 'internal' ? $entity->id : $authority->id) }}" method="POST">
+            @endcan
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="tab" value="{{ $tab }}">

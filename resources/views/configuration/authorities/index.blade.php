@@ -180,17 +180,21 @@
                 </form>
             @endcan
 
+          @can('authorities.import')
           <a href="{{ route('authorities.import') }}"
    class="btn btn-outline-info btn-compact shadow-sm ms-2">
     <x-icon name="file-import" size="14" class="me-1" />
     استيراد
 </a>
+          @endcan
 
+@can('authorities.export')
 <a href="{{ route('authorities.export') }}"
    class="btn btn-outline-success btn-compact shadow-sm ms-2">
     <x-icon name="download" size="14" class="me-1" />
     تصدير
 </a>
+@endcan
 
 <div class="dropdown d-inline-block ms-2">
     <button class="btn btn-outline-secondary btn-compact dropdown-toggle shadow-sm"
@@ -589,10 +593,12 @@
                                                 class="btn btn-icon btn-action-view" title="عرض">
                                                 <x-icon name="eye" size="14" />
                                             </a>
+                                            @can('authorities.edit')
                                             <a href="{{ route('authorities.edit', $authority->id) }}"
                                                 class="btn btn-icon btn-action-edit" title="تعديل">
                                                 <x-icon name="edit" size="14" />
                                             </a>
+                                            @endcan
                                             @canany(['authorities.create', 'authorities.update'])
 <a href="{{ route('authorities.create', ['parent_id' => $authority->id]) }}"
                                                 class="btn btn-icon btn-action-enable" title="إضافة تابعة">

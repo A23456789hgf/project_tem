@@ -20,66 +20,91 @@ class CheckMainModulePermission
             return $next($request);
         }
 
-        // If the user is a super admin, they can access everything.
-        // Adapt this based on your super admin checking logic.
-        if ($user->hasRole('super-admin') || $user->hasRole('مدير النظام')) {
+        // Super Admin / Full Access bypass
+        if (
+            (method_exists($user, 'isAdmin') && $user->isAdmin())
+            || ($user->role && $user->role->full_access)
+            || $user->hasRole('super-admin')
+            || $user->hasRole('مدير النظام')
+            || $user->hasRole('Admin')
+        ) {
             return $next($request);
         }
 
         $routeName = $request->route() ? $request->route()->getName() : '';
+        if (! $routeName) {
+            return $next($request);
+        }
 
-        $routeMap = [
-            'dashboard' => 'main_modules.dashboard',
-            'projects.' => 'main_modules.projects',
-            'execution.' => 'main_modules.projects',
-            'tasks.' => 'main_modules.tasks',
-            'requests_descend.' => 'main_modules.requests-descend',
-            'project-referrals.' => 'main_modules.correspondence',
-            'referrals.' => 'main_modules.correspondence',
-            'correspondence.' => 'main_modules.correspondence',
-            'memoirs.' => 'main_modules.correspondence',
-            'plans.' => 'main_modules.planning',
-            'projects.reports.' => 'main_modules.reports',
-            'projects.empowerment' => 'main_modules.empowerment',
-            'value-chains.' => 'main_modules.value-chains',
-            'value-chain-members.' => 'main_modules.value-chains',
-            'global-financings.' => 'main_modules.value-chains',
-            'chain_plans.' => 'main_modules.value-chains',
-            'programs.' => 'main_modules.encoding',
-            'domains.' => 'main_modules.encoding',
-            'subdomains.' => 'main_modules.encoding',
-            'interventions.' => 'main_modules.encoding',
-            'governorates.' => 'main_modules.encoding',
-            'directorates.' => 'main_modules.encoding',
-            'sub-areas.' => 'main_modules.encoding',
-            'villages.' => 'main_modules.encoding',
-            'financial-items.' => 'main_modules.encoding',
-            'funding-sources.' => 'main_modules.encoding',
-            'financing-types.' => 'main_modules.encoding',
-            'value-chain-financing-types.' => 'main_modules.encoding',
-            'formfinancing.' => 'main_modules.encoding',
-            'subfinancing-forms.' => 'main_modules.encoding',
-            'authorities.' => 'main_modules.encoding',
-            'main-routers.' => 'main_modules.encoding',
-            'sub-routers.' => 'main_modules.encoding',
-            'priorities.' => 'main_modules.encoding',
-            'units.' => 'main_modules.encoding',
-            'beneficiary-groups.' => 'main_modules.encoding',
-            'configuration.sms.' => 'main_modules.encoding',
-            'signatures.' => 'main_modules.encoding',
-            'internal-entities.' => 'main_modules.encoding',
-            'entity-officers.' => 'main_modules.encoding',
-            'entity-authorities.' => 'main_modules.encoding',
-            'users.' => 'main_modules.users',
-            'roles.' => 'main_modules.users',
-            'roles-permissions.' => 'main_modules.users',
-            'admin.audit-logs.' => 'main_modules.users',
+        // Explicit Approved Entry Permissions per Route Prefix (No wildcards)
+        $routeEntryMap = [
+            'dashboard' => ['dashboard.view', 'main_modules.dashboard'],
+            'projects.reports.' => [
+                'reports.view', 'reports.implementation.view', 'reports.quality.view',
+                'reports.financial.view', 'reports.official_summary.view', 'main_modules.reports',
+            ],
+            'projects.empowerment' => ['empowerment.view', 'empowerment.create', 'empowerment.edit', 'main_modules.empowerment'],
+            'projects.' => [
+                'projects.view', 'projects.view-details', 'projects.create', 'projects.edit',
+                'execution.view', 'quality.view', 'approvals.view', 'main_modules.projects',
+            ],
+            'execution.' => ['execution.view', 'execution.edit', 'execution.approve', 'projects.view', 'main_modules.projects'],
+            'tasks.' => ['task.view', 'task.create', 'task.edit', 'tasks.print', 'main_modules.tasks'],
+            'requests_descend.' => [
+                'project-requests.view', 'project-requests.create', 'project-requests.edit',
+                'project-requests.approve', 'main_modules.requests-descend',
+            ],
+            'project-referrals.' => ['referrals.view', 'correspondence.view', 'main_modules.correspondence'],
+            'referrals.' => ['referrals.view', 'correspondence.view', 'main_modules.correspondence'],
+            'correspondence.' => ['correspondence.view', 'referrals.view', 'memoirs.view', 'main_modules.correspondence'],
+            'memoirs.' => ['memoirs.view', 'correspondence.view', 'main_modules.correspondence'],
+            'plans.' => ['plans.view', 'plans.create', 'plans.update', 'main_modules.planning'],
+            'value-chains.' => ['value_chains.view', 'value_chains.create', 'value_chains.edit', 'main_modules.value-chains'],
+            'value-chain-members.' => ['value_chain_members.view', 'value_chain_members.create', 'value_chains.view', 'main_modules.value-chains'],
+            'global-financings.' => ['value_chains.view', 'value_chains.create', 'value_chains.edit', 'main_modules.value-chains'],
+            'chain_plans.' => ['value_chains.view', 'value_chains.create', 'value_chains.edit', 'main_modules.value-chains'],
+            'programs.' => ['programs.view', 'programs.create', 'programs.edit', 'programs.approve', 'main_modules.encoding'],
+            'domains.' => ['domains.view', 'domains.create', 'domains.edit', 'main_modules.encoding'],
+            'subdomains.' => ['subdomains.view', 'subdomains.create', 'subdomains.edit', 'subdomains.approve', 'main_modules.encoding'],
+            'interventions.' => ['interventions.view', 'interventions.create', 'interventions.edit', 'main_modules.encoding'],
+            'governorates.' => ['governorates.view', 'governorates.create', 'governorates.edit', 'main_modules.encoding'],
+            'directorates.' => ['directorates.view', 'directorates.create', 'directorates.edit', 'main_modules.encoding'],
+            'sub-areas.' => ['sub-areas.view', 'sub-areas.create', 'sub-areas.edit', 'main_modules.encoding'],
+            'villages.' => ['villages.view', 'villages.create', 'villages.edit', 'main_modules.encoding'],
+            'financial-items.' => ['financial-items.view', 'financial-items.create', 'financial-items.edit', 'main_modules.encoding'],
+            'funding-sources.' => ['funding-sources.view', 'funding-sources.create', 'funding-sources.edit', 'main_modules.encoding'],
+            'financing-types.' => ['financing-types.view', 'financing-types.create', 'financing-types.edit', 'main_modules.encoding'],
+            'value-chain-financing-types.' => ['value-chain-financing-types.view', 'value-chain-financing-types.edit', 'main_modules.encoding'],
+            'formfinancing.' => ['form-financings.view', 'main_modules.encoding'],
+            'subfinancing-forms.' => ['sub-financing-forms.view', 'main_modules.encoding'],
+            'authorities.' => ['authorities.view', 'authorities.create', 'authorities.edit', 'authorities.bulk-edit', 'main_modules.encoding'],
+            'main-routers.' => ['main-routers.view', 'main-routers.create', 'main-routers.edit', 'main_modules.encoding'],
+            'sub-routers.' => ['sub-routers.view', 'sub-routers.create', 'sub-routers.edit', 'main_modules.encoding'],
+            'priorities.' => ['priorities.view', 'priorities.create', 'priorities.edit', 'main_modules.encoding'],
+            'units.' => ['units.view', 'units.create', 'units.edit', 'main_modules.encoding'],
+            'beneficiary-groups.' => ['beneficiary-groups.view', 'beneficiary-groups.create', 'beneficiary-groups.edit', 'main_modules.encoding'],
+            'configuration.sms.' => ['config.view', 'main_modules.encoding'],
+            'signatures.' => ['signatures.view', 'signatures.create', 'signatures.edit', 'main_modules.encoding'],
+            'internal-entities.' => ['internal-entities.view', 'internal-entities.create', 'internal-entities.edit', 'main_modules.encoding'],
+            'entity-officers.' => ['entity-officers.view', 'entity-officers.create', 'entity-officers.edit', 'main_modules.encoding'],
+            'entity-authorities.' => ['entity-authorities.view', 'entity-authorities.edit', 'main_modules.encoding'],
+            'users.' => ['users.view', 'users.create', 'users.edit', 'main_modules.users'],
+            'roles.' => ['roles.view', 'roles.create', 'roles.edit', 'main_modules.users'],
+            'roles-permissions.' => ['roles-permissions.view', 'roles-permissions.edit', 'main_modules.users'],
+            'admin.audit-logs.' => ['audit-logs.view', 'audit-logs.export', 'main_modules.users'],
         ];
 
-        foreach ($routeMap as $prefix => $permission) {
-            // Note: Some prefixes are exact matches like 'dashboard' or 'projects.empowerment'
+        foreach ($routeEntryMap as $prefix => $approvedPerms) {
             if ($routeName === $prefix || str_starts_with($routeName, $prefix)) {
-                if (! $user->can($permission)) {
+                $hasEntryPermission = false;
+                foreach ($approvedPerms as $perm) {
+                    if ($user->can($perm)) {
+                        $hasEntryPermission = true;
+                        break;
+                    }
+                }
+
+                if (! $hasEntryPermission) {
                     abort(403, 'ليس لديك الصلاحية للوصول إلى هذه الوحدة الرئيسية.');
                 }
                 break;

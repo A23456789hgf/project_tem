@@ -9,9 +9,11 @@
                     <i class="fas fa-village me-2"></i>تفاصيل القرية: {{ $village->name }}
                 </h5>
                 <div class="d-flex gap-2">
+                    @can('villages.edit')
                     <a href="{{ route('villages.edit', $village->id) }}" class="btn btn-light btn-sm">
                         <i class="fas fa-edit me-1"></i>تعديل
                     </a>
+                    @endcan
                     <a href="{{ route('villages.index') }}" class="btn btn-outline-light btn-sm">
                         <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
                     </a>
@@ -125,9 +127,11 @@
                         </div>
                         <div class="card-body">
                             <div class="d-flex gap-2 flex-wrap">
+                                @can('villages.edit')
                                 <a href="{{ route('villages.edit', $village->id) }}" class="btn btn-primary btn-sm">
                                     <i class="fas fa-edit me-1"></i>تعديل البيانات
                                 </a>
+                                @endcan
                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
                                     <i class="fas fa-trash me-1"></i>حذف القرية
                                 </button>
@@ -157,11 +161,13 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                @can('villages.delete')
                 <form action="{{ route('villages.destroy', $village->id) }}" method="POST" class="d-inline" onsubmit="return confirmAction(this, 'هل أنت متأكد من عملية الحذف؟')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-danger">حذف</button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

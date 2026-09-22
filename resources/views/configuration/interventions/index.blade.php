@@ -70,18 +70,22 @@
                         <td>
                             <div class="d-flex justify-content-center align-items-center gap-1">
                                 @if($intervention->status === 'pending')
+                                    @can('interventions.approve')
                                     <form action="{{ route('interventions.approve', $intervention->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-success" title="اعتماد وموافقة على التدخل" onclick="return confirmAction(this, 'هل ترغب في اعتماد هذا التدخل وإضافته بشكل دائم؟')">
                                             <i class="fas fa-check-circle"></i>
                                         </button>
                                     </form>
+                                    @endcan
+                                    @can('interventions.reject')
                                     <form action="{{ route('interventions.reject', $intervention->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-secondary" title="رفض التدخل" onclick="return confirmAction(this, 'هل تريد رفض هذا التدخل؟')">
                                             <i class="fas fa-times-circle"></i>
                                         </button>
                                     </form>
+                                    @endcan
                                 @endif
 
                                 @can('interventions.edit')

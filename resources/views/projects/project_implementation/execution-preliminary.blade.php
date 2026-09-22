@@ -152,6 +152,7 @@
                                                 
                                                 <!-- Add New Tab -->
                                                 <div class="tab-pane fade" id="pills-profile-{{ $procedure->id }}" role="tabpanel">
+                                                    @can('execution.edit')
                                                     <form action="{{ route('projects.execution.store', $project) }}" 
                                                           method="POST" 
                                                           enctype="multipart/form-data"
@@ -169,6 +170,7 @@
                                                             </button>
                                                         </div>
                                                     </form>
+                                                    @endcan
                                                 </div>
                                             </div>
                                         </div>

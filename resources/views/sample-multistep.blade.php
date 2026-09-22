@@ -15,7 +15,9 @@
                 <p class="page-subtitle">مثال على نموذج بخمس خطوات مع التحقق من صحة البيانات</p>
             </div>
 
+            @can('sample.create')
             <form class="multi-step-form" id="sampleMultiStepForm" action="{{ route('sample.store') }}" method="POST">
+            @endcan
                 @csrf
                 
                 <!-- Step Progress -->

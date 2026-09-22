@@ -143,7 +143,9 @@
         </div>
     @endif
 
+    @can('projects.create')
     <form action="{{ route('projects.achievements.store', $project->id) }}" method="POST" enctype="multipart/form-data" id="achievementForm" class="needs-validation" novalidate>
+    @endcan
         @csrf
 
         <div class="row">

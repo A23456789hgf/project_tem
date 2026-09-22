@@ -12,7 +12,9 @@
 
     
 
+    @can('domains.edit')
     <form action="{{ route('domains.update', $domain->id) }}" method="POST">
+    @endcan
         @csrf
         @method('PUT')
         

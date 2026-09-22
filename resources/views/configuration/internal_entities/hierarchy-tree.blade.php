@@ -15,9 +15,11 @@
                     <a href="{{ route('internal-entities.index') }}" class="btn btn-white border bg-white">
                         <i class="fas fa-list text-secondary"></i> عرض جدولي
                     </a>
+                    @can('internal-entities.create')
                     <a href="{{ route('internal-entities.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> إضافة جهة
                     </a>
+                    @endcan
                 </div>
             </div>
         </div>

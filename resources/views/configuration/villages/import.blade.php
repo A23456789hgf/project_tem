@@ -25,6 +25,7 @@
                         </div>
                     </div>
 
+                    @can('villages.import')
                     <form action="{{ route('villages.preview-import') }}" method="POST" enctype="multipart/form-data" class="import-form">
                         @csrf
                         <div class="row">
@@ -60,6 +61,7 @@
                             </div>
                         </div>
                     </form>
+                    @endcan
                 </div>
             </div>
         </div>

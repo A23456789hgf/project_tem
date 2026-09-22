@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\EntityResponsibilityType;
 use App\Models\EntityApprovalStage;
 use App\Models\InternalEntity;
 use App\Models\User;
@@ -46,7 +47,7 @@ class BackwardCompatibilityTest extends TestCase
 
         EntityApprovalStage::create([
             'entity_id' => $dept->id,
-            'stage' => 'initial_review',
+            'stage' => EntityResponsibilityType::Approval->value,
             'stage_order' => 1,
             'is_active' => true,
             'responsible_user_id' => $userDept->id,
@@ -54,7 +55,7 @@ class BackwardCompatibilityTest extends TestCase
 
         EntityApprovalStage::create([
             'entity_id' => $ministry->id,
-            'stage' => 'initial_review',
+            'stage' => EntityResponsibilityType::Approval->value,
             'stage_order' => 1,
             'is_active' => true,
             'responsible_user_id' => $userMin->id,

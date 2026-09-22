@@ -39,12 +39,12 @@ class ProjectApprovalService
                 $this->logMovement($project, $firstStage, $user, 'pending', null, null, 'تم إرسال المشروع للموافقة');
             }
 
-            // Send SMS to the user responsible for creating the draft
+            // Send SMS to the user responsible for creating the draft if setting enabled
             try {
-                $smsService = app(SmppSmsService::class);
-                if ($user->phone) {
+                if ($user->phone && app(SmsEventManager::class)->enabled('project.submitted')) {
+                    $smsService = app(SmppSmsService::class);
                     $message = "عزيزي المستخدم، تم إغلاق مسودة المشروع '{$project->project_name}' وبدأت دورة الاعتماد.";
-                    $smsService->sendSMS($user->id, $user->phone, $message, 'draft_submitted');
+                    $smsService->sendSmsAsync($user->id, $user->phone, $message, 'project.submitted');
                 }
             } catch (\Exception $e) {
                 Log::error('Failed to send SMS on draft submission: '.$e->getMessage());
@@ -71,6 +71,19 @@ class ProjectApprovalService
                     'finalized_at' => now(),
                 ]);
                 $this->logMovement($project, $currentStage, $user, 'approved', null, $notes, 'تمت الموافقة على المشروع بنهائي');
+
+                if ($project->created_by_user_id && app(SmsEventManager::class)->enabled('project.approved')) {
+                    try {
+                        $creator = User::find($project->created_by_user_id);
+                        if ($creator && $creator->phone) {
+                            $smsService = app(SmppSmsService::class);
+                            $message = "عزيزي المستخدم، تمت الموافقة النهائية على مشروعك '{$project->project_name}'.";
+                            $smsService->sendSmsAsync($creator->id, $creator->phone, $message, 'project.approved');
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send final approval SMS: '.$e->getMessage());
+                    }
+                }
 
                 return true;
             }
@@ -140,6 +153,19 @@ class ProjectApprovalService
             ]);
             $this->logMovement($project, $stage, $user, 'rejected', null, $reason, 'تم رفض المرحلة');
 
+            if ($project->created_by_user_id && app(SmsEventManager::class)->enabled('project.rejected')) {
+                try {
+                    $creator = User::find($project->created_by_user_id);
+                    if ($creator && $creator->phone) {
+                        $smsService = app(SmppSmsService::class);
+                        $message = "عزيزي المستخدم، تم رفض مرحلة الاعتماد لمشروعك '{$project->project_name}'. السبب: {$reason}";
+                        $smsService->sendSmsAsync($creator->id, $creator->phone, $message, 'project.rejected');
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to send project rejection SMS: '.$e->getMessage());
+                }
+            }
+
             return true;
         });
     }
@@ -166,6 +192,20 @@ class ProjectApprovalService
                 'approval_status' => 'requires_action',
                 'current_approval_stage_id' => $stage->id,
             ]);
+            $this->logMovement($project, $stage, $user, 'requires_action', $actionRequired, $notes, 'مطلوب إجراء على المشروع');
+
+            if ($project->created_by_user_id && app(SmsEventManager::class)->enabled('project.action_required')) {
+                try {
+                    $creator = User::find($project->created_by_user_id);
+                    if ($creator && $creator->phone) {
+                        $smsService = app(SmppSmsService::class);
+                        $message = "عزيزي المستخدم، مطلوب إجراء على مشروعك '{$project->project_name}': {$actionRequired}";
+                        $smsService->sendSmsAsync($creator->id, $creator->phone, $message, 'project.action_required');
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to send project action_required SMS: '.$e->getMessage());
+                }
+            }
 
             $this->logMovement($project, $stage, $user, 'requires_action', $actionRequired, $notes, 'مطلوب إجراء');
 

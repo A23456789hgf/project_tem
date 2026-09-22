@@ -21,6 +21,7 @@
                 </a>
             </div>
 
+            @can('type-entity.create')
             <form method="POST" action="{{ route('type-entity.store') }}" class="mt-4">
                 @csrf
 
@@ -50,6 +51,7 @@
                 </div>
 
             </form>
+            @endcan
 
         </div>
     </div>

@@ -226,6 +226,18 @@ class ApprovalInboxTest extends TestCase
             'drop' => 'entity_'.$this->reviewEntity->id.'_technical_review',
         ]);
 
+        ProjectApproval::create([
+            'project_id' => $project->id,
+            'entity_id' => $this->reviewEntity->id,
+            'step_order' => 2,
+            'status' => 'locked',
+            'phase' => ApprovalPhase::StageApproval->value,
+            'is_active' => false,
+            'is_completed' => false,
+            'assigned_user_id' => $this->creatorUser->id,
+            'drop' => 'entity_'.$this->reviewEntity->id.'_approval',
+        ]);
+
         return [$project, $approval];
     }
 

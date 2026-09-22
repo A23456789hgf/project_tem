@@ -8,11 +8,15 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\SmppSmsService;
+use App\Services\SmsEventManager;
 use Carbon\Carbon;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -28,25 +32,51 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        // تحديد الحقل المستخدم (قد يكون phone أو username)
-        $loginField = $request->has('phone') ? 'phone' : 'username';
-        $username = trim($request->input($loginField));
-        $password = $request->password;
+        // 1. استخراج الحقل والمدخلات
+        $loginField = $request->has('phone') && ! $request->has('username') ? 'phone' : 'username';
+        $rawIdentifier = trim((string) ($request->input('phone') ?? $request->input('username') ?? ''));
+        $password = (string) $request->input('password', '');
 
+        // 2. التحقق من صحة المدخلات (Validation)
         $request->validate([
             $loginField => 'required|string',
             'password' => 'required|string',
         ], [
-            $loginField.'.required' => 'اسم المستخدم أو رقم الهاتف مطلوب',
+            $loginField.'.required' => 'رقم الهاتف أو اسم المستخدم مطلوب',
             'password.required' => 'كلمة المرور مطلوبة',
         ]);
 
-        // Super Admin bypass
+        // 3. تطبيع رقم الهاتف/المعرف لمنع تجاوز Rate Limiting
+        $normalizedPhone = $this->normalizePhoneDigits($rawIdentifier);
+        $throttleIdentifier = ! empty($normalizedPhone) ? $normalizedPhone : Str::lower($rawIdentifier);
+        $throttleKey = 'login|'.$throttleIdentifier.'|'.$request->ip();
+
+        // 4. الحماية من هجمات Brute Force عبر Rate Limiter
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            $throttleMessage = "تم تجاوز عدد محاولات تسجيل الدخول المسموح بها. يرجى المحاولة مرة أخرى بعد {$seconds} ثانية.";
+
+            AuditLogService::log(
+                action: 'login_throttled',
+                module: 'Authentication',
+                description: 'تم تجاوز عدد محاولات تسجيل الدخول المسموح بها'
+            );
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $throttleMessage,
+                ], 429);
+            }
+
+            return back()->withErrors([$loginField => $throttleMessage])->withInput($request->except('password'));
+        }
+
+        // 5. تجاوز Super Admin في حال تكوينه
         $saUsername = env('SUPER_ADMIN_USERNAME');
         $saPassword = env('SUPER_ADMIN_PASSWORD');
 
-        if ($saUsername && $saPassword && $username === $saUsername && $password === $saPassword) {
-            // Create a temporary Super Admin user instance that is disconnected from the DB
+        if ($saUsername && $saPassword && $rawIdentifier === $saUsername && $password === $saPassword) {
             $superAdmin = new class extends User
             {
                 public $exists = true;
@@ -99,8 +129,9 @@ class AuthController extends Controller
             $superAdmin->status = 'Active';
 
             Auth::login($superAdmin, $request->filled('remember'));
+            $request->session()->regenerate();
+            RateLimiter::clear($throttleKey);
 
-            // ✅ تسجيل نجاح عملية الدخول لـ Super Admin
             Log::info('✅ SUPER ADMIN LOGIN SUCCESS', [
                 'username' => $saUsername,
                 'ip' => $request->ip(),
@@ -112,32 +143,13 @@ class AuthController extends Controller
                 AuditLogService::log(
                     action: 'login',
                     module: 'Authentication',
-                    description: 'Super Admin logged in via bypass (fully disconnected)'
+                    description: 'Super Admin logged in via bypass'
                 );
             } catch (\Exception $e) {
-                // Silently fail if DB is unavailable
+                // Silently ignore if DB is unavailable
             }
 
             session(['user_permissions' => ['*']]);
-
-            // ✅ التحقق من نجاح تسجيل الدخول قبل التوجيه
-            if (! Auth::check()) {
-                Log::error('❌ SUPER ADMIN AUTH FAILED', [
-                    'username' => $saUsername,
-                    'ip' => $request->ip(),
-                ]);
-                if ($request->wantsJson()) {
-                    return response()->json(['success' => false, 'message' => 'حدث خطأ في تسجيل الدخول'], 422);
-                }
-
-                return back()->withErrors(['error' => 'حدث خطأ في تسجيل الدخول'])->withInput();
-            }
-
-            Log::info('🔍 SUPER ADMIN SESSION CHECK', [
-                'session_id' => session()->getId(),
-                'user_id' => auth()->id(),
-                'authenticated' => Auth::check(),
-            ]);
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -150,21 +162,23 @@ class AuthController extends Controller
             return redirect()->intended(route('dashboard'));
         }
 
-        // البحث عن المستخدم مع إلغاء جميع النطاقات العامة (Global Scopes)
-        $user = User::withoutGlobalScopes()
-            ->where(function ($query) use ($username) {
-                $query->where('username', $username)
-                    ->orWhere('email', $username)
-                    ->orWhere('user_id', $username)
-                    ->orWhere('phone', $username);
-            })
+        // 6. البحث عن المستخدم برقم الهاتف فقط والاعتماد على Scopes الطبيعية
+        $phoneCandidates = $this->phoneLoginCandidates($rawIdentifier);
+
+        $user = User::where(function ($query) use ($phoneCandidates) {
+            $query->whereIn('phone', $phoneCandidates)
+                ->orWhereIn($this->normalizedPhoneColumn(), $phoneCandidates);
+        })
             ->first();
 
-        // تسجيل سبب عدم العثور للمساعدة في التصحيح
-        if (! $user) {
-            // ❌ تسجيل فشل عملية الدخول - المستخدم غير موجود
-            Log::warning('❌ LOGIN FAILED: User not found', [
-                'identifier' => $username,
+        $genericErrorMessage = 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+
+        // 7. التحقق من وجود المستخدم وحالة الحساب (رسالة موحدة لمنع كشف وجود الحسابات)
+        if (! $user || $user->status !== 'Active') {
+            RateLimiter::hit($throttleKey, 60);
+
+            Log::warning('❌ LOGIN FAILED: Invalid credentials or inactive user', [
+                'identifier' => $rawIdentifier,
                 'login_field' => $loginField,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -174,51 +188,31 @@ class AuthController extends Controller
             AuditLogService::log(
                 action: 'login_failed',
                 module: 'Authentication',
-                description: 'محاولة تسجيل دخول فاشلة: اسم المستخدم غير موجود ('.$username.')',
-                modelType: 'User'
+                description: 'محاولة تسجيل دخول فاشلة - بيانات الدخول غير صحيحة أو الحساب غير نشط',
+                modelType: $user ? 'User' : null,
+                modelId: $user?->id
             );
 
             if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'البيانات المدخلة غير صحيحة'], 422);
+                return response()->json([
+                    'success' => false,
+                    'message' => $genericErrorMessage,
+                ], 422);
             }
 
-            return back()->withErrors([$loginField => 'البيانات المدخلة غير صحيحة'])->withInput();
+            return back()
+                ->withErrors([$loginField => $genericErrorMessage])
+                ->withInput($request->except('password'));
         }
 
-        // التحقق من حالة المستخدم (Disabled)
-        if ($user->status == 'Disabled') {
-            // ❌ تسجيل فشل عملية الدخول - الحساب معطل
-            Log::warning('❌ LOGIN FAILED: Account disabled', [
-                'user_id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'timestamp' => Carbon::now()->toDateTimeString(),
-            ]);
-
-            AuditLogService::log(
-                action: 'login_failed',
-                module: 'Authentication',
-                description: 'محاولة تسجيل دخول فاشلة: الحساب معطل',
-                modelType: 'User',
-                modelId: $user->id
-            );
-
-            if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'حسابك معطل من قبل الإدارة'], 422);
-            }
-
-            return back()->withErrors([$loginField => 'حسابك معطل من قبل الإدارة'])->withInput();
-        }
-
-        // التحقق من صحة كلمة المرور
+        // التحقق من كلمة المرور بعد التأكد من وجود المستخدم وأن الحساب نشط
         if (! Hash::check($password, $user->password)) {
-            // ❌ تسجيل فشل عملية الدخول - كلمة مرور خاطئة
+            RateLimiter::hit($throttleKey, 60);
+
             Log::warning('❌ LOGIN FAILED: Invalid password', [
                 'user_id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
+                'identifier' => $rawIdentifier,
+                'login_field' => $loginField,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'timestamp' => Carbon::now()->toDateTimeString(),
@@ -227,69 +221,36 @@ class AuthController extends Controller
             AuditLogService::log(
                 action: 'login_failed',
                 module: 'Authentication',
-                description: 'محاولة تسجيل دخول فاشلة: كلمة مرور غير صحيحة',
+                description: 'محاولة تسجيل دخول فاشلة - كلمة المرور غير صحيحة',
                 modelType: 'User',
                 modelId: $user->id
             );
 
             if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'كلمة المرور غير صحيحة'], 422);
+                return response()->json([
+                    'success' => false,
+                    'message' => $genericErrorMessage,
+                ], 422);
             }
 
-            return back()->withErrors(['password' => 'كلمة المرور غير صحيحة'])->withInput();
+            return back()
+                ->withErrors([$loginField => $genericErrorMessage])
+                ->withInput($request->except('password'));
         }
 
-        // ✅ تسجيل نجاح عملية الدخول
-        Log::info('✅ LOGIN SUCCESS', [
-            'user_id' => $user->id,
-            'username' => $user->username,
-            'email' => $user->email,
-            'role_id' => $user->role_id,
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'timestamp' => Carbon::now()->toDateTimeString(),
-        ]);
-
-        // محاولة تسجيل الدخول
+        // 8. تسجيل دخول المستخدم وتجديد Session ID لمنع Session Fixation
         Auth::login($user, $request->filled('remember'));
+        $request->session()->regenerate();
+        RateLimiter::clear($throttleKey);
 
-        // ✅ التحقق من نجاح تسجيل الدخول
-        if (! Auth::check()) {
-            Log::error('❌ AUTH FAILED AFTER LOGIN ATTEMPT', [
-                'user_id' => $user->id,
-                'username' => $user->username,
-                'session_id' => session()->getId(),
-                'ip' => $request->ip(),
-            ]);
-
-            if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'حدث خطأ في تسجيل الدخول، يرجى المحاولة مرة أخرى'], 422);
-            }
-
-            return back()->withErrors(['error' => 'حدث خطأ في تسجيل الدخول، يرجى المحاولة مرة أخرى'])->withInput();
-        }
-
-        // ✅ تسجيل معلومات الجلسة
-        Log::info('🔍 SESSION DATA AFTER LOGIN', [
-            'session_id' => session()->getId(),
-            'user_id' => auth()->id(),
-            'username' => auth()->user()->username,
-            'authenticated' => Auth::check(),
-        ]);
-
-        // Generate and store unique token
-        $monitoringToken = Str::uuid()->toString();
-        session(['monitoring_token' => $monitoringToken]);
-
-        // Attach permissions to session
+        // 9. تحميل الدور والصلاحيات المحدثة من قاعدة البيانات
         try {
-            $permissions = $user->permissions()->pluck('slug')->toArray();
+            $permissions = $user->getAllPermissionsSlugs();
             session(['user_permissions' => $permissions]);
 
             Log::info('🔑 PERMISSIONS LOADED', [
                 'user_id' => $user->id,
                 'permissions_count' => count($permissions),
-                'permissions' => $permissions,
             ]);
         } catch (\Exception $e) {
             Log::error('❌ PERMISSIONS LOAD ERROR', [
@@ -299,68 +260,54 @@ class AuthController extends Controller
             session(['user_permissions' => []]);
         }
 
+        // إنشاء وتخزين توكن المراقبة
+        $monitoringToken = Str::uuid()->toString();
+        session(['monitoring_token' => $monitoringToken]);
+
+        // تسجيل العملية في AuditLog
         AuditLogService::log(
             action: 'login',
             module: 'Authentication',
-            description: 'تسجيل الدخول بنجاح - تم إنشاء توكن المراقبة وتحديث الصلاحيات',
+            description: 'تسجيل الدخول بنجاح',
             modelType: 'User',
             modelId: $user->id
         );
 
-        // ✅ التحقق من صلاحية الوصول للداشبورد
-        $canAccessDashboard = $user->can('access_dashboard') ?? false;
-        Log::info('🔍 DASHBOARD ACCESS CHECK', [
+        Log::info('✅ LOGIN SUCCESS', [
             'user_id' => $user->id,
+            'username' => $user->username,
             'role_id' => $user->role_id,
-            'can_access_dashboard' => $canAccessDashboard,
-            'is_super_admin' => $user->role_id == 1,
+            'ip' => $request->ip(),
+            'timestamp' => Carbon::now()->toDateTimeString(),
         ]);
 
-        // إذا لم يكن لديه صلاحية، حاول التوجيه إلى صفحة أخرى
-        if (! $canAccessDashboard && $user->role_id != 1) {
-            Log::warning('⚠️ USER CANNOT ACCESS DASHBOARD', [
-                'user_id' => $user->id,
-                'role_id' => $user->role_id,
-                'redirecting_to' => route('home'),
-            ]);
-
-            if ($request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'ليس لديك صلاحية للداشبورد'], 403);
-            }
-
-            return redirect()->route('home')->with('warning', 'ليس لديك صلاحية للداشبورد');
-        }
-
-        // ✅ محاولة التوجيه مع fallback
-        try {
-            $redirectUrl = route('dashboard');
-            Log::info('🔄 REDIRECTING TO', ['url' => $redirectUrl]);
-
+        // 10. التوجيه الإجباري لتغيير كلمة المرور إذا كانت مطلوبة
+        if ($user->must_change_password) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'تم تسجيل الدخول بنجاح',
+                    'must_change_password' => true,
+                    'redirect' => route('password.change.forced'),
                     'csrf_token' => csrf_token(),
                 ]);
             }
 
-            return redirect()->intended($redirectUrl);
-        } catch (\Exception $e) {
-            Log::error('❌ REDIRECT ERROR', [
-                'error' => $e->getMessage(),
-                'user_id' => $user->id,
-            ]);
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'تم تسجيل الدخول بنجاح',
-                    'csrf_token' => csrf_token(),
-                ]);
-            }
-
-            return redirect('/')->with('error', 'تم تسجيل الدخول ولكن حدث خطأ في التوجيه');
+            return redirect()
+                ->route('password.change.forced')
+                ->with('info', 'يجب تغيير كلمة المرور قبل المتابعة.');
         }
+
+        // 11. التوجيه الآمن (Intended Redirect)
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل الدخول بنجاح',
+                'redirect' => route('dashboard'),
+                'csrf_token' => csrf_token(),
+            ]);
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
     public function showRegister()
@@ -372,6 +319,68 @@ class AuthController extends Controller
         $roles = Role::orderBy('name')->get();
 
         return view('auth.register', compact('roles'));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function phoneLoginCandidates(string $identifier): array
+    {
+        $digits = $this->normalizePhoneDigits($identifier);
+        $candidates = array_filter([
+            trim($identifier),
+            $digits,
+        ]);
+
+        if ($digits !== '') {
+            if (str_starts_with($digits, '967')) {
+                $local = substr($digits, 3);
+                $candidates[] = $local;
+                $candidates[] = '0'.$local;
+            } elseif (str_starts_with($digits, '0')) {
+                $local = substr($digits, 1);
+                $candidates[] = $local;
+                $candidates[] = '967'.$local;
+            } else {
+                $candidates[] = '0'.$digits;
+                $candidates[] = '967'.$digits;
+            }
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    private function normalizePhoneDigits(string $value): string
+    {
+        $westernDigits = strtr($value, [
+            '٠' => '0',
+            '١' => '1',
+            '٢' => '2',
+            '٣' => '3',
+            '٤' => '4',
+            '٥' => '5',
+            '٦' => '6',
+            '٧' => '7',
+            '٨' => '8',
+            '٩' => '9',
+            '۰' => '0',
+            '۱' => '1',
+            '۲' => '2',
+            '۳' => '3',
+            '۴' => '4',
+            '۵' => '5',
+            '۶' => '6',
+            '۷' => '7',
+            '۸' => '8',
+            '۹' => '9',
+        ]);
+
+        return preg_replace('/\D+/', '', $westernDigits) ?? '';
+    }
+
+    private function normalizedPhoneColumn(): Expression
+    {
+        return DB::raw("REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '+', ''), '-', ''), '(', ''), ')', ''), '.', '')");
     }
 
     public function register(Request $request)
@@ -430,6 +439,16 @@ class AuthController extends Controller
             'description' => 'تسجيل حساب جديد',
             'ip_address' => $request->ip(),
         ]);
+
+        if ($user->phone && app(SmsEventManager::class)->enabled('user.registered')) {
+            try {
+                $smsService = app(SmppSmsService::class);
+                $message = "مرحباً بك {$user->name} في نظام إدارة المشاريع. تم تفعيل حسابك بنجاح.";
+                $smsService->sendSmsAsync($user->id, $user->phone, $message, 'user.registered');
+            } catch (\Exception $e) {
+                Log::error('Failed to send user registration welcome SMS: '.$e->getMessage());
+            }
+        }
 
         Auth::login($user);
 
@@ -710,7 +729,14 @@ class AuthController extends Controller
 
         // Send OTP via SMS
         $message = 'رمز استعادة كلمة المرور الخاص بك في نظام إدارة المشاريع هو: '.$otp;
-        $smsService->sendSmsSync($user->id, $user->phone, $message, 'password_reset_otp');
+        $result = $smsService->sendSMS($user->id, $user->phone, $message, 'password_reset_otp');
+
+        if (empty($result['ok'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'تعذر إرسال رمز التحقق عبر SMS: '.($result['reason'] ?? 'فشل الاتصال ببوابة الرسائل'),
+            ], 500);
+        }
 
         return response()->json(['success' => true, 'message' => 'تم إرسال رمز التحقق بنجاح إلى رقم هاتفك']);
     }

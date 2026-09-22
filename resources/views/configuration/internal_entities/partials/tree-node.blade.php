@@ -30,9 +30,11 @@
                     {{ $entity->entity_type === 'Company' ? 'checked' : '' }}>
             </div>
             <div class="btn-group gap-2">
+                @can('internal-entities.edit')
                 <a href="{{ route('internal-entities.edit', $entity->id) }}" class="btn btn-sm btn-outline-secondary rounded" title="تعديل">
                     <i class="fas fa-edit"></i>
                 </a>
+                @endcan
                 <a href="{{ route('internal-entities.show', $entity->id) }}" class="btn btn-sm btn-outline-info rounded" title="التفاصيل">
                     <i class="fas fa-eye"></i>
                 </a>

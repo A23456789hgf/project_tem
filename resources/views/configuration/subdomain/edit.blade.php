@@ -12,7 +12,9 @@
 
     
 
+    @can('subdomains.edit')
     <form action="{{ route('subdomains.update', $subdomain->id) }}" method="POST">
+    @endcan
         @csrf
         @method('PUT')
         

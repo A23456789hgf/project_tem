@@ -478,12 +478,14 @@
                                 </table>
                             </div>
                             
+                            @can('projects.create')
                             <form method="POST" action="{{ route('projects.failure-report') }}" class="mt-3">
                                 @csrf
                                 <button type="submit" class="btn btn-danger">
                                     <i class="fas fa-download me-2"></i>تحميل تقرير المشاريع غير المستوردة
                                 </button>
                             </form>
+                            @endcan
                         </div>
                     @endif
                 </div>

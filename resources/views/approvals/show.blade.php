@@ -96,6 +96,39 @@
         z-index: 2;
         position: relative;
     }
+
+    @media print {
+        .btn, .decision-panel, .action-choice-btn, nav, .breadcrumb, .no-print, form, .modal {
+            display: none !important;
+        }
+        .approval-show-header {
+            background: none !important;
+            color: #000 !important;
+            box-shadow: none !important;
+            padding: 0 0 1rem 0 !important;
+            border-bottom: 2px solid #0f172a !important;
+            margin-bottom: 1rem !important;
+        }
+        .approval-show-header h3, .approval-show-header span, .approval-show-header div, .approval-show-header strong {
+            color: #000 !important;
+        }
+        .tracker-card {
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 1rem !important;
+        }
+        .col-12.col-lg-8 {
+            width: 100% !important;
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+        .badge {
+            border: 1px solid #94a3b8 !important;
+            color: #000 !important;
+            background: #fff !important;
+        }
+    }
 </style>
 @endsection
 
@@ -139,13 +172,19 @@
                     @endif
                 </div>
                 <div class="mt-2 text-white-50 small d-flex align-items-center gap-3 flex-wrap">
-                    <span><i class="fas fa-building me-1"></i> الجهة المنشئة: <strong>{{ $project->creatorEntity?->name ?? 'غير محدد' }}</strong></span>
+                    <span><i class="fas fa-building me-1"></i> الجهة المقدمة: <strong class="text-white">{{ $project->creator_entity_name }}</strong></span>
+                    @if(isset($activeStep) && $activeStep)
+                        <span><i class="fas fa-map-marker-alt me-1 text-warning"></i> الجهة الحالية (التي وصل إليها): <strong class="text-warning">{{ $activeStep->entity?->name ?? $activeStep->authority?->agency_name ?? 'المركز الرئيسي' }}</strong></span>
+                    @endif
                     <span><i class="fas fa-user me-1"></i> المنشئ: <strong>{{ $project->createdBy?->name ?? 'غير معروف' }}</strong></span>
                     <span><i class="far fa-calendar-alt me-1"></i> تاريخ الإنشاء: {{ $project->created_at?->format('Y/m/d') }}</span>
                 </div>
             </div>
 
             <div class="d-flex gap-2 flex-wrap">
+                <button type="button" onclick="window.print()" class="btn btn-outline-light rounded-pill px-3 btn-sm fw-semibold shadow-sm">
+                    <i class="fas fa-print me-1"></i> طباعة الوثيقة
+                </button>
                 <a href="{{ route('approvals.index') }}" class="btn btn-outline-light rounded-pill px-4 btn-sm fw-semibold">
                     <i class="fas fa-arrow-right me-1"></i> العودة للمركز
                 </a>
@@ -162,36 +201,56 @@
         {{-- Left / Main Column (8) --}}
         <div class="col-12 col-lg-8">
 
-            @if(isset($isAdmin) && $isAdmin)
-            {{-- 1. Dynamic Approval Tracker --}}
+            {{-- 1. Dynamic Approval Tracker (Visible to all users) --}}
             <div class="card tracker-card shadow-sm mb-4">
                 <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
                     <h5 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                        <i class="fas fa-route text-primary"></i> مسار وسلسلة الاعتمادات (Dynamic Approval Chain)
+                        <i class="fas fa-route text-primary"></i> مسار اعتماد المشروع
                     </h5>
                     @if($activeStep)
                         <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold">
-                            الخطوة الحالية: #{{ $activeStep->step_order }}
+                            الخطوة الحالية: #{{ $activeStep->step_order }} من {{ $approvalChain->count() }}
                         </span>
                     @endif
                 </div>
                 <div class="card-body p-4">
+                    {{-- الخطوة 0: مسودة المشروع (مكتملة بمجرد فتح مسار الاعتماد) --}}
+                    <div class="mb-3 p-3 rounded-4 border border-success bg-success bg-opacity-10">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <strong class="text-dark fs-6">مسودة المشروع</strong>
+                                    <span class="badge bg-secondary ms-1 small">{{ $project->creatorEntity?->name ?? 'الجهة المنشئة' }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="badge bg-success text-white px-2 py-1 rounded-pill small"><i class="fas fa-check me-1"></i> مكتملة (تم إغلاق المسودة)</span>
+                            </div>
+                        </div>
+                    </div>
+
                     @if($approvalChain->isEmpty())
                         <div class="alert alert-info border-0 rounded-3 text-center mb-0">
                             <i class="fas fa-info-circle me-1"></i> لا توجد سلسلة موافقات مولدة لهذا المشروع بعد (المشروع في طور المسودة).
                         </div>
                     @else
                         @php
-                            // Group chain steps by entity for visual clarity
-                            $groupedChain = $approvalChain->groupBy('entity_id');
+                            // Group chain steps by entity preserving sequential step_order
+                            $groupedChain = $approvalChain->sortBy('step_order')->groupBy(function($step) {
+                                return $step->entity_id ? 'entity_'.$step->entity_id : ($step->authority_id ? 'auth_'.$step->authority_id : 'step_'.$step->id);
+                            });
                         @endphp
 
-                        @foreach($groupedChain as $entityId => $steps)
+                        @foreach($groupedChain as $groupKey => $steps)
                             @php
                                 $firstStep = $steps->first();
-                                $entityName = $firstStep->entity?->name ?? 'الجهة المعنية';
+                                $entityName = $firstStep->entity?->name ?? $firstStep->authority?->agency_name ?? $firstStep->authority?->name ?? 'الجهة المعنية';
                                 $isCurrentEntity = $steps->contains(fn($s) => $s->is_active);
                                 $isAllCompleted = $steps->every(fn($s) => $s->is_completed);
+                                $isMinistryRoot = (bool) ($firstStep->is_ministry_root || ($firstStep->entity && $firstStep->entity->is_ministry_root));
                             @endphp
                             <div class="mb-4 p-3 rounded-4 border {{ $isCurrentEntity ? 'border-primary bg-primary bg-opacity-10' : ($isAllCompleted ? 'border-success bg-success bg-opacity-10' : 'bg-light') }}">
                                 <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
@@ -202,9 +261,13 @@
                                         <div>
                                             <strong class="text-dark fs-6">{{ $entityName }}</strong>
                                             @if($loop->first)
-                                                <span class="badge bg-secondary ms-1 small">الجهة المنشئة</span>
-                                            @elseif($loop->last)
-                                                <span class="badge bg-dark ms-1 small">الجهة العليا (Root)</span>
+                                                <span class="badge bg-secondary ms-1 small">الجهة الأولى</span>
+                                            @endif
+                                            @if($isMinistryRoot || $loop->last)
+                                                <span class="badge bg-dark ms-1 small">الجهة العليا (الوزارة - Root)</span>
+                                            @endif
+                                            @if($isCurrentEntity)
+                                                <span class="badge bg-primary text-white ms-1 small">الجهة الحالية</span>
                                             @endif
                                         </div>
                                     </div>
@@ -222,9 +285,18 @@
                                 <div class="row g-2">
                                     @foreach($steps as $step)
                                         <div class="col-12 col-md-4">
-                                            <div class="p-2 rounded-3 border bg-white h-100">
+                                            <div class="p-2 rounded-3 border h-100 {{ $step->is_active ? 'border-2 border-primary bg-primary bg-opacity-10 shadow-sm' : 'bg-white' }}">
                                                 <div class="d-flex align-items-center justify-content-between mb-1">
-                                                    <span class="small fw-bold text-dark">{{ $step->getPhaseArabicName() }}</span>
+                                                    <span class="small fw-bold {{ $step->is_active ? 'text-primary' : 'text-dark' }}">
+                                                        @if($step->is_completed)
+                                                            <i class="fas fa-check text-success me-1"></i>
+                                                        @elseif($step->is_active)
+                                                            <i class="fas fa-play text-primary me-1"></i>
+                                                        @else
+                                                            <i class="far fa-circle text-muted me-1"></i>
+                                                        @endif
+                                                        {{ $step->getPhaseArabicName() }}
+                                                    </span>
                                                     @if($step->is_completed)
                                                         <i class="fas fa-check-circle text-success" title="معتمد"></i>
                                                     @elseif($step->is_active)
@@ -237,13 +309,13 @@
                                                 </div>
                                                 <div class="text-muted" style="font-size: 0.72rem;">
                                                     @if($step->is_completed)
-                                                        <div class="text-success fw-semibold">تم الاعتماد</div>
+                                                        <div class="text-success fw-semibold"><i class="fas fa-check-circle me-1"></i>تم الاعتماد</div>
                                                         <div>بواسطة: {{ $step->reviewedByUser?->name ?? 'المراجع' }}</div>
                                                         <div>{{ $step->reviewed_at?->format('Y/m/d H:i') }}</div>
                                                     @elseif($step->is_active)
-                                                        <div class="text-primary fw-bold">الخطوة النشطة حالياً</div>
+                                                        <div class="text-primary fw-bold"><i class="fas fa-arrow-circle-left me-1"></i>المرحلة الحالية النشطة</div>
                                                     @else
-                                                        <div class="text-secondary">بانتظار اكتمال الخطوات السابقة</div>
+                                                        <div class="text-secondary">○ بانتظار اكتمال الخطوات السابقة</div>
                                                     @endif
                                                 </div>
                                             </div>
@@ -255,22 +327,6 @@
                     @endif
                 </div>
             </div>
-            @else
-            {{-- Simplified Current Phase Info for non-admins --}}
-            @if($activeStep)
-            <div class="card shadow-sm mb-4 border-primary">
-                <div class="card-body p-4 d-flex align-items-center justify-content-between bg-primary bg-opacity-10 rounded">
-                    <div>
-                        <h5 class="mb-1 fw-bold text-primary">المرحلة الحالية: {{ $activeStep->getPhaseArabicName() }}</h5>
-                        <p class="mb-0 text-dark small fw-semibold">يرجى مراجعة التفاصيل أدناه واتخاذ الإجراء المناسب في لوحة القرار.</p>
-                    </div>
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                        <i class="fas fa-hourglass-half fs-5"></i>
-                    </div>
-                </div>
-            </div>
-            @endif
-            @endif
 
             {{-- 2. Project Information Accordion --}}
             <div class="accordion mb-4 shadow-sm rounded-4 overflow-hidden" id="projectDetailsAccordion">
@@ -446,7 +502,9 @@
                                                 {{ $history->user?->name ?? 'النظام' }}
                                             </td>
                                             <td>
-                                                <span class="badge bg-light text-dark border">{{ $history->to_stage_name ?: $history->from_stage_name ?: 'المرحلة' }}</span>
+                                                <span class="badge bg-light text-dark border">
+                                                    {{ $history->to_stage_name ?: ($history->from_stage_name ?: 'المرحلة') }}
+                                                </span>
                                             </td>
                                             <td>
                                                 @if(in_array($history->action_type, ['approved', 'completed', 'finalized']))
@@ -454,15 +512,17 @@
                                                 @elseif(in_array($history->action_type, ['rejected']))
                                                     <span class="badge bg-danger text-white px-2 py-1 rounded-pill">رفض</span>
                                                 @elseif(in_array($history->action_type, ['returned_for_revision', 'stage_regression', 'requires_action']))
-                                                    <span class="badge bg-warning text-dark px-2 py-1 rounded-pill">طلب استكمال</span>
-                                                @elseif(in_array($history->action_type, ['resubmitted']))
-                                                    <span class="badge bg-info text-white px-2 py-1 rounded-pill">إعادة تقديم</span>
+                                                    <span class="badge bg-warning text-dark px-2 py-1 rounded-pill">إعادة للمراجعة</span>
+                                                @elseif(in_array($history->action_type, ['referred', 'forwarded', 'consultation']))
+                                                    <span class="badge bg-info text-dark px-2 py-1 rounded-pill">إحالة / استشارة</span>
                                                 @else
-                                                    <span class="badge bg-secondary text-white px-2 py-1 rounded-pill">{{ $history->action_type }}</span>
+                                                    <span class="badge bg-secondary text-white px-2 py-1 rounded-pill">
+                                                        {{ $history->action_type ?? 'إجراء' }}
+                                                    </span>
                                                 @endif
                                             </td>
-                                            <td class="text-muted">
-                                                {{ $history->notes ?: '-' }}
+                                            <td class="text-muted small">
+                                                {{ $history->notes ?? ($history->comments ?? ($history->description ?? '-')) }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -472,256 +532,14 @@
                     @endif
                 </div>
             </div>
+            {{-- نهاية بطاقة سجل الإجراءات --}}
 
         </div>
+        {{-- نهاية العمود الأيسر col-lg-8 --}}
 
         {{-- Right / Decision Board Column (4) --}}
         <div class="col-12 col-lg-4">
-            <div class="decision-panel p-4 shadow-sm">
-                
-                {{-- Current Active Step Authority Card --}}
-                <div class="p-3 rounded-4 bg-light border mb-4">
-                    <small class="text-muted d-block fw-semibold mb-1">صلاحية الاعتماد الحالية:</small>
-                    @if($activeStep)
-                        <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                            <i class="fas fa-shield-alt text-primary"></i> {{ $activeStep->entity?->name ?? 'الجهة المختصة' }}
-                        </h6>
-                        <span class="badge bg-primary text-white px-3 py-1 rounded-pill small">
-                            {{ $activeStep->getPhaseArabicName() }}
-                        </span>
-                    @elseif($project->status === 'rolled_back_for_review')
-                        <h6 class="fw-bold text-warning mb-1">
-                            <i class="fas fa-undo me-1"></i> الجهة المنشئة (استكمال نواقص)
-                        </h6>
-                        <small class="text-muted">{{ $project->creatorEntity?->name }}</small>
-                    @elseif(in_array($project->status, ['in_execution', 'in_progress', 'completed'], true))
-                        <h6 class="fw-bold text-success mb-1">
-                            <i class="fas fa-check-circle me-1"></i> مكتمل ومعتمد
-                        </h6>
-                    @else
-                        <h6 class="fw-bold text-muted mb-1">لا توجد مرحلة نشطة</h6>
-                    @endif
-
-                    {{-- Quick Access to Dedicated Reviews if Permitted --}}
-                    @if(auth()->user() && (auth()->user()->isAdmin() || auth()->user()->can('reviews.technical') || ($activeStep && $activeStep->phase === 'technical_review')))
-                        <div class="mt-3 pt-2 border-top">
-                            <a href="{{ route('projects.review.technical', $project) }}" class="btn btn-sm w-100 text-white fw-bold mb-2 shadow-sm rounded-pill" style="background-color: #6f42c1;">
-                                <i class="fas fa-tools me-1"></i> إجراء المراجعة الفنية للمشروع
-                            </a>
-                        </div>
-                    @endif
-                    @if(auth()->user() && (auth()->user()->isAdmin() || auth()->user()->can('reviews.financial') || ($activeStep && $activeStep->phase === 'financial_review')))
-                        <div class="mt-1">
-                            <a href="{{ route('projects.review.financial', $project) }}" class="btn btn-sm w-100 btn-info text-white fw-bold shadow-sm rounded-pill">
-                                <i class="fas fa-dollar-sign me-1"></i> إجراء المراجعة المالية للمشروع
-                            </a>
-                        </div>
-                    @endif
-                </div>
-
-                {{-- DECISION FORM / ACTIONS --}}
-                @if($project->status === 'rolled_back_for_review')
-                    {{-- Resubmit Form --}}
-                    @can('resubmit', $project)
-                        <div class="mb-3">
-                            <h5 class="fw-bold text-dark mb-2">إعادة تقديم المشروع</h5>
-                            <p class="text-muted small mb-3">تم إرجاع المشروع لاستكمال الملاحظات. يرجى تدوين ما تم استكماله وإعادة إرساله لسلسلة الاعتماد.</p>
-                            
-                            <form action="{{ route('approvals.resubmit', $project) }}" method="POST" enctype="multipart/form-data">
-                                @csrf
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-dark">ملاحظات الاستكمال / المعالجة: <span class="text-danger">*</span></label>
-                                    <textarea name="notes" class="form-control" rows="4" placeholder="اكتب ما تم تعديله أو إرفاقه بناءً على طلب الاستكمال..." required></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold small text-dark">مرفقات داعمة (اختياري):</label>
-                                    <input type="file" name="attachment" class="form-control form-control-sm">
-                                </div>
-
-                                <button type="submit" class="btn btn-success rounded-pill w-100 fw-bold py-2 shadow-sm">
-                                    <i class="fas fa-paper-plane me-1"></i> إعادة تقديم المشروع للاعتماد
-                                </button>
-                            </form>
-                        </div>
-                    @else
-                        <div class="alert alert-secondary border-0 rounded-3 text-center mb-0">
-                            <i class="fas fa-lock me-1"></i> إعادة التقديم متاحة فقط للمستخدمين المخولين من الجهة المنشئة للمشروع.
-                        </div>
-                    @endcan
-
-                @elseif($project->status === 'pending_approval' && $activeStep)
-                    @if($canActOnActiveStep)
-                        <div class="mb-3">
-                            <h5 class="fw-bold text-dark mb-3">لوحة اتخاذ القرار</h5>
-                            
-                            {{-- Action Choice Selector --}}
-                            <div class="d-flex flex-column gap-2 mb-4" id="actionChoiceList">
-                                <div class="action-choice-btn active-approve" onclick="selectApprovalAction('approve')">
-                                    <i class="fas fa-check-circle fs-5 text-success"></i>
-                                    <div>
-                                        <strong class="d-block">اعتماد وموافقة</strong>
-                                        <small class="text-muted">الموافقة على المرحلة ونقل المشروع للخطوة التالية</small>
-                                    </div>
-                                </div>
-
-                                <div class="action-choice-btn" onclick="selectApprovalAction('completion')">
-                                    <i class="fas fa-undo fs-5 text-warning"></i>
-                                    <div>
-                                        <strong class="d-block">طلب استكمال نواقص</strong>
-                                        <small class="text-muted">إرجاع المشروع للجهة المنشئة أو للخطوة السابقة</small>
-                                    </div>
-                                </div>
-
-                                <div class="action-choice-btn" onclick="selectApprovalAction('consultation')">
-                                    <i class="fas fa-comments fs-5 text-primary"></i>
-                                    <div>
-                                        <strong class="d-block">إحالة واستشارة فنية</strong>
-                                        <small class="text-muted">إرسال استفسار فني/إداري لجهة أخرى دون تغيير الدور</small>
-                                    </div>
-                                </div>
-
-                                <div class="action-choice-btn" onclick="selectApprovalAction('reject')">
-                                    <i class="fas fa-times-circle fs-5 text-danger"></i>
-                                    <div>
-                                        <strong class="d-block">رفض المشروع</strong>
-                                        <small class="text-muted">رفض المشروع نهائياً وإيقاف سلسلة الاعتماد</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Form 1: Approve --}}
-                            <form id="formApprove" action="{{ route('approvals.approve', $project) }}" method="POST" enctype="multipart/form-data">
-                                @csrf
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold small text-dark">ملاحظات الاعتماد (اختياري):</label>
-                                    <textarea name="notes" class="form-control" rows="3" placeholder="أدخل أي ملاحظات فنية أو توصيات..."></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold small text-dark">مرفق الاعتماد (اختياري):</label>
-                                    <input type="file" name="attachment" class="form-control form-control-sm">
-                                </div>
-                                <button type="submit" class="btn btn-success rounded-pill w-100 fw-bold py-2 shadow-sm">
-                                    <i class="fas fa-check-circle me-1"></i> تأكيد الاعتماد والموافقة
-                                </button>
-                            </form>
-
-                            {{-- Form 2: Request Completion --}}
-                            <form id="formCompletion" action="{{ route('approvals.requestAction', $project) }}" method="POST" enctype="multipart/form-data" style="display: none;">
-                                @csrf
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-dark">إرجاع المشروع إلى: <span class="text-danger">*</span></label>
-                                    <div class="form-check p-2 bg-light rounded-2 border mb-2">
-                                        <input class="form-check-input ms-2" type="radio" name="return_target" id="retTargetCreator" value="creator_entity" checked>
-                                        <label class="form-check-label small fw-bold text-dark" for="retTargetCreator">
-                                            الجهة المنشئة (Creator Entity)
-                                        </label>
-                                    </div>
-                                    <div class="form-check p-2 bg-light rounded-2 border">
-                                        <input class="form-check-input ms-2" type="radio" name="return_target" id="retTargetPrev" value="previous_step">
-                                        <label class="form-check-label small fw-bold text-dark" for="retTargetPrev">
-                                            الخطوة السابقة مباشرة (Previous Step)
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-dark">سبب طلب الاستكمال / الملاحظات: <span class="text-danger">*</span></label>
-                                    <textarea name="reason" class="form-control" rows="3" placeholder="وضّح بالتفصيل النواقص والملاحظات المطلوبة (10 أحرف كحد أدنى)..." required minlength="10"></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold small text-dark">مرفق توضيحي (اختياري):</label>
-                                    <input type="file" name="attachment" class="form-control form-control-sm">
-                                </div>
-
-                                <button type="submit" class="btn btn-warning rounded-pill w-100 fw-bold py-2 shadow-sm text-dark">
-                                    <i class="fas fa-undo me-1"></i> إرسال طلب استكمال النواقص
-                                </button>
-                            </form>
-
-                            {{-- Form 3: Consultation / Referral --}}
-                            <form id="formConsultation" action="{{ route('approvals.referral', $project) }}" method="POST" enctype="multipart/form-data" style="display: none;">
-                                @csrf
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-dark">إحالة واستشارة إلى: <span class="text-danger">*</span></label>
-                                    <select name="referred_entity_id" id="consultation_referred_entity_id" class="form-select form-select-sm" required>
-                                        <option value="">-- اختر الجهة المستشارة --</option>
-                                        @foreach($entitiesList as $ent)
-                                            <option value="{{ $ent->id }}">{{ $ent->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-dark">المستخدم المستلم: <span class="text-danger">*</span></label>
-                                    <select name="referred_user_id" id="consultation_referred_user_id" class="form-select form-select-sm" required>
-                                        <option value="">-- اختر المستخدم المستلم --</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-dark">نص الاستفسار أو الاستشارة: <span class="text-danger">*</span></label>
-                                    <textarea name="referral_text" class="form-control" rows="3" placeholder="اكتب الاستفسار أو النقطة المطلوب إبداء الرأي الفني فيها..." required minlength="10"></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold small text-dark">المرفقات الداعمة (اختياري):</label>
-                                    <input type="file" name="attachments[]" multiple class="form-control form-control-sm" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.txt">
-                                    <div class="form-text small text-muted">يمكن إرفاق أكثر من ملف.</div>
-                                </div>
-
-                                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold py-2 shadow-sm">
-                                    <i class="fas fa-paper-plane me-1"></i> إرسال طلب الاستشارة
-                                </button>
-                            </form>
-
-                            {{-- Form 4: Reject --}}
-                            <form id="formReject" action="{{ route('approvals.reject', $project) }}" method="POST" enctype="multipart/form-data" style="display: none;">
-                                @csrf
-                                <div class="alert alert-danger border-0 rounded-3 small p-2 mb-3">
-                                    <i class="fas fa-exclamation-triangle me-1"></i> تنبيه: رفض المشروع سيؤدي إلى إيقاف المسار وإعادته للمسودة.
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold small text-dark">سبب الرفض: <span class="text-danger">*</span></label>
-                                    <textarea name="rejection_reason" class="form-control" rows="3" placeholder="اذكر سبب الرفض بالتفصيل (إلزامي)..." required minlength="5"></textarea>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold small text-dark">مرفق قرار الرفض (اختياري):</label>
-                                    <input type="file" name="attachment" class="form-control form-control-sm">
-                                </div>
-
-                                <button type="submit" class="btn btn-danger rounded-pill w-100 fw-bold py-2 shadow-sm">
-                                    <i class="fas fa-times-circle me-1"></i> تأكيد رفض المشروع
-                                </button>
-                            </form>
-                        </div>
-                    @else
-                        <div class="alert alert-secondary border-0 rounded-4 p-4 text-center mb-0">
-                            <i class="fas fa-lock fs-3 text-secondary mb-2 d-block"></i>
-                            <strong class="d-block text-dark mb-1">بانتظار إجراء الجهة المختصة</strong>
-                            <p class="small text-muted mb-0">
-                                الخطوة النشطة الحالية مسندة إلى <strong>{{ $activeStep->entity?->name ?? 'الجهة المختصة' }}</strong>. لا تملك صلاحية اتخاذ القرار على هذه الخطوة.
-                            </p>
-                        </div>
-                    @endif
-                @elseif(in_array($project->status, ['in_execution', 'in_progress', 'completed'], true))
-                    <div class="alert alert-success border-0 rounded-4 p-4 text-center mb-0">
-                        <i class="fas fa-check-double fs-3 text-success mb-2 d-block"></i>
-                        <strong class="d-block text-dark mb-1">المشروع معتمد بالكامل</strong>
-                        <p class="small text-muted mb-0">تم اعتماد كافة خطوات المسار الهرمي للمشروع، وهو الآن في طور التنفيذ.</p>
-                    </div>
-                @elseif($project->status === 'rejected')
-                    <div class="alert alert-danger border-0 rounded-4 p-4 text-center mb-0">
-                        <i class="fas fa-ban fs-3 text-danger mb-2 d-block"></i>
-                        <strong class="d-block text-dark mb-1">المشروع مرفوض</strong>
-                        <p class="small text-muted mb-0">تم إنهاء مسار الاعتماد بالرفض.</p>
-                    </div>
-                @endif
-
-            </div>
+            @include('approvals.partials.decision-panel')
         </div>
 
     </div>
@@ -733,10 +551,15 @@
 <script>
     function selectApprovalAction(action) {
         // Toggle forms
-        document.getElementById('formApprove').style.display = (action === 'approve') ? 'block' : 'none';
-        document.getElementById('formCompletion').style.display = (action === 'completion') ? 'block' : 'none';
-        document.getElementById('formConsultation').style.display = (action === 'consultation') ? 'block' : 'none';
-        document.getElementById('formReject').style.display = (action === 'reject') ? 'block' : 'none';
+        const fApprove = document.getElementById('formApprove');
+        const fCompletion = document.getElementById('formCompletion');
+        const fConsultation = document.getElementById('formConsultation');
+        const fReject = document.getElementById('formReject');
+
+        if (fApprove) fApprove.style.display = (action === 'approve') ? 'block' : 'none';
+        if (fCompletion) fCompletion.style.display = (action === 'completion') ? 'block' : 'none';
+        if (fConsultation) fConsultation.style.display = (action === 'consultation') ? 'block' : 'none';
+        if (fReject) fReject.style.display = (action === 'reject') ? 'block' : 'none';
 
         // Toggle active button styling
         const buttons = document.querySelectorAll('#actionChoiceList .action-choice-btn');
@@ -744,18 +567,20 @@
             btn.classList.remove('active-approve', 'active-completion', 'active-consultation', 'active-reject');
         });
 
-        const activeBtn = event.currentTarget;
-        if (action === 'approve') activeBtn.classList.add('active-approve');
-        if (action === 'completion') activeBtn.classList.add('active-completion');
-        if (action === 'consultation') activeBtn.classList.add('active-consultation');
-        if (action === 'reject') activeBtn.classList.add('active-reject');
+        const activeBtn = event ? event.currentTarget : null;
+        if (activeBtn) {
+            if (action === 'approve') activeBtn.classList.add('active-approve');
+            if (action === 'completion') activeBtn.classList.add('active-completion');
+            if (action === 'consultation') activeBtn.classList.add('active-consultation');
+            if (action === 'reject') activeBtn.classList.add('active-reject');
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         const entitySelect = document.getElementById('consultation_referred_entity_id');
         const userSelect = document.getElementById('consultation_referred_user_id');
 
-        if (entitySelect) {
+        if (entitySelect && userSelect) {
             entitySelect.addEventListener('change', function() {
                 const entityId = this.value;
                 userSelect.innerHTML = '<option value="">-- اختر المستخدم المستلم --</option>';

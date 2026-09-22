@@ -447,7 +447,9 @@
                 <h5>تفاصيل المهمة</h5>
             </div>
 
+            @can('task.create')
             <form action="{{ route('tasks.store') }}" method="POST" enctype="multipart/form-data">
+            @endcan
                 @csrf
 
                 <div class="card-body p-4">

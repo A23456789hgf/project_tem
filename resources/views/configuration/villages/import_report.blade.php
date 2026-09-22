@@ -60,11 +60,13 @@
                         
                         @if($report['failed'] == 0)
                         <div class="mt-3">
+                            @can('villages.import')
                             <form action="{{ route('villages.undo-import', ['fileName' => $importedFile]) }}" method="POST" style="display: inline;">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-outline-warning" onclick="return confirmAction(this, 'هل أنت متأكد من التراجع عن الاستيراد؟ سيتم حذف جميع السجلات المستوردة.')">تراجع عن الاستيراد</button>
                             </form>
+                            @endcan
                         </div>
                         @endif
                     </div>
@@ -72,7 +74,9 @@
 
                     <div class="mt-3">
                         <a href="{{ route('villages.index') }}" class="btn btn-primary">العودة إلى قائمة القرى</a>
+                        @can('villages.import')
                         <a href="{{ route('villages.import') }}" class="btn btn-secondary">استيراد ملف آخر</a>
+                        @endcan
                     </div>
                 </div>
             </div>

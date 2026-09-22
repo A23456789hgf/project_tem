@@ -2,23 +2,22 @@
 
 namespace App\Models;
 
+use App\Scopes\DomainScope;
+use App\Services\ProjectNumberGenerator;
+use App\Traits\Auditable;
+use App\Traits\HasCreatorTracking;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Traits\Auditable;
-use App\Traits\HasCreatorTracking;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use App\Scopes\DomainScope;
 
 class Project extends Model
 {
-    use HasFactory, Auditable, HasCreatorTracking;
+    use Auditable, HasCreatorTracking, HasFactory;
 
     protected $fillable = [
         'project_name',
@@ -101,7 +100,7 @@ class Project extends Model
 
         return $query->where(function ($q) use ($entityIds, $relations) {
             $q->whereIn('creator_entity_id', $entityIds)
-              ->orWhereIn('internal_entity_id', $entityIds);
+                ->orWhereIn('internal_entity_id', $entityIds);
             foreach ($relations as $relation) {
                 $q->orWhereHas($relation, function ($q2) use ($entityIds) {
                     $q2->whereIn('authority_id', $entityIds);
@@ -114,7 +113,7 @@ class Project extends Model
 
     public function getProjectDurationAttribute(): int
     {
-        if (!$this->start_date_gregorian || !$this->end_date_gregorian) {
+        if (! $this->start_date_gregorian || ! $this->end_date_gregorian) {
             return 0;
         }
 
@@ -140,8 +139,8 @@ class Project extends Model
         if (is_numeric($entityId)) {
             static $entityNamesCache = [];
 
-            if (!isset($entityNamesCache[$entityId])) {
-                $entity = \App\Models\InternalEntity::select('name')->find($entityId);
+            if (! isset($entityNamesCache[$entityId])) {
+                $entity = InternalEntity::select('name')->find($entityId);
                 $entityNamesCache[$entityId] = $entity ? $entity->name : $entityId;
             }
 
@@ -411,7 +410,7 @@ class Project extends Model
     public function canBeRevertedToDraft(?User $user = null): bool
     {
         $user = $user ?: auth()->user();
-        if (!$user || $user->id !== $this->created_by_user_id) {
+        if (! $user || $user->id !== $this->created_by_user_id) {
             return false;
         }
 
@@ -453,22 +452,22 @@ class Project extends Model
     {
         $missing = [];
 
-        if (!$this->validateBasicInfo()) {
+        if (! $this->validateBasicInfo()) {
             $missing[] = 'البيانات الأساسية';
         }
-        if (!$this->validateObjectives()) {
+        if (! $this->validateObjectives()) {
             $missing[] = 'الأهداف والنتائج';
         }
-        if (!$this->validateLocations()) {
+        if (! $this->validateLocations()) {
             $missing[] = 'المواقع';
         }
-        if (!$this->validateStakeholders()) {
+        if (! $this->validateStakeholders()) {
             $missing[] = 'الجهات ذات الصلة';
         }
-        if (!$this->validateActivities()) {
+        if (! $this->validateActivities()) {
             $missing[] = 'الأنشطة';
         }
-        if (!$this->validateFinancing()) {
+        if (! $this->validateFinancing()) {
             $missing[] = 'التمويل والتكاليف';
         }
 
@@ -483,18 +482,24 @@ class Project extends Model
         $totalSections = 6;
         $completedSections = 0;
 
-        if ($this->validateBasicInfo())
+        if ($this->validateBasicInfo()) {
             $completedSections++;
-        if ($this->validateObjectives())
+        }
+        if ($this->validateObjectives()) {
             $completedSections++;
-        if ($this->validateLocations())
+        }
+        if ($this->validateLocations()) {
             $completedSections++;
-        if ($this->validateStakeholders())
+        }
+        if ($this->validateStakeholders()) {
             $completedSections++;
-        if ($this->validateActivities())
+        }
+        if ($this->validateActivities()) {
             $completedSections++;
-        if ($this->validateFinancing())
+        }
+        if ($this->validateFinancing()) {
             $completedSections++;
+        }
 
         return round(($completedSections / $totalSections) * 100);
     }
@@ -504,11 +509,11 @@ class Project extends Model
      */
     public function validateBasicInfo(): bool
     {
-        return !empty($this->project_name) &&
-            !empty($this->program_id) &&
-            !empty($this->domain_id) &&
-            !empty($this->start_date_gregorian) &&
-            !empty($this->end_date_gregorian);
+        return ! empty($this->project_name) &&
+            ! empty($this->program_id) &&
+            ! empty($this->domain_id) &&
+            ! empty($this->start_date_gregorian) &&
+            ! empty($this->end_date_gregorian);
     }
 
     /**
@@ -568,7 +573,7 @@ class Project extends Model
             if ($project->form_number) {
                 return;
             }
-            $project->form_number = \App\Services\ProjectNumberGenerator::getNextProjectNumber();
+            $project->form_number = ProjectNumberGenerator::getNextProjectNumber();
         });
     }
 

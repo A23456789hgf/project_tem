@@ -135,10 +135,10 @@ class ProjectDocumentController extends Controller
      */
     public function show(Project $project, ProjectDocument $document)
     {
-        $this->authorizeProjectGeoScope($project);
-        // Check if document belongs to project
+        $this->projectService->authorizeProjectAccess($project);
+        // Check if document strictly belongs to project (IDOR prevention)
         if ($document->project_id !== $project->id) {
-            abort(404);
+            abort(404, 'الوثيقة غير تابعة لهذا المشروع');
         }
 
         $filePath = storage_path('app/public/'.$document->file_path);
@@ -157,10 +157,10 @@ class ProjectDocumentController extends Controller
      */
     public function download(Project $project, ProjectDocument $document)
     {
-        $this->authorizeProjectGeoScope($project);
-        // Check if document belongs to project
+        $this->projectService->authorizeProjectAccess($project);
+        // Check if document strictly belongs to project (IDOR prevention)
         if ($document->project_id !== $project->id) {
-            abort(404);
+            abort(404, 'الوثيقة غير تابعة لهذا المشروع');
         }
 
         $filePath = storage_path('app/public/'.$document->file_path);
@@ -179,10 +179,10 @@ class ProjectDocumentController extends Controller
      */
     public function destroy(Project $project, ProjectDocument $document)
     {
-        $this->authorizeProjectGeoScope($project);
-        // Check if document belongs to project
+        $this->projectService->authorizeProjectAccess($project);
+        // Check if document strictly belongs to project (IDOR prevention)
         if ($document->project_id !== $project->id) {
-            abort(404);
+            abort(404, 'الوثيقة غير تابعة لهذا المشروع');
         }
 
         // Delete file from storage
@@ -208,7 +208,7 @@ class ProjectDocumentController extends Controller
      */
     public function getDocuments(Project $project): JsonResponse
     {
-        $this->authorizeProjectGeoScope($project);
+        $this->projectService->authorizeProjectAccess($project);
         $documents = $project->documents()
             ->select('id', 'document_type', 'file_name', 'file_size', 'mime_type', 'created_at')
             ->latest()
@@ -224,7 +224,7 @@ class ProjectDocumentController extends Controller
      */
     public function uploadDocument(Request $request, Project $project): JsonResponse
     {
-        $this->authorizeProjectGeoScope($project);
+        $this->projectService->authorizeProjectAccess($project);
         $request->validate([
             'document' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png,ppt,pptx,xls,xlsx|max:20480',
             'document_type' => 'required|string|in:project_document,project_card,approval_request,other',

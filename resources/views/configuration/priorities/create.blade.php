@@ -10,6 +10,7 @@
         <div class="section-divider"></div>
     </div>
 
+    @can('priorities.create')
     <form action="{{ route('priorities.store') }}" method="POST">
         @csrf
         
@@ -41,5 +42,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

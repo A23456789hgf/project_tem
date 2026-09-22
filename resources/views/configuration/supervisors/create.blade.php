@@ -14,6 +14,7 @@
 
     
 
+    @can('supervisors.create')
     <form action="{{ route('supervisors.store') }}" method="POST">
         @csrf
         
@@ -37,5 +38,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

@@ -2,10 +2,14 @@
 
 @php
     $entities = $entities ?? collect();
+    $authorities = $authorities ?? collect();
     $governorates = $governorates ?? collect();
     $directorates = $directorates ?? collect();
     $geographicScopes = $geographicScopes ?? [];
     
+    $selectedAdminScope = old('administrative_scope_id', $user->administrative_scope_id ?? '');
+    $currentOrgType = old('organization_type', isset($user) ? ($user->organization_type ?? ($user->authority_id ? 'external' : 'internal')) : 'internal');
+
     // استخدام القيم القديمة من session أو القيم الحالية
     $oldScopes = old('geographic_scopes', $geographicScopes);
     
@@ -41,14 +45,21 @@
                         id="administrative_scope_id"
                         class="form-select form-select-lg border-0 bg-light rounded-3 search-select">
                         <option value="">-- بدون جهة --</option>
-                        @foreach($entities as $entity)
-                            <option value="{{ $entity->id }}"
-                                {{ (isset($user) && $user->administrative_scope_id == $entity->id) || old('administrative_scope_id') == $entity->id ? 'selected' : '' }}>
-                                {{ $entity->name }}
-                            </option>
-                        @endforeach
+                        @if($currentOrgType === 'external')
+                            @foreach($authorities as $authority)
+                                <option value="{{ $authority->id }}" @selected($selectedAdminScope == $authority->id)>
+                                    {{ $authority->agency_name }}
+                                </option>
+                            @endforeach
+                        @else
+                            @foreach($entities as $entity)
+                                <option value="{{ $entity->id }}" @selected($selectedAdminScope == $entity->id)>
+                                    {{ $entity->name }}
+                                </option>
+                            @endforeach
+                        @endif
                     </select>
-                    @error('entity_id')
+                    @error('administrative_scope_id')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -144,6 +155,45 @@
 @push('scripts')
 <script>
 $(function() {
+    // مصفوفات الخيارات للجهات الداخلية والخارجية
+    const internalEntitiesOptions = [
+        { id: '', text: '-- بدون جهة --' },
+        @foreach($entities as $entity)
+        { id: '{{ $entity->id }}', text: '{{ e($entity->name) }}' },
+        @endforeach
+    ];
+
+    const externalAuthoritiesOptions = [
+        { id: '', text: '-- بدون جهة --' },
+        @foreach($authorities as $authority)
+        { id: '{{ $authority->id }}', text: '{{ e($authority->agency_name) }}' },
+        @endforeach
+    ];
+
+    function updateAdministrativeScopeOptions(orgType, keepSelected = true) {
+        const $adminScope = $('#administrative_scope_id');
+        if ($adminScope.length === 0) return;
+
+        const currentVal = keepSelected ? $adminScope.val() : '';
+        $adminScope.empty();
+
+        const options = (orgType === 'external') ? externalAuthoritiesOptions : internalEntitiesOptions;
+
+        options.forEach(function(opt) {
+            const isSelected = (currentVal !== '' && String(opt.id) === String(currentVal));
+            $adminScope.append(new Option(opt.text, opt.id, false, isSelected));
+        });
+
+        if ($.fn.select2 && $adminScope.hasClass('select2-hidden-accessible')) {
+            $adminScope.trigger('change');
+        }
+    }
+
+    $(document).on('change', '#organization_type', function() {
+        const orgType = $(this).val();
+        updateAdministrativeScopeOptions(orgType, false);
+    });
+
     // مؤشر للصفوف الجديدة
     let rowIndex = {{ $rowCount }};
 

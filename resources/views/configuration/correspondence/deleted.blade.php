@@ -35,12 +35,14 @@
                                         <td>{{ $correspondence->recipientEntity->name }}</td>
                                         <td>{{ $correspondence->deleted_at->format('Y-m-d H:i') }}</td>
                                         <td>
+                                            @can('correspondence.restore')
                                             <form action="{{ route('correspondence.restore', $correspondence->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-success btn-sm" onclick="return confirmAction(this, 'هل أنت متأكد من استعادة هذه المراسلة؟')">
                                                     <i class="fas fa-undo"></i> استعادة
                                                 </button>
                                             </form>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @empty

@@ -14,7 +14,9 @@
             <div class="title-line mt-2"></div>
         </div>
 
+        @can('entity-officers.create')
         <form action="{{ route('entity-officers.store') }}" method="POST" class="p-4">
+        @endcan
             @csrf
             
             <div class="row g-4">

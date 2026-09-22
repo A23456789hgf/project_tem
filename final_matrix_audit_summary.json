@@ -1,0 +1,1182 @@
+{
+    "total_matrix_slugs": 751,
+    "enforced_slugs_count": 442,
+    "dynamic_slugs_count": 26,
+    "orphan_slugs_count": 283,
+    "route_mismatches_count": 148,
+    "route_mismatches": [
+        {
+            "route": "register",
+            "uri": "register",
+            "action": "App\\Http\\Controllers\\AuthController@showRegister",
+            "resolved_slug": "register"
+        },
+        {
+            "route": "auth.register",
+            "uri": "register",
+            "action": "App\\Http\\Controllers\\AuthController@register",
+            "resolved_slug": "auth.register"
+        },
+        {
+            "route": "password.otp.send",
+            "uri": "password\/otp\/send",
+            "action": "App\\Http\\Controllers\\AuthController@sendOtp",
+            "resolved_slug": "password.otp.send"
+        },
+        {
+            "route": "password.otp.verify",
+            "uri": "password\/otp\/verify",
+            "action": "App\\Http\\Controllers\\AuthController@verifyOtp",
+            "resolved_slug": "password.otp.verify"
+        },
+        {
+            "route": "password.otp.reset",
+            "uri": "password\/otp\/reset",
+            "action": "App\\Http\\Controllers\\AuthController@resetPasswordWithOtp",
+            "resolved_slug": "password.otp.reset"
+        },
+        {
+            "route": "password.change.forced",
+            "uri": "force-change-password",
+            "action": "App\\Http\\Controllers\\AuthController@showForceChangePassword",
+            "resolved_slug": "password.change.forced"
+        },
+        {
+            "route": "password.change.update",
+            "uri": "force-change-password",
+            "action": "App\\Http\\Controllers\\AuthController@forceChangePassword",
+            "resolved_slug": "password.change.edit"
+        },
+        {
+            "route": "profile.signature.setup",
+            "uri": "profile\/signature\/setup",
+            "action": "App\\Http\\Controllers\\ProfileController@setupSignature",
+            "resolved_slug": "profile.signature.setup"
+        },
+        {
+            "route": "notifications.mark-all-read",
+            "uri": "notifications\/mark-all-read",
+            "action": "App\\Http\\Controllers\\NotificationController@markAllAsRead",
+            "resolved_slug": "notifications.mark-all-read"
+        },
+        {
+            "route": "notifications.mark-read",
+            "uri": "notifications\/{id}\/mark-read",
+            "action": "App\\Http\\Controllers\\NotificationController@markAsRead",
+            "resolved_slug": "notifications.mark-read"
+        },
+        {
+            "route": "notifications.unread-count",
+            "uri": "notifications\/unread-count",
+            "action": "App\\Http\\Controllers\\NotificationController@getUnreadCount",
+            "resolved_slug": "notifications.unread-count"
+        },
+        {
+            "route": "notifications.latest",
+            "uri": "notifications\/latest",
+            "action": "App\\Http\\Controllers\\NotificationController@getLatest",
+            "resolved_slug": "notifications.latest"
+        },
+        {
+            "route": "chat.users",
+            "uri": "chat\/users",
+            "action": "App\\Http\\Controllers\\ChatController@getUsers",
+            "resolved_slug": "chat.users"
+        },
+        {
+            "route": "chat.messages",
+            "uri": "chat\/messages\/{userId}",
+            "action": "App\\Http\\Controllers\\ChatController@getMessages",
+            "resolved_slug": "chat.messages"
+        },
+        {
+            "route": "chat.send",
+            "uri": "chat\/messages",
+            "action": "App\\Http\\Controllers\\ChatController@sendMessage",
+            "resolved_slug": "chat.send"
+        },
+        {
+            "route": "chat.poll",
+            "uri": "chat\/poll",
+            "action": "App\\Http\\Controllers\\ChatController@poll",
+            "resolved_slug": "chat.poll"
+        },
+        {
+            "route": "lookup.search",
+            "uri": "lookup\/search",
+            "action": "App\\Http\\Controllers\\LookupController@search",
+            "resolved_slug": "lookup.search"
+        },
+        {
+            "route": "lookup.units.by_financial_item",
+            "uri": "units\/by-financial-item",
+            "action": "App\\Http\\Controllers\\UnitController@byFinancialItem",
+            "resolved_slug": "lookup.units.by_financial_item"
+        },
+        {
+            "route": "design-system-demo",
+            "uri": "design-system-demo",
+            "action": "Closure",
+            "resolved_slug": "design-system-demo"
+        },
+        {
+            "route": "sample.form",
+            "uri": "sample-multistep",
+            "action": "Closure",
+            "resolved_slug": "sample.form"
+        },
+        {
+            "route": "sample.store",
+            "uri": "sample-multistep",
+            "action": "Closure",
+            "resolved_slug": "sample.create"
+        },
+        {
+            "route": "test.locations",
+            "uri": "test-locations",
+            "action": "Closure",
+            "resolved_slug": "test.locations"
+        },
+        {
+            "route": "test.import",
+            "uri": "test-import",
+            "action": "Closure",
+            "resolved_slug": "test.import"
+        },
+        {
+            "route": "debug.scope",
+            "uri": "debug-scope\/{username}",
+            "action": "Closure",
+            "resolved_slug": "debug.scope"
+        },
+        {
+            "route": "configuration.sms.settings",
+            "uri": "configuration\/sms\/settings",
+            "action": "App\\Http\\Controllers\\Configuration\\SmsAdminController@settings",
+            "resolved_slug": "configuration.sms.settings"
+        },
+        {
+            "route": "configuration.sms.update-settings",
+            "uri": "configuration\/sms\/settings",
+            "action": "App\\Http\\Controllers\\Configuration\\SmsAdminController@updateSettings",
+            "resolved_slug": "configuration.sms.update-settings"
+        },
+        {
+            "route": "configuration.sms.logs",
+            "uri": "configuration\/sms\/logs",
+            "action": "App\\Http\\Controllers\\Configuration\\SmsAdminController@logs",
+            "resolved_slug": "configuration.sms.logs"
+        },
+        {
+            "route": "configuration.sms.manual",
+            "uri": "configuration\/sms\/manual",
+            "action": "App\\Http\\Controllers\\Configuration\\SmsAdminController@manual",
+            "resolved_slug": "configuration.sms.manual"
+        },
+        {
+            "route": "configuration.sms.send-manual",
+            "uri": "configuration\/sms\/manual",
+            "action": "App\\Http\\Controllers\\Configuration\\SmsAdminController@sendManual",
+            "resolved_slug": "configuration.sms.send-manual"
+        },
+        {
+            "route": "domains.active",
+            "uri": "domains\/active",
+            "action": "App\\Http\\Controllers\\DomainController@activeDomains",
+            "resolved_slug": "domains.active"
+        },
+        {
+            "route": "domains.toggleStatus",
+            "uri": "domains\/{domain}\/toggle-status",
+            "action": "App\\Http\\Controllers\\DomainController@toggleStatus",
+            "resolved_slug": "domains.toggleStatus"
+        },
+        {
+            "route": "executors.active",
+            "uri": "executors\/active",
+            "action": "App\\Http\\Controllers\\ExecutorController@activeExecutors",
+            "resolved_slug": "executors.active"
+        },
+        {
+            "route": "executors.toggle",
+            "uri": "executors\/{executor}\/toggle",
+            "action": "App\\Http\\Controllers\\ExecutorController@toggle",
+            "resolved_slug": "executors.toggle"
+        },
+        {
+            "route": "stages.active",
+            "uri": "stages\/active",
+            "action": "App\\Http\\Controllers\\StageController@activeStages",
+            "resolved_slug": "stages.active"
+        },
+        {
+            "route": "stages.show-approval-path",
+            "uri": "stages\/{stage}\/approval-path",
+            "action": "App\\Http\\Controllers\\StageController@showApprovalPath",
+            "resolved_slug": "stages.show-approval-path"
+        },
+        {
+            "route": "projects.reports.pl_expense_summary.print_general",
+            "uri": "projects\/reports\/pl-expense-summary\/print-general",
+            "action": "App\\Http\\Controllers\\Report\\PlExpenseSummaryController@printGeneral",
+            "resolved_slug": "projects.reports.pl_expense_summary.print_general"
+        },
+        {
+            "route": "projects.reports.pl_expense_summary.print_items",
+            "uri": "projects\/reports\/pl-expense-summary\/print-items",
+            "action": "App\\Http\\Controllers\\Report\\PlExpenseSummaryController@printItems",
+            "resolved_slug": "projects.reports.pl_expense_summary.print_items"
+        },
+        {
+            "route": "projects.reports.pl_expense_summary.export_general_excel",
+            "uri": "projects\/reports\/pl-expense-summary\/export-general-excel",
+            "action": "App\\Http\\Controllers\\Report\\PlExpenseSummaryController@exportGeneralExcel",
+            "resolved_slug": "projects.reports.pl_expense_summary.export_general_excel"
+        },
+        {
+            "route": "projects.reports.pl_expense_summary.export_items_excel",
+            "uri": "projects\/reports\/pl-expense-summary\/export-items-excel",
+            "action": "App\\Http\\Controllers\\Report\\PlExpenseSummaryController@exportItemsExcel",
+            "resolved_slug": "projects.reports.pl_expense_summary.export_items_excel"
+        },
+        {
+            "route": "projects.budgets.index",
+            "uri": "projects\/budgets",
+            "action": "App\\Http\\Controllers\\Projects\\BudgetWebController@index",
+            "resolved_slug": "projects.budgets.view"
+        },
+        {
+            "route": "projects.check-name",
+            "uri": "projects\/check-name",
+            "action": "App\\Http\\Controllers\\ProjectController@checkName",
+            "resolved_slug": "projects.check-name"
+        },
+        {
+            "route": "projects.achievements.create",
+            "uri": "projects\/{project}\/achievements\/create",
+            "action": "App\\Http\\Controllers\\Project\\ProjectAchievementController@create",
+            "resolved_slug": "projects.achievements.create"
+        },
+        {
+            "route": "projects.achievements.store",
+            "uri": "projects\/{project}\/achievements",
+            "action": "App\\Http\\Controllers\\Project\\ProjectAchievementController@store",
+            "resolved_slug": "projects.achievements.create"
+        },
+        {
+            "route": "projects.api.tasks.organizations",
+            "uri": "projects\/api\/tasks\/organizations",
+            "action": "App\\Http\\Controllers\\TaskController@getOrganizations",
+            "resolved_slug": "projects.api.tasks.organizations"
+        },
+        {
+            "route": "projects.api.entities.users",
+            "uri": "projects\/api\/entities\/{entityId}\/users",
+            "action": "App\\Http\\Controllers\\TaskController@getEntityUsers",
+            "resolved_slug": "projects.api.entities.users"
+        },
+        {
+            "route": "projects.tasks.stop",
+            "uri": "projects\/{project}\/tasks\/{task}\/stop",
+            "action": "App\\Http\\Controllers\\TaskController@stopTask",
+            "resolved_slug": "projects.tasks.stop"
+        },
+        {
+            "route": "projects.print-financial",
+            "uri": "projects\/{project}\/print-financial",
+            "action": "App\\Http\\Controllers\\ProjectController@printFinancial",
+            "resolved_slug": "projects.print-financial"
+        },
+        {
+            "route": "projects.import-list",
+            "uri": "projects\/import\/list",
+            "action": "Closure",
+            "resolved_slug": "projects.import-list"
+        },
+        {
+            "route": "projects.failure-report",
+            "uri": "projects\/import\/failure-report",
+            "action": "App\\Http\\Controllers\\Project\\ProjectImportController@downloadFailureReport",
+            "resolved_slug": "projects.failure-report"
+        },
+        {
+            "route": "projects.import-dropdown-options",
+            "uri": "projects\/import\/dropdown-options\/{fieldKey}",
+            "action": "App\\Http\\Controllers\\Project\\ProjectImportController@getDropdownOptions",
+            "resolved_slug": "projects.import-dropdown-options"
+        },
+        {
+            "route": "projects.import-save-mapping",
+            "uri": "projects\/import\/save-mapping",
+            "action": "App\\Http\\Controllers\\Project\\ProjectImportController@saveMissingValueMapping",
+            "resolved_slug": "projects.import-save-mapping"
+        },
+        {
+            "route": "projects.import-re-import-skipped",
+            "uri": "projects\/import\/re-import-skipped",
+            "action": "App\\Http\\Controllers\\Project\\ProjectImportController@reImportSkipped",
+            "resolved_slug": "projects.import-re-import-skipped"
+        },
+        {
+            "route": "projects.import-download-dropdown-report",
+            "uri": "projects\/import\/download-dropdown-report",
+            "action": "App\\Http\\Controllers\\Project\\ProjectImportController@downloadDropdownReport",
+            "resolved_slug": "projects.import-download-dropdown-report"
+        },
+        {
+            "route": "projects.validate-draft",
+            "uri": "projects\/{project}\/validate-draft",
+            "action": "App\\Http\\Controllers\\ProjectController@validateDraftStatus",
+            "resolved_slug": "projects.validate-draft"
+        },
+        {
+            "route": "projects.activity.export",
+            "uri": "projects\/{project}\/activity\/export",
+            "action": "App\\Http\\Controllers\\Project\\ProjectApprovalController@exportActivityHistory",
+            "resolved_slug": "projects.activity.export"
+        },
+        {
+            "route": "projects.approvals.pending",
+            "uri": "projects\/approvals\/pending",
+            "action": "App\\Http\\Controllers\\Project\\ProjectApprovalController@getPendingApprovals",
+            "resolved_slug": "projects.approvals.pending"
+        },
+        {
+            "route": "projects.assignments.store",
+            "uri": "projects\/{project}\/assign",
+            "action": "App\\Http\\Controllers\\ActivityAssignmentController@store",
+            "resolved_slug": "projects.assignments.create"
+        },
+        {
+            "route": "projects.assignments.destroy",
+            "uri": "projects\/assignments\/{assignment}",
+            "action": "App\\Http\\Controllers\\ActivityAssignmentController@destroy",
+            "resolved_slug": "projects.assignments.delete"
+        },
+        {
+            "route": "projects.assignments.users",
+            "uri": "projects\/assignments\/users",
+            "action": "App\\Http\\Controllers\\ActivityAssignmentController@getUsers",
+            "resolved_slug": "projects.assignments.users"
+        },
+        {
+            "route": "projects.execution.tracking",
+            "uri": "projects\/execution-tracking",
+            "action": "App\\Http\\Controllers\\Project\\ExecutionController@trackingIndex",
+            "resolved_slug": "projects.execution.tracking"
+        },
+        {
+            "route": "projects.card.print",
+            "uri": "projects\/{project}\/card\/print",
+            "action": "App\\Http\\Controllers\\ProjectCardController@print",
+            "resolved_slug": "projects.card.print"
+        },
+        {
+            "route": "projects.card.print-reviews",
+            "uri": "projects\/{project}\/card\/print-reviews",
+            "action": "App\\Http\\Controllers\\ProjectCardController@printReviews",
+            "resolved_slug": "projects.card.print-reviews"
+        },
+        {
+            "route": "projects.getSubdomains",
+            "uri": "projects\/get-subdomains\/{domain_id}",
+            "action": "App\\Http\\Controllers\\ProjectController@getSubdomains",
+            "resolved_slug": "projects.getSubdomains"
+        },
+        {
+            "route": "projects.getInterventions",
+            "uri": "projects\/get-interventions",
+            "action": "App\\Http\\Controllers\\ProjectController@getInterventions",
+            "resolved_slug": "projects.getInterventions"
+        },
+        {
+            "route": "projects.api.subdomains",
+            "uri": "projects\/api\/subdomains\/{domain_id}",
+            "action": "App\\Http\\Controllers\\ProjectController@getSubdomainsJson",
+            "resolved_slug": "projects.api.subdomains"
+        },
+        {
+            "route": "projects.api.interventions",
+            "uri": "projects\/api\/interventions\/{subdomain_id}",
+            "action": "App\\Http\\Controllers\\ProjectController@getInterventionsJson",
+            "resolved_slug": "projects.api.interventions"
+        },
+        {
+            "route": "projects.convert-to-hijri",
+            "uri": "projects\/convert-to-hijri",
+            "action": "App\\Http\\Controllers\\ProjectController@convertToHijri",
+            "resolved_slug": "projects.convert-to-hijri"
+        },
+        {
+            "route": "projects.projects.convertToHijri",
+            "uri": "projects\/convert-to-hijri",
+            "action": "App\\Http\\Controllers\\ProjectController@convertToHijri",
+            "resolved_slug": "projects.projects.convertToHijri"
+        },
+        {
+            "route": "projects.projects.achievements.all",
+            "uri": "projects\/projects-achievements",
+            "action": "\\App\\Http\\Controllers\\Project\\ProjectAchievementController@listAll",
+            "resolved_slug": "projects.projects.achievements.all"
+        },
+        {
+            "route": "plans.implementation.update",
+            "uri": "planning\/plans\/{plan}\/implementation",
+            "action": "App\\Http\\Controllers\\Planning\\PlanController@updateImplementation",
+            "resolved_slug": "plans.update"
+        },
+        {
+            "route": "plans.download-template",
+            "uri": "planning\/plans\/import\/template",
+            "action": "App\\Http\\Controllers\\Planning\\PlanController@downloadTemplate",
+            "resolved_slug": "plans.download-template"
+        },
+        {
+            "route": "plans.edit",
+            "uri": "planning\/plans\/{plan}\/edit",
+            "action": "App\\Http\\Controllers\\Planning\\PlanController@edit",
+            "resolved_slug": "plans.update"
+        },
+        {
+            "route": "plans.update",
+            "uri": "planning\/plans\/{plan}",
+            "action": "App\\Http\\Controllers\\Planning\\PlanController@update",
+            "resolved_slug": "plans.update"
+        },
+        {
+            "route": "chain_plans.projects_by_chain",
+            "uri": "value-chains\/chain-plans\/projects-by-chain",
+            "action": "App\\Http\\Controllers\\ValueChain\\ChainPlanController@getProjectsByChain",
+            "resolved_slug": "chain_plans.projects_by_chain"
+        },
+        {
+            "route": "chain_plans.activities_by_project",
+            "uri": "value-chains\/chain-plans\/activities-by-project",
+            "action": "App\\Http\\Controllers\\ValueChain\\ChainPlanController@getActivitiesByProject",
+            "resolved_slug": "chain_plans.activities_by_project"
+        },
+        {
+            "route": "value-chains.financing.index",
+            "uri": "value-chains\/{value_chain}\/financing",
+            "action": "App\\Http\\Controllers\\ValueChainFinancingController@index",
+            "resolved_slug": "value-chains.financing.view"
+        },
+        {
+            "route": "value-chains.financing.create",
+            "uri": "value-chains\/{value_chain}\/financing\/create",
+            "action": "App\\Http\\Controllers\\ValueChainFinancingController@create",
+            "resolved_slug": "value-chains.financing.create"
+        },
+        {
+            "route": "value-chains.financing.store",
+            "uri": "value-chains\/{value_chain}\/financing",
+            "action": "App\\Http\\Controllers\\ValueChainFinancingController@store",
+            "resolved_slug": "value-chains.financing.create"
+        },
+        {
+            "route": "value-chains.financing.edit",
+            "uri": "value-chains\/{value_chain}\/financing\/{financing}\/edit",
+            "action": "App\\Http\\Controllers\\ValueChainFinancingController@edit",
+            "resolved_slug": "value-chains.financing.edit"
+        },
+        {
+            "route": "value-chains.financing.update",
+            "uri": "value-chains\/{value_chain}\/financing\/{financing}",
+            "action": "App\\Http\\Controllers\\ValueChainFinancingController@update",
+            "resolved_slug": "value-chains.financing.edit"
+        },
+        {
+            "route": "value-chains.financing.destroy",
+            "uri": "value-chains\/{value_chain}\/financing\/{financing}",
+            "action": "App\\Http\\Controllers\\ValueChainFinancingController@destroy",
+            "resolved_slug": "value-chains.financing.delete"
+        },
+        {
+            "route": "value-chains.participating-entities.index",
+            "uri": "value-chains\/{value_chain}\/participating-entities",
+            "action": "App\\Http\\Controllers\\ValueChainParticipatingEntityController@index",
+            "resolved_slug": "value-chains.participating-entities.view"
+        },
+        {
+            "route": "value-chains.participating-entities.create",
+            "uri": "value-chains\/{value_chain}\/participating-entities\/create",
+            "action": "App\\Http\\Controllers\\ValueChainParticipatingEntityController@create",
+            "resolved_slug": "value-chains.participating-entities.create"
+        },
+        {
+            "route": "value-chains.participating-entities.store",
+            "uri": "value-chains\/{value_chain}\/participating-entities",
+            "action": "App\\Http\\Controllers\\ValueChainParticipatingEntityController@store",
+            "resolved_slug": "value-chains.participating-entities.create"
+        },
+        {
+            "route": "value-chains.participating-entities.edit",
+            "uri": "value-chains\/{value_chain}\/participating-entities\/{participating_entity}\/edit",
+            "action": "App\\Http\\Controllers\\ValueChainParticipatingEntityController@edit",
+            "resolved_slug": "value-chains.participating-entities.edit"
+        },
+        {
+            "route": "value-chains.participating-entities.update",
+            "uri": "value-chains\/{value_chain}\/participating-entities\/{participating_entity}",
+            "action": "App\\Http\\Controllers\\ValueChainParticipatingEntityController@update",
+            "resolved_slug": "value-chains.participating-entities.edit"
+        },
+        {
+            "route": "value-chains.participating-entities.destroy",
+            "uri": "value-chains\/{value_chain}\/participating-entities\/{participating_entity}",
+            "action": "App\\Http\\Controllers\\ValueChainParticipatingEntityController@destroy",
+            "resolved_slug": "value-chains.participating-entities.delete"
+        },
+        {
+            "route": "global-financings.index",
+            "uri": "global-financings",
+            "action": "App\\Http\\Controllers\\GlobalFinancingController@index",
+            "resolved_slug": "global-financings.view"
+        },
+        {
+            "route": "global-financings.create",
+            "uri": "global-financings\/create",
+            "action": "App\\Http\\Controllers\\GlobalFinancingController@create",
+            "resolved_slug": "global-financings.create"
+        },
+        {
+            "route": "global-financings.store",
+            "uri": "global-financings",
+            "action": "App\\Http\\Controllers\\GlobalFinancingController@store",
+            "resolved_slug": "global-financings.create"
+        },
+        {
+            "route": "global-financings.show",
+            "uri": "global-financings\/{global_financing}",
+            "action": "App\\Http\\Controllers\\GlobalFinancingController@show",
+            "resolved_slug": "global-financings.view"
+        },
+        {
+            "route": "global-financings.edit",
+            "uri": "global-financings\/{global_financing}\/edit",
+            "action": "App\\Http\\Controllers\\GlobalFinancingController@edit",
+            "resolved_slug": "global-financings.edit"
+        },
+        {
+            "route": "global-financings.update",
+            "uri": "global-financings\/{global_financing}",
+            "action": "App\\Http\\Controllers\\GlobalFinancingController@update",
+            "resolved_slug": "global-financings.edit"
+        },
+        {
+            "route": "global-financings.destroy",
+            "uri": "global-financings\/{global_financing}",
+            "action": "App\\Http\\Controllers\\GlobalFinancingController@destroy",
+            "resolved_slug": "global-financings.delete"
+        },
+        {
+            "route": "tasks.chain_projects",
+            "uri": "tasks\/chain-projects",
+            "action": "App\\Http\\Controllers\\TaskController@getChainProjects",
+            "resolved_slug": "tasks.chain_projects"
+        },
+        {
+            "route": "tasks.chain_project_activities",
+            "uri": "tasks\/chain-project-activities",
+            "action": "App\\Http\\Controllers\\TaskController@getChainProjectActivities",
+            "resolved_slug": "tasks.chain_project_activities"
+        },
+        {
+            "route": "tasks.stopGlobal",
+            "uri": "tasks\/{task}\/stop",
+            "action": "App\\Http\\Controllers\\TaskController@stopGlobalTask",
+            "resolved_slug": "tasks.stopGlobal"
+        },
+        {
+            "route": "programs.approve",
+            "uri": "programs\/{program}\/approve",
+            "action": "App\\Http\\Controllers\\ProgramController@approve",
+            "resolved_slug": "programs.approve"
+        },
+        {
+            "route": "programs.reject",
+            "uri": "programs\/{program}\/reject",
+            "action": "App\\Http\\Controllers\\ProgramController@reject",
+            "resolved_slug": "programs.reject"
+        },
+        {
+            "route": "subdomains.approve",
+            "uri": "subdomains\/{subdomain}\/approve",
+            "action": "App\\Http\\Controllers\\SubdomainController@approve",
+            "resolved_slug": "subdomains.approve"
+        },
+        {
+            "route": "subdomains.reject",
+            "uri": "subdomains\/{subdomain}\/reject",
+            "action": "App\\Http\\Controllers\\SubdomainController@reject",
+            "resolved_slug": "subdomains.reject"
+        },
+        {
+            "route": "requests_descend.sendForApproval",
+            "uri": "requests_descend\/{id}\/send-for-approval",
+            "action": "App\\Http\\Controllers\\RequestDescendController@sendForApproval",
+            "resolved_slug": "requests_descend.sendForApproval"
+        },
+        {
+            "route": "requests_descend.processApproval",
+            "uri": "requests_descend\/{id}\/process-approval",
+            "action": "App\\Http\\Controllers\\RequestDescendController@processApproval",
+            "resolved_slug": "requests_descend.processApproval"
+        },
+        {
+            "route": "requests_descend.financial.status",
+            "uri": "requests_descend\/{id}\/financial\/status",
+            "action": "App\\Http\\Controllers\\RequestDescendController@updateFinancialStatus",
+            "resolved_slug": "requests_descend.financial.status"
+        },
+        {
+            "route": "requests_descend.financial.member.store",
+            "uri": "requests_descend\/{id}\/financial\/member",
+            "action": "App\\Http\\Controllers\\RequestDescendController@storeMember",
+            "resolved_slug": "requests_descend.financial.member.create"
+        },
+        {
+            "route": "requests_descend.financial.member.update",
+            "uri": "requests_descend\/{id}\/financial\/member\/{memberId}",
+            "action": "App\\Http\\Controllers\\RequestDescendController@updateMember",
+            "resolved_slug": "requests_descend.financial.member.edit"
+        },
+        {
+            "route": "requests_descend.financial.member.destroy",
+            "uri": "requests_descend\/{id}\/financial\/member\/{memberId}",
+            "action": "App\\Http\\Controllers\\RequestDescendController@destroyMember",
+            "resolved_slug": "requests_descend.financial.member.delete"
+        },
+        {
+            "route": "report-types.index",
+            "uri": "report-types",
+            "action": "App\\Http\\Controllers\\ReportTypeController@index",
+            "resolved_slug": "report-types.view"
+        },
+        {
+            "route": "report-types.create",
+            "uri": "report-types\/create",
+            "action": "App\\Http\\Controllers\\ReportTypeController@create",
+            "resolved_slug": "report-types.create"
+        },
+        {
+            "route": "report-types.store",
+            "uri": "report-types",
+            "action": "App\\Http\\Controllers\\ReportTypeController@store",
+            "resolved_slug": "report-types.create"
+        },
+        {
+            "route": "report-types.edit",
+            "uri": "report-types\/{report_type}\/edit",
+            "action": "App\\Http\\Controllers\\ReportTypeController@edit",
+            "resolved_slug": "report-types.edit"
+        },
+        {
+            "route": "report-types.update",
+            "uri": "report-types\/{report_type}",
+            "action": "App\\Http\\Controllers\\ReportTypeController@update",
+            "resolved_slug": "report-types.edit"
+        },
+        {
+            "route": "report-types.destroy",
+            "uri": "report-types\/{report_type}",
+            "action": "App\\Http\\Controllers\\ReportTypeController@destroy",
+            "resolved_slug": "report-types.delete"
+        },
+        {
+            "route": "report-types.export",
+            "uri": "report-types-export",
+            "action": "App\\Http\\Controllers\\ReportTypeController@export",
+            "resolved_slug": "report-types.export"
+        },
+        {
+            "route": "report-types.import-form",
+            "uri": "report-types-import",
+            "action": "App\\Http\\Controllers\\ReportTypeController@importForm",
+            "resolved_slug": "report-types.import-form"
+        },
+        {
+            "route": "report-types.import",
+            "uri": "report-types-import",
+            "action": "App\\Http\\Controllers\\ReportTypeController@import",
+            "resolved_slug": "report-types.import"
+        },
+        {
+            "route": "report-types.download-template",
+            "uri": "report-types-template",
+            "action": "App\\Http\\Controllers\\ReportTypeController@downloadTemplate",
+            "resolved_slug": "report-types.download-template"
+        },
+        {
+            "route": "authorities.bulk-edit-page",
+            "uri": "authorities\/bulk-edit-page",
+            "action": "App\\Http\\Controllers\\AuthorityController@bulkEditPage",
+            "resolved_slug": "authorities.bulk-edit-page"
+        },
+        {
+            "route": "authorities.bulk-save",
+            "uri": "authorities\/bulk-save",
+            "action": "App\\Http\\Controllers\\AuthorityController@bulkSave",
+            "resolved_slug": "authorities.bulk-save"
+        },
+        {
+            "route": "authorities.bulk.destroy",
+            "uri": "authorities\/bulk-destroy",
+            "action": "App\\Http\\Controllers\\AuthorityController@bulkDestroy",
+            "resolved_slug": "authorities.bulk.delete"
+        },
+        {
+            "route": "internal-entities.bulk-destroy",
+            "uri": "internal-entities\/bulk-destroy",
+            "action": "App\\Http\\Controllers\\InternalEntityController@bulkDestroy",
+            "resolved_slug": "internal-entities.bulk-destroy"
+        },
+        {
+            "route": "internal-entities.toggle-type",
+            "uri": "internal-entities\/{internalEntity}\/toggle-type",
+            "action": "App\\Http\\Controllers\\InternalEntityController@toggleType",
+            "resolved_slug": "internal-entities.toggle-type"
+        },
+        {
+            "route": "admin.entity-stages.toggle",
+            "uri": "admin\/entity-stages\/{stage}\/toggle",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@toggleActive",
+            "resolved_slug": "admin.entity-stages.toggle"
+        },
+        {
+            "route": "admin.entity-stages.eligible-users",
+            "uri": "admin\/entity-stages\/eligible-users",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@getEligibleUsers",
+            "resolved_slug": "admin.entity-stages.eligible-users"
+        },
+        {
+            "route": "admin.entity-stages.index",
+            "uri": "admin\/entity-stages",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@index",
+            "resolved_slug": "admin.entity-stages.view"
+        },
+        {
+            "route": "admin.entity-stages.create",
+            "uri": "admin\/entity-stages\/create",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@create",
+            "resolved_slug": "admin.entity-stages.create"
+        },
+        {
+            "route": "admin.entity-stages.store",
+            "uri": "admin\/entity-stages",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@store",
+            "resolved_slug": "admin.entity-stages.create"
+        },
+        {
+            "route": "admin.entity-stages.edit",
+            "uri": "admin\/entity-stages\/{entity}\/edit",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@edit",
+            "resolved_slug": "admin.entity-stages.edit"
+        },
+        {
+            "route": "admin.entity-stages.update",
+            "uri": "admin\/entity-stages\/{entity}",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@update",
+            "resolved_slug": "admin.entity-stages.edit"
+        },
+        {
+            "route": "admin.entity-stages.destroy",
+            "uri": "admin\/entity-stages\/{entity}",
+            "action": "App\\Http\\Controllers\\Admin\\EntityApprovalStageController@destroy",
+            "resolved_slug": "admin.entity-stages.delete"
+        },
+        {
+            "route": "admin.ui-showcase",
+            "uri": "ui-components",
+            "action": "App\\Http\\Controllers\\Admin\\UIShowcaseController@index",
+            "resolved_slug": "admin.ui-showcase"
+        },
+        {
+            "route": "roles.matrix-module-rows",
+            "uri": "roles\/matrix-module-rows",
+            "action": "App\\Http\\Controllers\\RoleController@getMatrixModuleRows",
+            "resolved_slug": "roles.matrix-module-rows"
+        },
+        {
+            "route": "roles.permissions",
+            "uri": "roles\/{role}\/permissions",
+            "action": "App\\Http\\Controllers\\RoleController@getRolePermissions",
+            "resolved_slug": "roles.permissions"
+        },
+        {
+            "route": "entities.get-geo",
+            "uri": "entities\/get-geo",
+            "action": "App\\Http\\Controllers\\UserController@getEntityGeographicScope",
+            "resolved_slug": "entities.get-geo"
+        },
+        {
+            "route": "directorates.byGovernorate",
+            "uri": "directorates\/by-governorate\/{id}",
+            "action": "App\\Http\\Controllers\\ValueChainMemberController@getDirectorates",
+            "resolved_slug": "directorates.byGovernorate"
+        },
+        {
+            "route": "projects.achievements.index",
+            "uri": "projects\/{project}\/achievements",
+            "action": "App\\Http\\Controllers\\Project\\ProjectAchievementController@index",
+            "resolved_slug": "projects.achievements.view"
+        },
+        {
+            "route": "projects.achievements.print",
+            "uri": "projects\/{project}\/achievements\/print",
+            "action": "App\\Http\\Controllers\\Project\\ProjectAchievementController@print",
+            "resolved_slug": "projects.achievements.print"
+        },
+        {
+            "route": "projects.achievements.show",
+            "uri": "projects\/{project}\/achievements\/{achievement}",
+            "action": "App\\Http\\Controllers\\Project\\ProjectAchievementController@show",
+            "resolved_slug": "projects.achievements.view"
+        },
+        {
+            "route": "projects.achievements.print-single",
+            "uri": "projects\/{project}\/achievements\/{achievement}\/print",
+            "action": "App\\Http\\Controllers\\Project\\ProjectAchievementController@printSingle",
+            "resolved_slug": "projects.achievements.print-single"
+        },
+        {
+            "route": "authorities.import.template",
+            "uri": "authorities\/import\/template",
+            "action": "App\\Http\\Controllers\\AuthorityController@downloadTemplate",
+            "resolved_slug": "authorities.import.template"
+        },
+        {
+            "route": "internal-entities.bulk.destroy",
+            "uri": "internal-entities\/bulk",
+            "action": "App\\Http\\Controllers\\InternalEntityController@bulkDestroy",
+            "resolved_slug": "internal-entities.bulk.delete"
+        },
+        {
+            "route": "api.projects.approve",
+            "uri": "api\/projects\/{project}\/approve",
+            "action": "App\\Http\\Controllers\\Project\\ProjectApprovalController@approveProject",
+            "resolved_slug": "api.projects.approve"
+        },
+        {
+            "route": "api.projects.update-info",
+            "uri": "api\/projects\/{project}\/update-info",
+            "action": "App\\Http\\Controllers\\Project\\ProjectApprovalController@getUpdateInfo",
+            "resolved_slug": "api.projects.update-info"
+        },
+        {
+            "route": "api.projects.referrals.index",
+            "uri": "api\/projects\/{project}\/referrals",
+            "action": "App\\Http\\Controllers\\Project\\ProjectReferralController@getReferralsForProject",
+            "resolved_slug": "api.projects.referrals.view"
+        },
+        {
+            "route": "api.entities.departments",
+            "uri": "api\/entities\/{entity}\/departments",
+            "action": "App\\Http\\Controllers\\Project\\ProjectReferralController@getDepartmentsInAdministration",
+            "resolved_slug": "api.entities.departments"
+        },
+        {
+            "route": "api.tasks.organizations",
+            "uri": "api\/tasks\/organizations",
+            "action": "App\\Http\\Controllers\\TaskController@organizations",
+            "resolved_slug": "api.tasks.organizations"
+        },
+        {
+            "route": "api.budgets.index",
+            "uri": "api\/budgets",
+            "action": "App\\Http\\Controllers\\Api\\BudgetController@index",
+            "resolved_slug": "api.budgets.view"
+        },
+        {
+            "route": "api.budgets.show",
+            "uri": "api\/budgets\/{name}",
+            "action": "App\\Http\\Controllers\\Api\\BudgetController@show",
+            "resolved_slug": "api.budgets.view"
+        }
+    ],
+    "orphan_slugs": [
+        "schedule.view",
+        "financing-forms.view",
+        "financing-forms.create",
+        "financing-forms.edit",
+        "financing-forms.delete",
+        "configuration.view",
+        "configuration.edit",
+        "projects.view-all",
+        "execution.delay-explanation.manage",
+        "execution.delay-explanation.approve",
+        "execution.print",
+        "project-activity.export",
+        "execution.log.view",
+        "users.view-all",
+        "referrals.delete",
+        "correspondence.view-all",
+        "plans.view-all",
+        "stakeholders.view-external",
+        "stakeholders.view-internal",
+        "stakeholders.view-in-dropdowns",
+        "correspondence.view-referrals",
+        "permissions.audit",
+        "entity-authorities.modify-source",
+        "entity-authorities.manage-internal",
+        "entity-authorities.manage-external",
+        "empowerment.loans.view",
+        "roles-permissions.delete",
+        "dashboard.print",
+        "dashboard.search",
+        "dashboard.delete",
+        "empowerment.print",
+        "empowerment.search",
+        "entity_officers.print",
+        "entity_officers.search",
+        "signatures.print",
+        "signatures.search",
+        "project-requests.search",
+        "project-drafts.print",
+        "project-drafts.search",
+        "project-drafts.delete",
+        "projects-implementation.print",
+        "projects-implementation.search",
+        "projects-implementation.delete",
+        "executive-activities.print",
+        "executive-activities.search",
+        "execution.search",
+        "schedule.print",
+        "schedule.search",
+        "schedule.delete",
+        "quality.print",
+        "quality.search",
+        "quality.delete",
+        "reports.search",
+        "reports.delete",
+        "financial-justifications.print",
+        "financial-justifications.search",
+        "financial-justifications.delete",
+        "approvals.print",
+        "approvals.search",
+        "approvals.delete",
+        "reviews.print",
+        "reviews.search",
+        "reviews.delete",
+        "main-routers.print",
+        "main-routers.search",
+        "sub-routers.print",
+        "sub-routers.search",
+        "stages.print",
+        "stages.search",
+        "programs.print",
+        "programs.search",
+        "domains.print",
+        "domains.search",
+        "priorities.print",
+        "priorities.search",
+        "donors.print",
+        "donors.search",
+        "financing-types.print",
+        "financing-types.search",
+        "financing-forms.print",
+        "financing-forms.search",
+        "governorates.print",
+        "governorates.search",
+        "villages.print",
+        "villages.search",
+        "authorities.print",
+        "authorities.search",
+        "beneficiaries.print",
+        "beneficiaries.search",
+        "users.print",
+        "users.search",
+        "roles-permissions.print",
+        "roles-permissions.search",
+        "audit-logs.print",
+        "audit-logs.search",
+        "audit-logs.delete",
+        "configuration.print",
+        "configuration.search",
+        "configuration.delete",
+        "associations.print",
+        "associations.search",
+        "beneficiary-groups.print",
+        "beneficiary-groups.search",
+        "directorates.print",
+        "directorates.search",
+        "entities.print",
+        "entities.search",
+        "executors.print",
+        "executors.search",
+        "financial-items.print",
+        "financial-items.search",
+        "funded-entities.print",
+        "funded-entities.search",
+        "funding-sources.print",
+        "funding-sources.search",
+        "interventions.print",
+        "interventions.search",
+        "participation.print",
+        "participation.search",
+        "sub-areas.print",
+        "sub-areas.search",
+        "subdomains.print",
+        "subdomains.search",
+        "subfinancing-forms.print",
+        "subfinancing-forms.search",
+        "supervisors.print",
+        "supervisors.search",
+        "target-categories.print",
+        "target-categories.search",
+        "units.print",
+        "units.search",
+        "project-activity.print",
+        "project-activity.search",
+        "project-activity.delete",
+        "referrals.search",
+        "plans.search",
+        "internal-entities.print",
+        "internal-entities.search",
+        "notifications.print",
+        "notifications.search",
+        "notifications.delete",
+        "permissions.print",
+        "permissions.search",
+        "permissions.delete",
+        "memoirs.print",
+        "memoirs.search",
+        "entity-authorities.print",
+        "entity-authorities.search",
+        "suggestions.print",
+        "suggestions.search",
+        "suggestions.delete",
+        "config.delete",
+        "config.print",
+        "config.search",
+        "configuration.create",
+        "entity-officers.print",
+        "entity-officers.search",
+        "form-financings.create",
+        "form-financings.delete",
+        "form-financings.edit",
+        "form-financings.print",
+        "form-financings.search",
+        "formfinancing.print",
+        "formfinancing.search",
+        "main-guides.print",
+        "main-guides.search",
+        "mothers.print",
+        "mothers.search",
+        "participations.create",
+        "participations.delete",
+        "participations.edit",
+        "participations.print",
+        "participations.search",
+        "participations.view",
+        "permissions-report.delete",
+        "permissions-report.print",
+        "permissions-report.search",
+        "procedures.create",
+        "procedures.delete",
+        "procedures.edit",
+        "procedures.print",
+        "procedures.search",
+        "procedures.view",
+        "profile.delete",
+        "profile.print",
+        "profile.search",
+        "project-implementing-agencies.create",
+        "project-implementing-agencies.delete",
+        "project-implementing-agencies.edit",
+        "project-implementing-agencies.print",
+        "project-implementing-agencies.search",
+        "project-implementing-agencies.view",
+        "project-referrals.delete",
+        "project-referrals.print",
+        "project-referrals.search",
+        "project-referrals.view",
+        "project-supervising-entities.print",
+        "project-supervising-entities.search",
+        "reports.index",
+        "requests_descend.print",
+        "requests_descend.search",
+        "stakeholders.delete",
+        "stakeholders.print",
+        "stakeholders.search",
+        "sub-financing-forms.create",
+        "sub-financing-forms.delete",
+        "sub-financing-forms.edit",
+        "sub-financing-forms.print",
+        "sub-financing-forms.search",
+        "sub-financing-forms.view-in-dropdowns",
+        "subfinancing-forms.view-in-dropdowns",
+        "tasks.search",
+        "series_financing.export",
+        "series_financing.import",
+        "series_financing.print",
+        "series_financing.search",
+        "value-chain-financing-types.export",
+        "value-chain-financing-types.import",
+        "value_chain_members.export",
+        "value_chain_members.import",
+        "value_chain_members.print",
+        "value_chain_members.search",
+        "value_chains.print",
+        "value_chains.search",
+        "correspondence.overdue",
+        "correspondence.deleted",
+        "correspondence.statistics",
+        "dashboard.statistics",
+        "projects.approve_internal",
+        "configuration.import_export",
+        "home.view",
+        "home.view-all",
+        "home.view-own",
+        "home.view-parallel",
+        "home.view-user",
+        "projects.view-parallel",
+        "project-requests.view-parallel",
+        "approvals.view-parallel",
+        "referrals.view-parallel",
+        "executive-activities.view-parallel",
+        "programs.view-parallel",
+        "domains.view-parallel",
+        "interventions.view-parallel",
+        "chain-plans.view",
+        "chain-plans.create",
+        "chain-plans.edit",
+        "chain-plans.delete",
+        "chain-plans.export",
+        "chain-plans.import",
+        "chain-plans.print",
+        "chain-plans.batch-print",
+        "chain-plans.comprehensive-batch-print",
+        "participating_entities.view",
+        "participating-entities.view",
+        "participating_entities.create",
+        "participating-entities.create",
+        "participating_entities.edit",
+        "participating-entities.edit",
+        "participating_entities.delete",
+        "participating-entities.delete",
+        "series-financing.view",
+        "series-financing.create",
+        "series-financing.edit",
+        "series-financing.delete",
+        "value-chain-members.view",
+        "value-chain-members.create",
+        "value-chain-members.edit",
+        "value-chain-members.delete",
+        "reports.export",
+        "reports.implementation.print",
+        "reports.implementation.export",
+        "reports.quality.print",
+        "reports.quality.export",
+        "reports.financial.print",
+        "reports.financial.export",
+        "reports.progress.print",
+        "reports.progress.export",
+        "reports.financial_erpnext.print",
+        "reports.financial_erpnext.export",
+        "reports.official_summary.print",
+        "reports.stakeholders.print",
+        "reports.stakeholders.export",
+        "reports.permissions.export"
+    ]
+}

@@ -345,14 +345,38 @@
         overflow-x: hidden;
         max-width: 100vw;
     }
+
+    @media print {
+        .header-btn, .dropdown, .filter-card, .btn-action-artistic, nav, .pagination, .no-print, form, .modal {
+            display: none !important;
+        }
+        .projects-table th:last-child, .projects-table td:last-child {
+            display: none !important;
+        }
+        .projects-table-wrapper {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .projects-table {
+            border: 1px solid #cbd5e1 !important;
+            font-size: 0.72rem !important;
+        }
+        .projects-table th, .projects-table td {
+            border: 1px solid #cbd5e1 !important;
+            padding: 4px 6px !important;
+        }
+    }
 </style>
 @endsection
 
 @section('content')
 <div class="projects-index">
-    <x-index-page title="سجل المهام المنجزة (المشاريع)" icon="check-double">
+    <x-index-page title="سجل حالات المشاريع والإجراءات المكتملة" icon="check-double">
 
         <x-slot name="headerActions">
+            <button type="button" onclick="window.print()" class="header-btn btn-outline-gradient">
+                <i class="fas fa-print"></i> طباعة
+            </button>
             <a href="{{ route('approvals.index') }}" class="header-btn btn-outline-gradient">
                 <x-icon name="arrow-right" size="12" /> العودة لقيد المعالجة
             </a>
@@ -495,9 +519,12 @@
                 <table class="table projects-table mb-0">
                     <thead>
                         <tr>
-                            <th class="text-center no-wrap" style="width: 50px;">#</th>
-                            <th class="no-wrap">المشروع</th>
-                            <th>المرحلة / المهمة المنجزة</th>
+                            <th class="text-center no-wrap" style="width: 45px;">#</th>
+                            <th class="no-wrap" style="width: 120px;">رقم المشروع</th>
+                            <th class="no-wrap">اسم المشروع</th>
+                            <th>الجهة المقدمة</th>
+                            <th>آخر مرحلة</th>
+                            <th>الجهة المعنية (التي وصل إليها)</th>
                             <th class="text-center">القرار المتخذ</th>
                             <th class="text-center">تاريخ الإنجاز</th>
                             <th class="text-center no-wrap">إجراءات</th>
@@ -506,60 +533,72 @@
                     <tbody>
                         @forelse($projects as $project)
                             @php
-                                $completedApproval = $project->projectApprovals
-                                    ->where('reviewed_by', auth()->id())
-                                    ->where('status', '!=', 'pending')
+                                $lastApproval = $project->projectApprovals
                                     ->sortByDesc('updated_at')
                                     ->first();
                             @endphp
                             <tr>
                                 <td class="text-center"><span class="fw-bold text-primary" style="font-size:0.68rem;">{{ $loop->iteration }}</span></td>
+                                <td class="font-monospace text-muted small">
+                                    {{ $project->form_number ?: ('PRJ-'.$project->id) }}
+                                </td>
                                 <td>
                                     <div class="fw-bold text-truncate-custom" title="{{ $project->project_name }}" style="max-width: 250px;">
                                         {{ $project->project_name ?: 'مسودة' }}
                                     </div>
-                                    <div class="text-muted small mt-1"><i class="fas fa-hashtag me-1" style="font-size: 0.6rem;"></i> {{ $project->form_number ?? 'ـ' }}</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark text-truncate-custom" title="{{ $project->creator_entity_name }}">
+                                        <i class="fas fa-building text-secondary me-1" style="font-size: 0.6rem;"></i>
+                                        {{ $project->creator_entity_name }}
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge bg-light text-dark border px-2 py-1">
                                         <i class="fas fa-layer-group me-1 text-muted" style="font-size: 0.6rem;"></i>
-                                        {{ $completedApproval ? $completedApproval->getPhaseLabel() : 'ـ' }}
+                                        {{ $lastApproval ? $lastApproval->getPhaseLabel() : 'ـ' }}
                                     </span>
                                 </td>
+                                <td>
+                                    <div class="fw-bold text-primary text-truncate-custom" title="{{ $lastApproval?->entity?->name ?? $lastApproval?->authority?->agency_name ?? 'المركز الرئيسي' }}">
+                                        <i class="fas fa-map-marker-alt text-primary me-1" style="font-size: 0.6rem;"></i>
+                                        {{ $lastApproval?->entity?->name ?? $lastApproval?->authority?->agency_name ?? 'المركز الرئيسي' }}
+                                    </div>
+                                </td>
                                 <td class="text-center">
-                                    @if($completedApproval)
-                                        @if($completedApproval->status === 'approved')
+                                    @if($lastApproval)
+                                        @if($lastApproval->status === 'approved')
                                             <span class="badge bg-success-subtle text-success py-1 px-2"><i class="fas fa-check-circle me-1"></i> موافق</span>
-                                        @elseif($completedApproval->status === 'rejected')
+                                        @elseif($lastApproval->status === 'rejected')
                                             <span class="badge bg-danger-subtle text-danger py-1 px-2"><i class="fas fa-times-circle me-1"></i> مرفوض</span>
-                                        @elseif(in_array($completedApproval->status, ['need_action', 'requires_action']))
+                                        @elseif(in_array($lastApproval->status, ['need_action', 'requires_action']))
                                             <span class="badge bg-warning-subtle text-warning py-1 px-2"><i class="fas fa-exclamation-circle me-1"></i> إعادة للتعديل</span>
-                                        @elseif(in_array($completedApproval->status, ['financial_review', 'technical_review', 'financial_technical_review', 'referral', 'resubmitted']))
+                                        @elseif(in_array($lastApproval->status, ['financial_review', 'technical_review', 'financial_technical_review', 'referral', 'resubmitted']))
                                             <span class="badge bg-info-subtle text-info py-1 px-2"><i class="fas fa-clipboard-check me-1"></i> تمت المراجعة</span>
                                         @else
-                                            <span class="badge bg-secondary-subtle text-secondary py-1 px-2">{{ $completedApproval->status }}</span>
+                                            <span class="badge bg-secondary-subtle text-secondary py-1 px-2">{{ $lastApproval->status }}</span>
                                         @endif
                                     @else
                                         ـ
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if($completedApproval && $completedApproval->updated_at)
-                                        <div class="small fw-semibold text-dark">{{ $completedApproval->updated_at->format('Y-m-d') }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{ $completedApproval->updated_at->format('h:i A') }}</div>
+                                    @if($lastApproval && $lastApproval->updated_at)
+                                        <div class="small fw-semibold text-dark">{{ $lastApproval->updated_at->format('Y-m-d') }}</div>
+                                        <div class="text-muted" style="font-size: 0.65rem;">{{ $lastApproval->updated_at->format('h:i A') }}</div>
                                     @else
                                         ـ
                                     @endif
                                 </td>
                                 <td class="text-center">
                                     @can('view', $project)
-                                        <a href="{{ route('projects.show', $project->id) }}" class="btn-action-artistic btn-view" title="عرض التفاصيل"><x-icon name="eye" size="10" /></a>
+                                        <a href="{{ route('approvals.show', $project->id) }}" class="btn-action-artistic btn-view" title="عرض التفاصيل"><x-icon name="eye" size="10" /></a>
                                     @endcan
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="empty-state py-5">
+                                <td colspan="9" class="empty-state py-5">
                                     <div class="empty-icon mb-3"><i class="fas fa-check-double text-muted" style="font-size: 2rem;"></i></div>
                                     <h6 class="fw-bold">لا توجد مهام منجزة</h6>
                                     <small class="text-muted d-block mb-2">لم تقم بإنجاز أي مهام بعد أو لا توجد نتائج مطابقة لخيارات البحث المحددة</small>

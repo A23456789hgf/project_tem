@@ -24,7 +24,9 @@
 
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-5">
+            @can('stages.create')
             <form action="{{ route('admin.entity-stages.store', ['tab' => $tab]) }}" method="POST">
+            @endcan
                 @csrf
                 <input type="hidden" name="tab" value="{{ $tab }}">
                 

@@ -13,9 +13,11 @@
                         <a href="{{ route('authorities.index') }}" class="btn btn-success btn-sm">
                             <i class="fas fa-list"></i> عرض الجهات
                         </a>
+                        @can('authorities.import')
                         <a href="{{ route('authorities.import') }}" class="btn btn-primary btn-sm">
                             <i class="fas fa-file-import"></i> استيراد جديد
                         </a>
+                        @endcan
                     </div>
                 </div>
                 <div class="card-body">
@@ -151,9 +153,11 @@
                             <a href="{{ route('authorities.index') }}" class="btn btn-success">
                                 <i class="fas fa-list"></i> عرض الجهات
                             </a>
+                            @can('authorities.import')
                             <a href="{{ route('authorities.import') }}" class="btn btn-primary">
                                 <i class="fas fa-file-import"></i> استيراد آخر
                             </a>
+                            @endcan
                             @if(isset($fileName))
                                 <a href="{{ route('authorities.download-error-report', $fileName) }}" class="btn btn-warning">
                                     <i class="fas fa-download"></i> تحميل تقرير الأخطاء

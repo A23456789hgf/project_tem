@@ -60,11 +60,13 @@
 
                         @if($report['failed'] == 0)
                         <div class="mt-3">
+                            @can('domains.undo-import')
                             <form action="{{ route('domains.undo-import', ['fileName' => $importedFile]) }}" method="POST" style="display: inline;">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-outline-warning" onclick="return confirmAction(this, 'هل أنت متأكد من التراجع عن الاستيراد؟ سيتم حذف جميع السجلات المستوردة.')">تراجع عن الاستيراد</button>
                             </form>
+                            @endcan
                         </div>
                         @endif
                     </div>
@@ -72,7 +74,9 @@
 
                     <div class="mt-3">
                         <a href="{{ route('domains.index') }}" class="btn btn-primary">العودة إلى قائمة المجالات</a>
+                        @can('domains.import')
                         <a href="{{ route('domains.import') }}" class="btn btn-secondary">استيراد ملف آخر</a>
+                        @endcan
                     </div>
                 </div>
             </div>

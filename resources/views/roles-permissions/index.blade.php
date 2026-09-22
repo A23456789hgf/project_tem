@@ -39,7 +39,9 @@
 
         <x-slot name="table">
             @if(isset($selectedRole))
+            @can('roles-permissions.edit')
             <form action="{{ route('roles-permissions.update') }}" method="POST" id="permissionsForm">
+            @endcan
                 @csrf
                 <input type="hidden" name="role_id" value="{{ $selectedRole->id }}">
 

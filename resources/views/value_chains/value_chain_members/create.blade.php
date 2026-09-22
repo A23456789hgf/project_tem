@@ -6,7 +6,9 @@
 
         <h3 class="mb-4">إضافة عضو جديد</h3>
 
+        @can('value_chain_members.create')
         <form method="POST" action="{{ route('value-chain-members.store') }}" class="row g-4">
+        @endcan
             @csrf
 
             {{-- الدور --}}

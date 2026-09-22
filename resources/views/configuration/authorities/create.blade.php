@@ -13,7 +13,9 @@
     <div class="row justify-content-center">
         <div class="col-xl-8">
             <div class="main-card p-5 shadow-lg border-0 rounded-4">
+                @can('authorities.create')
                 <form action="{{ route('authorities.store') }}" method="POST">
+                @endcan
                     @csrf
                     <input type="hidden" name="view" value="{{ request('view', 'tree') }}">
                     

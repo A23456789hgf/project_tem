@@ -15,9 +15,11 @@
             <p class="text-muted small">إدارة هيكل الأدوار وتعيين الصلاحيات لكافة وحدات النظام</p>
         </div>
         <div>
+             @can('roles.create')
              <a href="{{ route('roles.create') }}" class="btn btn-primary shadow-sm">
                 <i class="fas fa-plus-circle me-2"></i> إضافة دور جديد
             </a>
+             @endcan
         </div>
     </div>
 
@@ -118,9 +120,12 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
+                                        @can('roles.edit')
                                         <a href="{{ route('roles.edit', $role) }}" class="btn btn-outline-primary" title="تعديل">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        @endcan
+                                        @can('roles.edit')
                                         <form action="{{ route('roles.toggle', $role) }}" method="POST" class="d-inline">
                                             @csrf @method('PATCH')
                                             <button type="submit" class="btn btn-outline-{{ $role->is_active ? 'warning' : 'success' }}" 
@@ -128,13 +133,16 @@
                                                 <i class="fas {{ $role->is_active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                             </button>
                                         </form>
+                                        @endcan
                                         @if($role->name !== 'Admin' && $role->users_count == 0)
+                                        @can('roles.delete')
                                         <form action="{{ route('roles.destroy', $role) }}" method="POST" class="d-inline" onsubmit="return confirmAction(this, 'هل أنت متأكد من حذف الدور؟')">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger" title="حذف">
                                                 <i class="fas fa-trash-alt"></i>
                                             </button>
                                         </form>
+                                        @endcan
                                         @endif
                                     </div>
                                 </td>
@@ -167,7 +175,9 @@
             </div>
         </div>
         
+        @can('roles.permissions.edit')
         <form id="permissions-form" action="{{ route('roles.permissions.update') }}" method="POST">
+        @endcan
             @csrf
             
             <div class="card-body p-0">

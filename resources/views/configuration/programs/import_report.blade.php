@@ -73,10 +73,12 @@
                             </a>
                         @endif
                         
+                        @can('programs.import')
                         <a href="{{ route('programs.import') }}" class="btn btn-outline-primary">
                             <i class="fas fa-upload me-1"></i>
                             استيراد ملف آخر
                         </a>
+                        @endcan
                         
                         @if($report['successful'] > 0)
                             <button type="button" class="btn btn-outline-warning" onclick="confirmUndo()">
@@ -140,6 +142,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                @can('programs.delete')
                 <form action="{{ route('programs.undo-import', $importedFile) }}" method="POST" style="display: inline;">
                     @csrf
                     <button type="submit" class="btn btn-warning">
@@ -147,6 +150,7 @@
                         تأكيد التراجع
                     </button>
                 </form>
+                @endcan
             </div>
         </div>
     </div>

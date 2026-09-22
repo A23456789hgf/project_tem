@@ -13,9 +13,11 @@
                     <button type="button" class="btn btn-outline-primary" onclick="window.print()">
                         <i class="fas fa-print me-2"></i>طباعة
                     </button>
+                    @can('projects.stakeholders.export')
                     <a href="{{ route('projects.stakeholders.export', $project->id) }}" class="btn btn-outline-success">
                         <i class="fas fa-download me-2"></i>تصدير CSV
                     </a>
+                    @endcan
                     <a href="{{ route('projects.show', $project->id) }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-2"></i>العودة للمشروع
                     </a>

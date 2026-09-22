@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Models\Program;
 use App\Models\User;
 
 class ProgramPolicy
@@ -18,7 +17,7 @@ class ProgramPolicy
     /**
      * عرض برنامج واحد
      */
-    public function view(User $user, ?Program $program = null): bool
+    public function view(User $user, $program = null): bool
     {
         return $user->hasPermission('programs.view');
     }
@@ -34,7 +33,7 @@ class ProgramPolicy
     /**
      * تعديل برنامج
      */
-    public function update(User $user, ?Program $program = null): bool
+    public function update(User $user, $program = null): bool
     {
         return $user->hasPermission('programs.edit');
     }
@@ -42,7 +41,7 @@ class ProgramPolicy
     /**
      * حذف برنامج
      */
-    public function delete(User $user, ?Program $program = null): bool
+    public function delete(User $user, $program = null): bool
     {
         return $user->hasPermission('programs.delete');
     }
@@ -50,7 +49,7 @@ class ProgramPolicy
     /**
      * تصدير البرامج
      */
-    public function export(User $user): bool
+    public function export(User $user, $program = null): bool
     {
         return $user->hasPermission('programs.export');
     }
@@ -58,8 +57,24 @@ class ProgramPolicy
     /**
      * استيراد البرامج
      */
-    public function import(User $user): bool
+    public function import(User $user, $program = null): bool
     {
-        return $user->hasPermission('programs.create');
+        return $user->hasPermission('programs.import') || $user->hasPermission('programs.create');
+    }
+
+    /**
+     * اعتماد البرنامج
+     */
+    public function approve(User $user, $program = null): bool
+    {
+        return $user->hasPermission('programs.approve');
+    }
+
+    /**
+     * رفض البرنامج
+     */
+    public function reject(User $user, $program = null): bool
+    {
+        return $user->hasPermission('programs.reject');
     }
 }

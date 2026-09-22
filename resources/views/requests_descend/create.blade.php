@@ -12,7 +12,9 @@
             <div class="card-body">
                 
 
+                @can('requests_descend.create')
                 <form action="{{ route('requests_descend.store') }}" method="POST">
+                @endcan
                     @csrf
 
                     <div class="row mb-4">

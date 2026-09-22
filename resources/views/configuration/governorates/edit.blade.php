@@ -7,6 +7,7 @@
 
 <div class="container py-4">
     <x-ui.card title="تعديل المحافظة" subtitle="تحديث بيانات المحافظة المحددة" icon="fas fa-edit">
+        @can('governorates.edit')
         <form action="{{ route('governorates.update', $governorate) }}" method="POST">
             @csrf
             @method('PUT')
@@ -24,6 +25,7 @@
                 </div>
             </div>
         </form>
+        @endcan
     </x-ui.card>
 </div>
 @endsection

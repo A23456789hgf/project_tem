@@ -32,10 +32,12 @@ class ConsultationCenterController extends Controller
         // Base query restricted to user's entity interactions (unless admin)
         $baseReferralsQuery = ProjectReferral::with([
             'project.creatorEntity',
+            'project.authority',
             'referringEntity',
             'referredEntity',
             'referringUser',
             'respondingUser',
+            'referredUser',
         ]);
 
         if (! $isAdmin) {
@@ -163,6 +165,7 @@ class ConsultationCenterController extends Controller
         $referral->load([
             'project.createdBy.entity',
             'project.creatorEntity',
+            'project.authority',
             'project.cost',
             'referringEntity',
             'referredEntity',

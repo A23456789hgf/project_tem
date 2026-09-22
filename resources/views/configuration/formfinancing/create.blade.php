@@ -12,6 +12,7 @@
 
     
 
+    @can('formfinancing.create')
     <form action="{{ route('formfinancing.store') }}" method="POST">
         @csrf
         
@@ -34,5 +35,6 @@
             </div>
         </div>
     </form>
+    @endcan
 </div>
 @endsection

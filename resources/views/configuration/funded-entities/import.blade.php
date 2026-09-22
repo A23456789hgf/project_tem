@@ -20,6 +20,7 @@
                     <h5>رفع ملف الاستيراد</h5>
                 </div>
                 <div class="card-body">
+                    @can('fundedentities.preview.import')
                     <form action="{{ route('fundedentities.preview.import') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         
@@ -43,6 +44,7 @@
                             </a>
                         </div>
                     </form>
+                    @endcan
                 </div>
             </div>
         </div>

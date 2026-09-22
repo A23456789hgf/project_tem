@@ -57,12 +57,14 @@
                         
                         @if($report['failed'] == 0)
                         <div class="mt-3">
+                            @can('value-chain-financing-types.import.undo')
                             <form action="{{ route('value-chain-financing-types.import.undo', $importedFile) }}" method="POST" style="display: inline;">
                                 @csrf
                                 <button type="submit" class="btn btn-outline-warning" onclick="return confirmAction(this, 'هل أنت متأكد من التراجع عن الاستيراد؟ سيتم حذف جميع السجلات المستوردة.')">
                                     <i class="fas fa-undo"></i> تراجع عن الاستيراد
                                 </button>
                             </form>
+                            @endcan
                         </div>
                         @endif
                     </div>

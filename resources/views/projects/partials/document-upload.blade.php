@@ -172,11 +172,13 @@
                                     <div>
                                         <div class="d-flex align-items-center mb-1">
                                             <h6 class="mb-0 me-2">طلب الموافقة</h6>
+                                            @can('correspondence.create')
                                             <a href="{{ route('correspondence.create', ['subject' => 'طلب موافقة على مشروع: ' . ($project->project_name ?? $project->name) . ' (' . ($project->form_number ?? $project->project_number) . ')', 'project_id' => $project->id]) }}" 
                                                class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;"
                                                title="إنشاء مراسلة لطلب الموافقة" target="_blank">
                                                 <i class="fas fa-envelope me-1"></i>إنشاء مراسلة
                                             </a>
+                                            @endcan
                                         </div>
                                         <small class="text-muted">
                                             PDF, DOC, DOCX<br>
@@ -267,12 +269,14 @@
             <p class="text-muted mb-3">
                 <i class="fas fa-info-circle me-2"></i>بعد الانتهاء من رفع جميع الوثائق المطلوبة، يمكنك إرسال المشروع للموافقة.
             </p>
+            @can('projects.finalize')
             <form action="{{ route('projects.finalize', $project->id) }}" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-primary btn-lg w-100" onclick="return confirmAction(this, 'هل أنت متأكد من إرسال المشروع للموافقة؟')">
                     <i class="fas fa-check-circle me-2"></i>إرسال للموافقة
                 </button>
             </form>
+            @endcan
         </div>
     </div>
 </div>

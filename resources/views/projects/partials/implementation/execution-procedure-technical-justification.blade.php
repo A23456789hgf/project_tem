@@ -131,7 +131,9 @@
 
         <!-- Form Section -->
         @if($isOverTime)
+            @can('projects.execution.storeProcedureTechnicalJustification')
             <form action="{{ route('projects.execution.storeProcedureTechnicalJustification', ['project' => $project]) }}" 
+            @endcan
                   method="POST" 
                   enctype="multipart/form-data"
                   class="technical-justification-form">

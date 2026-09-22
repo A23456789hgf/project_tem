@@ -1,6 +1,7 @@
 <?php
 
-function testEndpoint($url, $isPost = false, $postData = []) {
+function testEndpoint($url, $isPost = false, $postData = [])
+{
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -17,7 +18,7 @@ function testEndpoint($url, $isPost = false, $postData = []) {
     }
 
     $response = curl_exec($ch);
-    
+
     $result = [
         'url' => $url,
         'status' => 'FAILED',
@@ -25,7 +26,7 @@ function testEndpoint($url, $isPost = false, $postData = []) {
         'http_code' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
         'content_type' => curl_getinfo($ch, CURLINFO_CONTENT_TYPE),
         'headers' => '',
-        'body' => ''
+        'body' => '',
     ];
 
     if ($response !== false) {
@@ -33,10 +34,10 @@ function testEndpoint($url, $isPost = false, $postData = []) {
         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         $result['headers'] = substr($response, 0, $headerSize);
         $result['body'] = substr($response, $headerSize);
-        
+
         // Truncate body for safety
         if (strlen($result['body']) > 500) {
-            $result['body'] = substr($result['body'], 0, 500) . '... [TRUNCATED]';
+            $result['body'] = substr($result['body'], 0, 500).'... [TRUNCATED]';
         }
     } else {
         if (strpos($result['error'], 'Connection refused') !== false) {
@@ -47,8 +48,9 @@ function testEndpoint($url, $isPost = false, $postData = []) {
             $result['status'] = 'SSL ERROR';
         }
     }
-    
+
     curl_close($ch);
+
     return $result;
 }
 
@@ -66,21 +68,21 @@ echo "==================================================\n";
 
 foreach ($endpoints as $ep) {
     $res = testEndpoint($ep);
-    echo str_pad($ep . ":", 35) . " " . $res['status'] . " (HTTP " . $res['http_code'] . ")\n";
+    echo str_pad($ep.':', 35).' '.$res['status'].' (HTTP '.$res['http_code'].")\n";
     if ($res['status'] === 'CONNECTED') {
-        echo "   Content-Type: " . $res['content_type'] . "\n";
+        echo '   Content-Type: '.$res['content_type']."\n";
         // Extract server header
         if (preg_match('/Server: (.*)/i', $res['headers'], $matches)) {
-            echo "   Server: " . trim($matches[1]) . "\n";
+            echo '   Server: '.trim($matches[1])."\n";
         }
         if (preg_match('/Location: (.*)/i', $res['headers'], $matches)) {
-            echo "   Redirect: " . trim($matches[1]) . "\n";
+            echo '   Redirect: '.trim($matches[1])."\n";
         }
         if ($res['http_code'] != 200 && $res['http_code'] != 301 && $res['http_code'] != 302) {
-             echo "   Body: " . trim(str_replace(["\n","\r"], " ", $res['body'])) . "\n";
+            echo '   Body: '.trim(str_replace(["\n", "\r"], ' ', $res['body']))."\n";
         }
     } else {
-        echo "   Error: " . $res['error'] . "\n";
+        echo '   Error: '.$res['error']."\n";
     }
     echo "\n";
 }
@@ -106,23 +108,23 @@ $password = $_ENV['SMPP_API_PASSWORD'] ?? 'password';
 $postData = [
     'email' => $email,
     'username' => $email,
-    'password' => $password
+    'password' => $password,
 ];
 
 foreach ($loginEndpoints as $ep) {
     $res = testEndpoint($ep, true, $postData);
-    echo str_pad($ep . ":", 35) . " " . $res['status'] . " (HTTP " . $res['http_code'] . ")\n";
+    echo str_pad($ep.':', 35).' '.$res['status'].' (HTTP '.$res['http_code'].")\n";
     if ($res['status'] === 'CONNECTED') {
-        echo "   Content-Type: " . $res['content_type'] . "\n";
+        echo '   Content-Type: '.$res['content_type']."\n";
         $body = trim($res['body']);
-        echo "   Response Body: " . (strlen($body) > 100 ? substr($body, 0, 100) . '...' : $body) . "\n";
-        
+        echo '   Response Body: '.(strlen($body) > 100 ? substr($body, 0, 100).'...' : $body)."\n";
+
         $json = json_decode($body, true);
         if ($json !== null) {
             echo "   Is JSON: Yes\n";
             if (isset($json['token'])) {
                 echo "   Token field: 'token'\n";
-                echo "   Token returned: Yes (Length: " . strlen($json['token']) . ")\n";
+                echo '   Token returned: Yes (Length: '.strlen($json['token']).")\n";
                 echo "   Authentication result: SUCCESS\n";
             } elseif (isset($json['access_token'])) {
                 echo "   Token field: 'access_token'\n";

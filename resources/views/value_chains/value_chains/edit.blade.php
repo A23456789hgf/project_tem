@@ -13,7 +13,9 @@
             </a>
         </div>
 
+        @can('value-chains.edit')
         <form action="{{ route('value-chains.update', $valueChain->id) }}" method="POST" class="row g-4">
+        @endcan
             @csrf
             @method('PUT')
 

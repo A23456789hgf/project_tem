@@ -43,7 +43,9 @@
             <h5 class="mb-0">إعدادات الاستيراد</h5>
         </div>
         <div class="card-body">
+            @can('internal-entities.view')
             <form id="processImportForm" action="{{ route('internal-entities.process-import') }}" method="POST">
+            @endcan
                 @csrf
                 <input type="hidden" name="file_path" value="{{ $filePath }}">
                 <input type="hidden" name="authority_id" value="{{ $authorityId }}">

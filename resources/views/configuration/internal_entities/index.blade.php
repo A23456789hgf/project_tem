@@ -106,7 +106,9 @@
         </x-slot>
 
         <x-slot name="table">
+            @can('internal-entities.delete')
             <form id="bulkDeleteForm" action="{{ route('internal-entities.bulk.destroy') }}" method="POST" onsubmit="return confirmBulkDelete()">
+            @endcan
                 @csrf
                 @method('DELETE')
 
@@ -285,6 +287,7 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                @can('internal-entities.view')
                 <form id="importForm" action="{{ route('internal-entities.preview-import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body p-4">
@@ -317,6 +320,7 @@
                         </button>
                     </div>
                 </form>
+                @endcan
             </div>
         </div>
     </div>
