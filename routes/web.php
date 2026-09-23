@@ -1115,9 +1115,10 @@ Route::middleware('auth')->group(function () {
     });
 
     // ========================================
-    // API للمواقع (API Locations)
+    // API للمواقع والجهات (API Locations & Entities)
     // ========================================
     Route::group([], function () {
+        Route::get('/api/entities/{entityId}/users', [TaskController::class, 'getEntityUsers'])->name('api.entities.users');
         Route::get('/get-directorates-by-sub-area/{subAreaId}', [SubAreaController::class, 'getDirectorates']);
         Route::get('/api/directorates/all', [DirectorateController::class, 'getAllDirectorates']);
         Route::get('/api/directorates/{governorateId}', [DirectorateController::class, 'getByGovernorate']);

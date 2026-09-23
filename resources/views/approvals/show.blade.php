@@ -430,7 +430,7 @@
                 </div>
 
                 {{-- Accordion 3: Documents --}}
-                <div class="accordion-item border-0">
+                <div class="accordion-item border-0 border-bottom">
                     <h2 class="accordion-header" id="headingDocs">
                         <button class="accordion-button collapsed fw-bold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDocs" aria-expanded="false" aria-controls="collapseDocs">
                             <i class="fas fa-paperclip text-secondary me-2"></i> المستندات والمرفقات ({{ $project->documents->count() }})
@@ -457,6 +457,154 @@
                                         </li>
                                     @endforeach
                                 </ul>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Accordion 4: Linked Correspondences (مراسلات المشروع المرتبطة) --}}
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header" id="headingCorrespondences">
+                        <button class="accordion-button collapsed fw-bold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCorrespondences" aria-expanded="false" aria-controls="collapseCorrespondences">
+                            <i class="fas fa-envelope-open-text text-primary me-2"></i> مراسلات المشروع المرتبطة ({{ $project->correspondences->count() }})
+                        </button>
+                    </h2>
+                    <div id="collapseCorrespondences" class="accordion-collapse collapse" aria-labelledby="headingCorrespondences" data-bs-parent="#projectDetailsAccordion">
+                        <div class="accordion-body bg-light p-4">
+                            @if($project->correspondences->isEmpty())
+                                <div class="text-center py-3">
+                                    <p class="text-muted small mb-3">لا توجد مراسلات مرتبطة بهذا المشروع حتى الآن.</p>
+                                    <a href="{{ route('correspondence.create', ['project_id' => $project->id, 'subject' => 'مراسلة بخصوص مشروع: ' . ($project->project_name ?? $project->name)]) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" target="_blank">
+                                        <i class="fas fa-plus me-1"></i> إنشاء مراسلة جديدة بخصوص المشروع
+                                    </a>
+                                </div>
+                            @else
+                                <div class="table-responsive bg-white rounded-3 border">
+                                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-3">رقم المراسلة</th>
+                                                <th>الموضوع</th>
+                                                <th>من</th>
+                                                <th>إلى</th>
+                                                <th>الحالة</th>
+                                                <th>التاريخ</th>
+                                                <th class="text-end pe-3">الإجراء</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($project->correspondences as $corr)
+                                                <tr>
+                                                    <td class="ps-3 fw-bold text-primary">
+                                                        {{ $corr->correspondence_number }}
+                                                    </td>
+                                                    <td class="fw-semibold text-dark">
+                                                        {{ $corr->subject }}
+                                                    </td>
+                                                    <td class="small text-muted">
+                                                        {{ $corr->senderEntity?->name ?? 'غير محدد' }}
+                                                    </td>
+                                                    <td class="small text-muted">
+                                                        {{ $corr->recipientEntity?->name ?? 'غير محدد' }}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-{{ $corr->status == 'pending' ? 'warning' : ($corr->status == 'replied' ? 'success' : ($corr->status == 'referred' ? 'info' : 'secondary')) }} small">
+                                                            {{ $corr->status_label }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="small text-muted" style="white-space: nowrap;">
+                                                        {{ $corr->created_at?->format('Y/m/d H:i') }}
+                                                    </td>
+                                                    <td class="text-end pe-3">
+                                                        <a href="{{ route('correspondence.show', $corr->id) }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1">
+                                                            <i class="fas fa-eye me-1"></i> عرض
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Accordion 5: Consultations & Referrals (استشارات وإحالات المشروع) --}}
+                <div class="accordion-item border-0">
+                    <h2 class="accordion-header" id="headingReferrals">
+                        <button class="accordion-button collapsed fw-bold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReferrals" aria-expanded="false" aria-controls="collapseReferrals">
+                            <i class="fas fa-comments text-info me-2"></i> استشارات وإحالات المشروع ({{ $project->referrals->count() }})
+                        </button>
+                    </h2>
+                    <div id="collapseReferrals" class="accordion-collapse collapse" aria-labelledby="headingReferrals" data-bs-parent="#projectDetailsAccordion">
+                        <div class="accordion-body bg-light p-4">
+                            @if($project->referrals->isEmpty())
+                                <div class="text-center py-3">
+                                    <p class="text-muted small mb-0">لا توجد طلبات استشارة أو إحالات مسجلة لهذا المشروع حتى الآن.</p>
+                                </div>
+                            @else
+                                <div class="table-responsive bg-white rounded-3 border">
+                                    <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="ps-3">الجهة المُحيلة</th>
+                                                <th>الجهة المستشارة</th>
+                                                <th>المستخدم المستلم</th>
+                                                <th>نص الاستشارة</th>
+                                                <th>الحالة</th>
+                                                <th>الرد / الملاحظة</th>
+                                                <th class="text-end pe-3">التاريخ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($project->referrals as $ref)
+                                                <tr>
+                                                    <td class="ps-3">
+                                                        <strong class="text-dark d-block">{{ $ref->referringEntity?->name ?? 'غير محدد' }}</strong>
+                                                        <small class="text-muted">{{ $ref->referringUser?->name }}</small>
+                                                    </td>
+                                                    <td>
+                                                        <strong class="text-primary d-block">{{ $ref->referredEntity?->name ?? 'غير محدد' }}</strong>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark border">
+                                                            <i class="fas fa-user me-1 text-secondary"></i>
+                                                            {{ $ref->referredUser?->name ?? 'جميع مسؤولي الجهة' }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="small text-muted" style="max-width: 250px;">
+                                                        {{ \Illuminate\Support\Str::limit($ref->referral_text, 100) }}
+                                                    </td>
+                                                    <td>
+                                                        @if($ref->status === 'pending')
+                                                            <span class="badge bg-warning text-dark">قيد الانتظار</span>
+                                                        @elseif($ref->status === 'responded')
+                                                            <span class="badge bg-success">تم الرد</span>
+                                                        @elseif($ref->status === 'returned')
+                                                            <span class="badge bg-secondary">تم الإرجاع</span>
+                                                        @else
+                                                            <span class="badge bg-info">{{ $ref->status }}</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="small text-muted" style="max-width: 200px;">
+                                                        @if($ref->response_text)
+                                                            <span class="d-block">{{ \Illuminate\Support\Str::limit($ref->response_text, 80) }}</span>
+                                                            @if($ref->respondingUser)
+                                                                <small class="text-primary">بواسطة: {{ $ref->respondingUser->name }}</small>
+                                                            @endif
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end pe-3 small text-muted" style="white-space: nowrap;">
+                                                        {{ $ref->created_at?->format('Y/m/d H:i') }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             @endif
                         </div>
                     </div>
@@ -583,22 +731,40 @@
         if (entitySelect && userSelect) {
             entitySelect.addEventListener('change', function() {
                 const entityId = this.value;
-                userSelect.innerHTML = '<option value="">-- اختر المستخدم المستلم --</option>';
+                userSelect.innerHTML = '<option value="">جاري تحميل المستخدمين...</option>';
+                userSelect.disabled = true;
                 
                 if (entityId) {
                     fetch(`/api/entities/${entityId}/users`)
                         .then(response => response.json())
                         .then(data => {
-                            if (data.success && data.users) {
-                                data.users.forEach(user => {
+                            userSelect.innerHTML = '<option value="">-- اختر المستخدم المستلم --</option>';
+                            userSelect.disabled = false;
+                            
+                            const users = Array.isArray(data) ? data : (data.users || []);
+                            if (users.length > 0) {
+                                users.forEach(user => {
                                     const option = document.createElement('option');
                                     option.value = user.id;
                                     option.textContent = user.name;
                                     userSelect.appendChild(option);
                                 });
+                            } else {
+                                const option = document.createElement('option');
+                                option.value = '';
+                                option.textContent = 'لا يوجد مستخدمين نشطين لهذه الجهة';
+                                option.disabled = true;
+                                userSelect.appendChild(option);
                             }
                         })
-                        .catch(error => console.error('Error fetching users:', error));
+                        .catch(error => {
+                            console.error('Error fetching users:', error);
+                            userSelect.innerHTML = '<option value="">تعذر تحميل المستخدمين</option>';
+                            userSelect.disabled = false;
+                        });
+                } else {
+                    userSelect.innerHTML = '<option value="">-- اختر المستخدم المستلم --</option>';
+                    userSelect.disabled = false;
                 }
             });
         }

@@ -1896,7 +1896,7 @@ class ProjectService
                             'authority_type' => $authType,
                             'parent_id' => $parentId,
                             'internal_entity_id' => $authType === 'internal' ? $entityVal : null,
-                            'authority_id' => $entityVal,
+                            'authority_id' => $authType === 'external' ? $entityVal : null,
                         ];
 
                         $existing = null;
@@ -1942,7 +1942,7 @@ class ProjectService
                             'authority_type' => $authType,
                             'parent_id' => $parentId,
                             'internal_entity_id' => $authType === 'internal' ? $entityVal : null,
-                            'authority_id' => $entityVal,
+                            'authority_id' => $authType === 'external' ? $entityVal : null,
                         ];
 
                         $existing = null;
@@ -1988,7 +1988,7 @@ class ProjectService
                             'authority_type' => $authType,
                             'parent_id' => $parentId,
                             'internal_entity_id' => $authType === 'internal' ? $entityVal : null,
-                            'authority_id' => $entityVal,
+                            'authority_id' => $authType === 'external' ? $entityVal : null,
                         ];
 
                         $existing = null;
@@ -2034,7 +2034,7 @@ class ProjectService
                             'authority_type' => $authType,
                             'parent_id' => $parentId,
                             'internal_entity_id' => $authType === 'internal' ? $entityVal : null,
-                            'authority_id' => $entityVal,
+                            'authority_id' => $authType === 'external' ? $entityVal : null,
                         ];
 
                         $existing = null;

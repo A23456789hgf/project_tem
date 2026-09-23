@@ -648,6 +648,11 @@ class Project extends Model
         return $this->hasMany(ProjectSupervisingAuthority::class, 'project_id');
     }
 
+    public function correspondences(): HasMany
+    {
+        return $this->hasMany(Correspondence::class, 'project_id');
+    }
+
     public function implementingEntities(): HasMany
     {
         return $this->hasMany(ProjectImplementingEntity::class, 'project_id');

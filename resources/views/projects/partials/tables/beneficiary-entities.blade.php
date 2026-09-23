@@ -25,21 +25,24 @@
                                 </select>
                             </td>
                             <td>
+                                @php
+                                    $entityId = $entity->authority_type == 'internal' ? $entity->internal_entity_id : $entity->authority_id;
+                                @endphp
                                 <select name="beneficiary_entities[{{ $index }}][{{ $entity->authority_type == 'internal' ? 'internal_entity_id' : 'authority_id' }}]"
                                         class="form-select authority-select"
-                                        data-value="{{ $entity->authority_id }}">
+                                        data-value="{{ $entityId }}">
                                     <option value="">اختر الجهة</option>
                                     @if($entity->authority_type == 'internal')
                                         @foreach($internalEntities as $internal)
                                             <option value="{{ $internal['id'] }}" 
-                                                {{ $entity->authority_id == $internal['id'] ? 'selected' : '' }}>
+                                                {{ $entityId == $internal['id'] ? 'selected' : '' }}>
                                                 {{ $internal['entity_name'] }}
                                             </option>
                                         @endforeach
                                     @else
                                         @foreach($authorities as $authority)
                                             <option value="{{ $authority->id }}" 
-                                                {{ $entity->authority_id == $authority->id ? 'selected' : '' }}>
+                                                {{ $entityId == $authority->id ? 'selected' : '' }}>
                                                 {{ $authority->agency_name }}
                                             </option>
                                         @endforeach

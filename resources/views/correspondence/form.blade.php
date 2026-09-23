@@ -30,6 +30,53 @@
                         <input type="hidden" name="parent_id" value="{{ $parent->id ?? '' }}">
                         <input type="hidden" name="correspondence_type" value="{{ $type ?? 'new' }}">
 
+                        {{-- Approval Context Banner (يظهر فقط إذا كانت المراسلة مرتبطة بمشروع اعتماد) --}}
+                        @php
+                            $linkedProjectId = old('project_id', $correspondence->project_id ?? request('project_id'));
+                            $linkedProject = $linkedProjectId ? \App\Models\Project::with(['creatorEntity', 'projectApprovals.entity'])->find($linkedProjectId) : null;
+                            $activeApprovalStep = $linkedProject?->projectApprovals?->firstWhere('is_active', true) ?? $linkedProject?->projectApprovals?->first();
+                            $activeDecisionType = request('decision_type') ?? ($correspondence->notes ?? null);
+                        @endphp
+
+                        @if($linkedProject)
+                            <div class="card border-primary mb-4 shadow-sm" style="background-color: #f0f7ff; border-radius: 12px;">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-primary-subtle">
+                                        <h6 class="fw-bold text-primary mb-0">
+                                            <i class="fas fa-file-contract me-2"></i> مراسلة مرتبطة بمشروع اعتماد
+                                        </h6>
+                                        @if($activeDecisionType)
+                                            <span class="badge bg-primary px-3 py-1 rounded-pill small">
+                                                قرار الاعتماد: {{ $activeDecisionType }}
+                                            </span>
+                                        @else
+                                            <span class="badge bg-primary px-3 py-1 rounded-pill small">
+                                                اعتماد مشروع
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="row g-2 small text-dark">
+                                        <div class="col-md-6 col-lg-3">
+                                            <span class="text-muted d-block" style="font-size: 0.78rem;">اسم المشروع:</span>
+                                            <strong>{{ $linkedProject->project_name ?? $linkedProject->name }} ({{ $linkedProject->form_number }})</strong>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3">
+                                            <span class="text-muted d-block" style="font-size: 0.78rem;">الجهة الحالية:</span>
+                                            <strong>{{ request('entity_name') ?? $activeApprovalStep?->entity?->name ?? 'الجهة المختصة' }}</strong>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3">
+                                            <span class="text-muted d-block" style="font-size: 0.78rem;">المرحلة الحالية:</span>
+                                            <strong>{{ request('phase_name') ?? $activeApprovalStep?->getPhaseArabicName() ?? 'اعتماد المرحلة' }}</strong>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3">
+                                            <span class="text-muted d-block" style="font-size: 0.78rem;">الخطوة:</span>
+                                            <strong>{{ request('step_order') ?? ($activeApprovalStep ? "الخطوة {$activeApprovalStep->step_order}" : 'خطوة الاعتماد') }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
                         @if($parent)
                             <div class="alert alert-info border-info d-flex align-items-center mb-4">
                                 <i class="fas fa-link me-3 fa-2x"></i>
@@ -86,7 +133,7 @@
                                 </label>
                                 <input type="text" name="subject" id="subject" 
                                        class="form-control @error('subject') is-invalid @enderror" 
-                                       value="{{ old('subject', isset($correspondence) ? $correspondence->subject : ($parent ? ($type == 'reply' ? 'رد: ' : 'إرجاع: ') . $parent->subject : '')) }}" 
+                                       value="{{ old('subject', request('subject', isset($correspondence) ? $correspondence->subject : ($parent ? ($type == 'reply' ? 'رد: ' : 'إرجاع: ') . $parent->subject : ''))) }}" 
                                        placeholder="أدخل عنوان المراسلة..."
                                        required>
                                 @error('subject')
@@ -112,14 +159,14 @@
                                      @if(old('project_id'))
                                          @php $oldProject = \App\Models\Project::find(old('project_id')); @endphp
                                          @if($oldProject)
-                                             <option value="{{ $oldProject->id }}" selected>{{ $oldProject->project_name }} ({{ $oldProject->form_number }})</option>
+                                             <option value="{{ $oldProject->id }}" selected>{{ $oldProject->project_name ?? $oldProject->name }} ({{ $oldProject->form_number }})</option>
                                          @endif
                                      @elseif(isset($correspondence) && $correspondence->project_id)
-                                         <option value="{{ $correspondence->project_id }}" selected>{{ $correspondence->project->project_name }} ({{ $correspondence->project->form_number }})</option>
+                                         <option value="{{ $correspondence->project_id }}" selected>{{ $correspondence->project->project_name ?? $correspondence->project->name }} ({{ $correspondence->project->form_number }})</option>
                                      @elseif(request('project_id'))
                                          @php $reqProject = \App\Models\Project::find(request('project_id')); @endphp
                                          @if($reqProject)
-                                             <option value="{{ $reqProject->id }}" selected>{{ $reqProject->project_name }} ({{ $reqProject->form_number }})</option>
+                                             <option value="{{ $reqProject->id }}" selected>{{ $reqProject->project_name ?? $reqProject->name }} ({{ $reqProject->form_number }})</option>
                                          @endif
                                      @endif
                                  </select>
@@ -291,8 +338,6 @@ $(document).ready(function() {
     // Form validation to prevent sending to the same entity
     $('#correspondence-form').on('submit', function(e) {
         const recipientEntityId = $('#recipient_entity_id').val();
-        // Note: We cannot access the sender entity ID directly in JavaScript.
-        // This validation is done in the controller, but we can add a basic check here.
         if (!recipientEntityId) {
             e.preventDefault();
             alert('يرجى اختيار الجهة المستلمة');
@@ -339,13 +384,11 @@ $(document).ready(function() {
             dataType: 'json',
             delay: 250,
             data: function (params) {
-                console.log('Searching for projects:', params.term);
                 return {
                     q: params.term
                 };
             },
             processResults: function (data) {
-                console.log('Project search results:', data);
                 return {
                     results: data.results
                 };

@@ -26,7 +26,7 @@
                             </td>
                             <td>
                                 @php
-                                    $displayValue = $entity->authority_type == 'internal' ? ($entity->internal_entity_id ?? $entity->authority_id) : $entity->authority_id;
+                                    $displayValue = $entity->authority_type == 'internal' ? $entity->internal_entity_id : $entity->authority_id;
                                     $parentName = 'لا توجد جهة أب';
                                     $parentId = $entity->parent_id;
 

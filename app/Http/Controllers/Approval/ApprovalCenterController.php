@@ -262,6 +262,10 @@ class ApprovalCenterController extends Controller
                 $q->with(['referringEntity', 'referredEntity', 'referringUser', 'respondingUser'])
                     ->orderBy('created_at', 'desc');
             },
+            'correspondences' => function ($q) {
+                $q->with(['senderEntity', 'recipientEntity', 'senderUser'])
+                    ->orderBy('created_at', 'desc');
+            },
             'documents',
         ]);
 

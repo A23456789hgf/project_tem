@@ -58,22 +58,40 @@
         if (entitySelect) {
             entitySelect.addEventListener('change', function() {
                 const entityId = this.value;
-                userSelect.innerHTML = '<option value="">اختر المستخدم...</option>';
+                userSelect.innerHTML = '<option value="">جاري تحميل المستخدمين...</option>';
+                userSelect.disabled = true;
                 
                 if (entityId) {
                     fetch(`/api/entities/${entityId}/users`)
                         .then(response => response.json())
                         .then(data => {
-                            if (data.success && data.users) {
-                                data.users.forEach(user => {
+                            userSelect.innerHTML = '<option value="">اختر المستخدم...</option>';
+                            userSelect.disabled = false;
+                            
+                            const users = Array.isArray(data) ? data : (data.users || []);
+                            if (users.length > 0) {
+                                users.forEach(user => {
                                     const option = document.createElement('option');
                                     option.value = user.id;
                                     option.textContent = user.name;
                                     userSelect.appendChild(option);
                                 });
+                            } else {
+                                const option = document.createElement('option');
+                                option.value = '';
+                                option.textContent = 'لا يوجد مستخدمين نشطين لهذه الجهة';
+                                option.disabled = true;
+                                userSelect.appendChild(option);
                             }
                         })
-                        .catch(error => console.error('Error fetching users:', error));
+                        .catch(error => {
+                            console.error('Error fetching users:', error);
+                            userSelect.innerHTML = '<option value="">تعذر تحميل المستخدمين</option>';
+                            userSelect.disabled = false;
+                        });
+                } else {
+                    userSelect.innerHTML = '<option value="">اختر المستخدم...</option>';
+                    userSelect.disabled = false;
                 }
             });
         }

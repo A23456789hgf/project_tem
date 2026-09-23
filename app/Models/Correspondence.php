@@ -653,7 +653,7 @@ class Correspondence extends Model
             return false;
         }
 
-        return $this->created_at->diffInDays(now()) > 7;
+        return $this->created_at ? $this->created_at->diffInDays(now()) > 7 : false;
     }
 
     /**

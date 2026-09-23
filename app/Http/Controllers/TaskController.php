@@ -82,15 +82,24 @@ class TaskController extends Controller
     }
 
     /**
-     * الحصول على المستخدمين المنتمين لجهة معينة
+     * الحصول على المستخدمين المنتمين لجهة معينة ضمن النطاق الإداري/الجغرافي
      */
-    public function getEntityUsers($entityId)
+    public function getEntityUsers($entityId, ?Request $request = null)
     {
-        $users = User::where('entity_id', $entityId)
+        $users = User::query()
+            ->where('status', 'Active')
+            ->where(function ($q) use ($entityId) {
+                $q->where('entity_id', $entityId)
+                    ->orWhere('administrative_scope_id', $entityId)
+                    ->orWhere('authority_id', $entityId);
+            })
             ->orderBy('name')
             ->get(['id', 'name']);
 
-        return response()->json($users);
+        return response()->json([
+            'success' => true,
+            'users' => $users,
+        ]);
     }
 
     /**

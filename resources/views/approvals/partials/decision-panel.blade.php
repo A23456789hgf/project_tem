@@ -197,9 +197,23 @@
                     <label class="form-label fw-semibold small text-dark">مرفق الاعتماد (اختياري):</label>
                     <input type="file" name="attachment" class="form-control form-control-sm" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
                 </div>
-                <button type="submit" class="btn btn-success rounded-pill w-100 fw-bold py-2 shadow-sm" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
+                <button type="submit" class="btn btn-success rounded-pill w-100 fw-bold py-2 shadow-sm mb-2" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
                     <i class="fas fa-check-circle me-1"></i> تأكيد الاعتماد والموافقة
                 </button>
+                <div class="text-center">
+                    <a href="{{ route('correspondence.create', [
+                        'project_id' => $project->id,
+                        'decision_type' => 'موافقة',
+                        'entity_id' => $activeStep->entity_id,
+                        'entity_name' => $activeStep->entity?->name ?? 'المركز الرئيسي',
+                        'phase' => $activeStep->phase,
+                        'phase_name' => $activeStep->getPhaseArabicName(),
+                        'step_order' => "الخطوة {$activeStep->step_order} من إجمالي {$approvalChain->count()}",
+                        'subject' => 'مراسلة (موافقة واعتماد) بخصوص مشروع: ' . ($project->project_name ?? $project->name) . ' (' . $project->form_number . ')'
+                    ]) }}" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm w-100" target="_blank">
+                        <i class="fas fa-envelope-open-text me-1"></i> إنشاء مراسلة مرتبطة بالموافقة (اختياري)
+                    </a>
+                </div>
             </form>
 
             {{-- Form 2: Request Completion --}}
@@ -231,9 +245,23 @@
                     <input type="file" name="attachment" class="form-control form-control-sm" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
                 </div>
 
-                <button type="submit" class="btn btn-warning rounded-pill w-100 fw-bold py-2 shadow-sm text-dark" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
+                <button type="submit" class="btn btn-warning rounded-pill w-100 fw-bold py-2 shadow-sm text-dark mb-2" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
                     <i class="fas fa-undo me-1"></i> إرسال طلب استكمال الإجراءات
                 </button>
+                <div class="text-center">
+                    <a href="{{ route('correspondence.create', [
+                        'project_id' => $project->id,
+                        'decision_type' => 'استكمال الإجراءات',
+                        'entity_id' => $activeStep->entity_id,
+                        'entity_name' => $activeStep->entity?->name ?? 'المركز الرئيسي',
+                        'phase' => $activeStep->phase,
+                        'phase_name' => $activeStep->getPhaseArabicName(),
+                        'step_order' => "الخطوة {$activeStep->step_order} من إجمالي {$approvalChain->count()}",
+                        'subject' => 'مراسلة (طلب استكمال) بخصوص مشروع: ' . ($project->project_name ?? $project->name) . ' (' . $project->form_number . ')'
+                    ]) }}" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 py-1 shadow-sm w-100" target="_blank">
+                        <i class="fas fa-envelope-open-text me-1"></i> إنشاء مراسلة مرتبطة بطلب الاستكمال (اختياري)
+                    </a>
+                </div>
             </form>
 
             {{-- Form 3: Consultation / Referral --}}
@@ -267,9 +295,23 @@
                     <div class="form-text small text-muted">يمكن إرفاق أكثر من ملف.</div>
                 </div>
 
-                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold py-2 shadow-sm" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
+                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold py-2 shadow-sm mb-2" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
                     <i class="fas fa-paper-plane me-1"></i> إرسال طلب الاستشارة
                 </button>
+                <div class="text-center">
+                    <a href="{{ route('correspondence.create', [
+                        'project_id' => $project->id,
+                        'decision_type' => 'طلب استشارة',
+                        'entity_id' => $activeStep->entity_id,
+                        'entity_name' => $activeStep->entity?->name ?? 'المركز الرئيسي',
+                        'phase' => $activeStep->phase,
+                        'phase_name' => $activeStep->getPhaseArabicName(),
+                        'step_order' => "الخطوة {$activeStep->step_order} من إجمالي {$approvalChain->count()}",
+                        'subject' => 'مراسلة (طلب استشارة فنية) بخصوص مشروع: ' . ($project->project_name ?? $project->name) . ' (' . $project->form_number . ')'
+                    ]) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 shadow-sm w-100" target="_blank">
+                        <i class="fas fa-envelope-open-text me-1"></i> إنشاء مراسلة مرتبطة بطلب الاستشارة (اختياري)
+                    </a>
+                </div>
             </form>
 
             {{-- Form 4: Reject --}}
@@ -289,9 +331,23 @@
                     <input type="file" name="attachment" class="form-control form-control-sm" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
                 </div>
 
-                <button type="submit" class="btn btn-danger rounded-pill w-100 fw-bold py-2 shadow-sm" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
+                <button type="submit" class="btn btn-danger rounded-pill w-100 fw-bold py-2 shadow-sm mb-2" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
                     <i class="fas fa-times-circle me-1"></i> تأكيد رفض المشروع
                 </button>
+                <div class="text-center">
+                    <a href="{{ route('correspondence.create', [
+                        'project_id' => $project->id,
+                        'decision_type' => 'رفض',
+                        'entity_id' => $activeStep->entity_id,
+                        'entity_name' => $activeStep->entity?->name ?? 'المركز الرئيسي',
+                        'phase' => $activeStep->phase,
+                        'phase_name' => $activeStep->getPhaseArabicName(),
+                        'step_order' => "الخطوة {$activeStep->step_order} من إجمالي {$approvalChain->count()}",
+                        'subject' => 'مراسلة (قرار رفض) بخصوص مشروع: ' . ($project->project_name ?? $project->name) . ' (' . $project->form_number . ')'
+                    ]) }}" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 shadow-sm w-100" target="_blank">
+                        <i class="fas fa-envelope-open-text me-1"></i> إنشاء مراسلة مرتبطة بالرفض (اختياري)
+                    </a>
+                </div>
             </form>
         </div>
 

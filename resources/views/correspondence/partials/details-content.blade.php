@@ -86,6 +86,47 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    {{-- Approval Context Banner (يظهر فقط إذا كانت المراسلة مرتبطة بمشروع اعتماد) --}}
+                    @if($correspondence->project_id)
+                        @php
+                            $corrProject = $correspondence->project;
+                            if ($corrProject && !$corrProject->relationLoaded('projectApprovals')) {
+                                $corrProject->load('projectApprovals.entity');
+                            }
+                            $activeStepOnProject = $corrProject?->projectApprovals?->firstWhere('is_active', true) ?? $corrProject?->projectApprovals?->first();
+                        @endphp
+                        <div class="card border-primary mb-4 shadow-sm" style="background-color: #f0f7ff; border-radius: 10px;">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-primary-subtle">
+                                    <h6 class="fw-bold text-primary mb-0">
+                                        <i class="fas fa-file-contract me-2"></i> مراسلة مرتبطة بمشروع اعتماد
+                                    </h6>
+                                    <a href="{{ route('approvals.show', $correspondence->project_id) }}" class="btn btn-sm btn-primary rounded-pill px-3 py-1 shadow-sm" target="_blank">
+                                        <i class="fas fa-external-link-alt me-1"></i> الانتقال لصفحة اعتماد المشروع
+                                    </a>
+                                </div>
+                                <div class="row g-2 small text-dark">
+                                    <div class="col-md-6 col-lg-3">
+                                        <span class="text-muted d-block" style="font-size: 0.78rem;">اسم المشروع:</span>
+                                        <strong>{{ $correspondence->project?->project_name ?? $correspondence->project?->name }} ({{ $correspondence->project?->form_number }})</strong>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <span class="text-muted d-block" style="font-size: 0.78rem;">الجهة الحالية:</span>
+                                        <strong>{{ $activeStepOnProject?->entity?->name ?? $correspondence->recipientEntity?->name ?? 'الجهة المختصة' }}</strong>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <span class="text-muted d-block" style="font-size: 0.78rem;">المرحلة الحالية:</span>
+                                        <strong>{{ $activeStepOnProject?->getPhaseArabicName() ?? 'اعتماد المرحلة' }}</strong>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <span class="text-muted d-block" style="font-size: 0.78rem;">قرار الاعتماد:</span>
+                                        <strong>{{ $correspondence->notes ? Str::limit($correspondence->notes, 40) : $correspondence->status_label }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="row">
                         <div class="col-md-5">
                             <table class="table table-bordered">
@@ -237,7 +278,7 @@
                 </div>
                 <div class="card-footer text-muted">
                     <small>تم الإنشاء: {{ $correspondence->formatted_created_at }} • آخر تحديث:
-                        {{ $correspondence->updated_at->format('Y-m-d H:i') }}</small>
+                        {{ $correspondence->updated_at?->format('Y-m-d H:i') ?? '-' }}</small>
                 </div>
             </div>
 

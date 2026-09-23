@@ -2,97 +2,6 @@
 
 @section('styles')
 <style>
-    /* Wizard Steps Modern Design */
-    .wizard-steps {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        margin-bottom: 3rem;
-        position: relative;
-    }
-
-    .wizard-steps::before {
-        content: '';
-        position: absolute;
-        top: 25px;
-        left: 15%;
-        right: 15%;
-        height: 4px;
-        background: #e9ecef;
-        z-index: 0;
-        border-radius: 10px;
-    }
-
-    .wizard-step {
-        position: relative;
-        z-index: 1;
-        cursor: pointer;
-        text-align: center;
-        width: 200px;
-        transition: transform 0.3s ease;
-    }
-
-    .wizard-step:hover {
-        transform: translateY(-5px);
-    }
-
-    .step-number {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: white;
-        border: 4px solid #e9ecef;
-        color: #adb5bd;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1rem;
-        font-weight: 800;
-        font-size: 1.2rem;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-
-    .step-label {
-        font-size: 0.95rem;
-        color: #6c757d;
-        font-weight: 700;
-        transition: all 0.3s;
-    }
-
-    .wizard-step.active .step-number {
-        background: var(--primary);
-        border-color: var(--primary-light);
-        color: white;
-        box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.15);
-        transform: scale(1.1);
-    }
-
-    .wizard-step.completed .step-number {
-        background: #198754;
-        border-color: #198754;
-        color: white;
-    }
-
-    .wizard-step.active .step-label { color: var(--primary); }
-    .wizard-step.completed .step-label { color: #198754; }
-
-    /* Step Content Animation */
-    .step-content {
-        display: none;
-        opacity: 0;
-        transition: opacity 0.4s ease;
-    }
-    .step-content.active {
-        display: block;
-        animation: slideUpFade 0.5s forwards;
-    }
-
-    @keyframes slideUpFade {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
     /* Premium Design System */
     :root {
         --premium-slate: #1e293b;
@@ -241,166 +150,13 @@
     .delay-1 { animation-delay: 0.1s; }
     .delay-2 { animation-delay: 0.2s; }
     .delay-3 { animation-delay: 0.3s; }
-
-    .highlight-section {
-        animation: highlightPulse 3s ease-out;
-    }
-
-    @keyframes highlightPulse {
-        0% { background-color: rgba(79, 70, 229, 0.1); box-shadow: 0 0 0 10px rgba(79, 70, 229, 0.1); }
-        50% { background-color: rgba(79, 70, 229, 0.05); box-shadow: 0 0 0 5px rgba(79, 70, 229, 0.05); }
-        100% { background-color: transparent; box-shadow: none; }
-    }
-
-    /* Approval Progress Tracker */
-    .approval-tracker-container {
-        position: relative;
-        overflow-x: auto;
-        padding-bottom: 1rem;
-    }
-
-    .approval-tracker {
-        display: flex;
-        justify-content: space-between;
-        min-width: 800px;
-        position: relative;
-        padding: 20px 0;
-    }
-
-    .tracker-item {
-        flex: 1;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        z-index: 1;
-    }
-
-    .tracker-line {
-        position: absolute;
-        top: 25px;
-        left: 50%;
-        width: 100%;
-        height: 3px;
-        background: #e2e8f0;
-        z-index: -1;
-    }
-
-    .tracker-item:last-child .tracker-line {
-        display: none;
-    }
-
-    .tracker-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .tracker-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: white;
-        border: 3px solid #e2e8f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 12px;
-        font-weight: bold;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    .tracker-title {
-        font-weight: 700;
-        font-size: 0.85rem;
-        color: #475569;
-        margin-bottom: 4px;
-        max-width: 150px;
-        line-height: 1.2;
-    }
-
-    .tracker-status {
-        font-size: 0.7rem;
-        color: #94a3b8;
-    }
-
-    /* Completed State */
-    .tracker-item.completed .tracker-icon {
-        background: #10b981;
-        border-color: #10b981;
-        color: white;
-        transform: scale(1.05);
-    }
-
-    .tracker-item.completed .tracker-line {
-        background: #10b981;
-    }
-
-    .tracker-item.completed .tracker-title {
-        color: #059669;
-    }
-
-    /* Active State */
-    .tracker-item.active .tracker-icon {
-        background: #4f46e5;
-        border-color: #4f46e5;
-        color: white;
-        transform: scale(1.15);
-        box-shadow: 0 0 0 5px rgba(79, 70, 229, 0.1);
-        animation: pulseActive 2s infinite;
-    }
-
-    .tracker-item.active .tracker-title {
-        color: #4f46e5;
-        font-size: 0.9rem;
-    }
-
-    @keyframes pulseActive {
-        0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .approval-tracker {
-            flex-direction: column;
-            min-width: unset;
-            padding-right: 40px;
-        }
-        .tracker-item {
-            flex-direction: row;
-            align-items: flex-start;
-            margin-bottom: 30px;
-        }
-        .tracker-line {
-            top: 50px;
-            left: 25px;
-            width: 3px;
-            height: calc(100% + 30px);
-        }
-        .tracker-content {
-            flex-direction: row;
-            text-align: right;
-            align-items: center;
-            gap: 15px;
-        }
-        .tracker-icon {
-            margin-bottom: 0;
-        }
-        .tracker-text {
-            text-align: right;
-        }
-    }
 </style>
 @endsection
 
 @section('content')
 <div class="content-wrapper">
     <div class="container-fluid py-5">
-        
+
         <!-- Page Header -->
         <div class="page-header mb-5 animate-fade-in">
             <div class="row align-items-center">
@@ -474,27 +230,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Wizard Navigation -->
-        <div class="wizard-steps animate-up">
-            <div class="wizard-step active" data-step="1">
-                <div class="step-number">1</div>
-                <div class="step-label">البيانات الأساسية</div>
-            </div>
-            <div class="wizard-step" data-step="2">
-                <div class="step-number">2</div>
-                <div class="step-label">التفاصيل الفنية والمالية</div>
-            </div>
-            <div class="wizard-step" data-step="3">
-                <div class="step-number">3</div>
-                <div class="step-label">المراجعة والاعتماد</div>
-            </div>
-        </div>
-
-        <!-- Alerts -->
-        
-
-        
 
         {{-- ===== CONFIRM DRAFT MODAL ===== --}}
         <div class="modal fade" id="confirmDraftModal" tabindex="-1" aria-hidden="true">
@@ -574,1101 +309,1001 @@
             @endcan
         @endif
 
-        <!-- Approval Workflow Status Card -->
-        <div id="approvalPhasesSection" class="card shadow-sm border-0 rounded-4 mb-4 overflow-hidden animate-up delay-1">
-            <div class="card-body p-0">
-                <div class="bg-light p-4 border-bottom">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
-                            <i class="fas fa-route fs-4"></i>
-                        </div>
-                        <div>
-                            <h5 class="fw-bold text-dark mb-1">مسار ومراحل الاعتماد</h5>
-                            <p class="text-muted small mb-0">تتبع حالة المشروع عبر الجهات المختلفة وصولاً للتنفيذ</p>
+        <!-- Project Tracking Information -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4 overflow-hidden">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-user-clock me-2"></i> بيانات التسجيل
+                </h5>
+                <div class="qr-code-badge bg-light p-2 rounded-3 border">
+                    <img src="{{ $qrCodeBase64 }}" alt="Project QR" style="width: 80px; height: 80px;">
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border-start border-4 border-primary h-100">
+                            <div class="info-label">منشئ المشروع</div>
+                            <div class="info-value fw-bold">{{ optional($project->createdBy)->name ?? 'غير محدد' }}</div>
+                            <div class="small text-muted mt-1">{{ $project->creator_entity_name }}</div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="p-4" id="approvalTrackerContainer">
-                    @include('projects.partials.approval-tracker')
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border-start border-4 border-info h-100">
+                            <div class="info-label">تاريخ الإنشاء</div>
+                            <div class="info-value dir-ltr">{{ $project->created_at ? $project->created_at->format('Y-m-d H:i') : '-' }}</div>
+                        </div>
+                    </div>
+                    @if($project->updated_by_user_id)
+                    <div class="col-md-4">
+                        <div class="p-3 bg-light rounded-3 border-start border-4 border-warning h-100">
+                            <div class="info-label">آخر تعديل</div>
+                            <div class="info-value fw-bold">{{ optional($project->updatedBy)->name ?? 'غير محدد' }}</div>
+                            <div class="small text-muted mt-1">{{ $project->updated_at ? $project->updated_at->format('Y-m-d H:i') : '-' }}</div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
-               
- 
 
-            <!-- Project Tracking Information -->
-            <div class="card shadow-sm border-0 rounded-4 mb-4 overflow-hidden">
-                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-primary">
-                        <i class="fas fa-user-clock me-2"></i> بيانات التسجيل
-                    </h5>
-                    <div class="qr-code-badge bg-light p-2 rounded-3 border">
-                        <img src="{{ $qrCodeBase64 }}" alt="Project QR" style="width: 80px; height: 80px;">
-                    </div>
+        {{-- ============================================================ --}}
+        {{-- SECTION 1: البيانات الأساسية والأهداف والنتائج --}}
+        {{-- ============================================================ --}}
+
+        <!-- Project Basic Data -->
+        <div id="basic-data-section" class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-info-circle me-2"></i> البيانات الأساسية
+                </h5>
+                <div id="projectStatusBar" class="d-flex gap-2">
+                    @include('projects.partials.project-status-badge')
                 </div>
-                <div class="card-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="p-3 bg-light rounded-3 border-start border-4 border-primary h-100">
-                                <div class="info-label">منشئ المشروع</div>
-                                <div class="info-value fw-bold">{{ optional($project->createdBy)->name ?? 'غير محدد' }}</div>
-                                <div class="small text-muted mt-1">{{ $project->creator_entity_name }}</div>
-                            </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="info-label d-block">اسم المشروع</label>
+                            <div class="fs-5 fw-bold text-dark">{{ $project->project_name ?: (in_array($project->status, ['draft', 'completed_draft']) ? 'مسودة غير معنونة' : 'مشروع غير معنون') }}</div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="p-3 bg-light rounded-3 border-start border-4 border-info h-100">
-                                <div class="info-label">تاريخ الإنشاء</div>
-                                <div class="info-value dir-ltr">{{ $project->created_at ? $project->created_at->format('Y-m-d H:i') : '-' }}</div>
-                            </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">البرنامج</div>
+                        <div class="info-value">{{ optional($project->program)->name ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">المجال الرئيسي</div>
+                        <div class="info-value">{{ optional($project->domain)->name ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">المجال الفرعي</div>
+                        <div class="info-value">{{ optional($project->subdomain)->name ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">التدخل</div>
+                        <div class="info-value">{{ optional($project->intervention)->name ?? '-' }}</div>
+                    </div>
+                    <div class="col-12"><hr class="text-muted opacity-25"></div>
+                    <div class="col-md-6 col-lg-6">
+                        <div class="info-label">الأولوية</div>
+                        <div class="info-value">
+                            @if(optional($project->priority)->priority)
+                                <span class="badge bg-secondary">{{ $project->priority->priority }}</span>
+                            @else
+                                -
+                            @endif
                         </div>
-                        @if($project->updated_by_user_id)
-                        <div class="col-md-4">
-                            <div class="p-3 bg-light rounded-3 border-start border-4 border-warning h-100">
-                                <div class="info-label">آخر تعديل</div>
-                                <div class="info-value fw-bold">{{ optional($project->updatedBy)->name ?? 'غير محدد' }}</div>
-                                <div class="small text-muted mt-1">{{ $project->updated_at ? $project->updated_at->format('Y-m-d H:i') : '-' }}</div>
-                            </div>
-                        </div>
-                        @endif
+                    </div>
+                    <div class="col-12"><hr class="text-muted opacity-25"></div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">تاريخ البداية (م)</div>
+                        <div class="info-value font-monospace">{{ $project->start_date_gregorian ? \Carbon\Carbon::parse($project->start_date_gregorian)->format('Y-m-d') : '-' }}</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">تاريخ النهاية (م)</div>
+                        <div class="info-value font-monospace">{{ $project->end_date_gregorian ? \Carbon\Carbon::parse($project->end_date_gregorian)->format('Y-m-d') : '-' }}</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">تاريخ البداية (هـ)</div>
+                        <div class="info-value">{{ $project->start_date_hijri ?? '-' }}</div>
+                    </div>
+                    <div class="col-md-6 col-lg-3">
+                        <div class="info-label">تاريخ النهاية (هـ)</div>
+                        <div class="info-value">{{ $project->end_date_hijri ?? '-' }}</div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Step 1: البيانات الأساسية والأهداف والنتائج -->
-            <div class="step-content active" id="step-1">
-                
-                <!-- Project Basic Data -->
-                <div id="basic-data-section" class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 fw-bold text-primary">
-                            <i class="fas fa-info-circle me-2"></i> البيانات الأساسية
-                        </h5>
-                        <div id="projectStatusBar" class="d-flex gap-2">
-                            @include('projects.partials.project-status-badge')
-                        </div>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="row g-4">
-                            <div class="col-12">
-                                <div class="mb-3">
-                                    <label class="info-label d-block">اسم المشروع</label>
-                                    <div class="fs-5 fw-bold text-dark">{{ $project->project_name ?: (in_array($project->status, ['draft', 'completed_draft']) ? 'مسودة غير معنونة' : 'مشروع غير معنون') }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <div class="info-label">البرنامج</div>
-                                <div class="info-value">{{ optional($project->program)->name ?? '-' }}</div>
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <div class="info-label">المجال الرئيسي</div>
-                                <div class="info-value">{{ optional($project->domain)->name ?? '-' }}</div>
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <div class="info-label">المجال الفرعي</div>
-                                <div class="info-value">{{ optional($project->subdomain)->name ?? '-' }}</div>
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <div class="info-label">التدخل</div>
-                                <div class="info-value">{{ optional($project->intervention)->name ?? '-' }}</div>
-                            </div>
-                            <div class="col-12"><hr class="text-muted opacity-25"></div>
-                            <div class="col-md-6 col-lg-6">
-                                <div class="info-label">الأولوية</div>
-                                <div class="info-value">
-                                    @if(optional($project->priority)->priority)
-                                        <span class="badge bg-secondary">{{ $project->priority->priority }}</span>
+        <!-- Project Locations -->
+        @if($project->locations && $project->locations->count() > 0)
+        <div id="locations-section" class="premium-container animate-premium delay-1">
+            <div class="premium-header">
+                <div class="bg-white bg-opacity-20 rounded-circle p-2">
+                    <i class="fas fa-map-marker-alt text-white"></i>
+                </div>
+                <h5 class="mb-0 fw-bold">مواقع المشروع</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="elegant-table">
+                    <thead>
+                        <tr>
+                            <th width="80">#</th>
+                            <th>المحافظة</th>
+                            <th>المديرية</th>
+                            <th>المنطقة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($project->locations as $location)
+                        <tr class="floating-row">
+                            <td class="fw-bold text-muted ps-4">{{ $loop->iteration }}</td>
+                            <td class="fw-semibold">{{ optional($location->governorate)->name ?? 'جميع المحافظات' }}</td>
+                            <td>{{ optional($location->directorate)->name ?? 'جميع المديريات' }}</td>
+                            <td class="text-muted">{{ optional($location->subArea)->name ?? $location->area ?? 'جميع المناطق/العزل' }} / {{ optional($location->village)->name ?? 'جميع القرى/الحارات' }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted opacity-50">
+                                <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
+                                <p>لا توجد مواقع مسجلة</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
+        <!-- Project Details -->
+        <div id="details-section" class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-file-alt me-2"></i> تفاصيل المشروع
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                @if($project->detail)
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="info-label mb-0 me-3">هل المشروع جزء من الخطة؟</div>
+                                <div>
+                                    @if($project->detail->is_part_of_plan)
+                                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><i class="fas fa-check me-1"></i> نعم</span>
                                     @else
-                                        -
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill"><i class="fas fa-times me-1"></i> لا</span>
                                     @endif
                                 </div>
                             </div>
-                             <div class="col-12"><hr class="text-muted opacity-25"></div>
-                            <div class="col-md-6 col-lg-3">
-                                <div class="info-label">تاريخ البداية (م)</div>
-                                <div class="info-value font-monospace">{{ $project->start_date_gregorian ? \Carbon\Carbon::parse($project->start_date_gregorian)->format('Y-m-d') : '-' }}</div>
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <div class="info-label">تاريخ النهاية (م)</div>
-                                <div class="info-value font-monospace">{{ $project->end_date_gregorian ? \Carbon\Carbon::parse($project->end_date_gregorian)->format('Y-m-d') : '-' }}</div>
-                            </div>
-                             <div class="col-md-6 col-lg-3">
-                                <div class="info-label">تاريخ البداية (هـ)</div>
-                                <div class="info-value">{{ $project->start_date_hijri ?? '-' }}</div>
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <div class="info-label">تاريخ النهاية (هـ)</div>
-                                <div class="info-value">{{ $project->end_date_hijri ?? '-' }}</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="bg-light p-3 rounded-3">
+                                <div class="info-label text-primary mb-2">ملخص المشروع</div>
+                                <p class="mb-0 text-dark" style="line-height: 1.6;">{{ $project->detail->project_summary ?? '-' }}</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Project Locations -->
-                @if($project->locations && $project->locations->count() > 0)
-                <div id="locations-section" class="premium-container animate-premium delay-1">
-                    <div class="premium-header">
-                        <div class="bg-white bg-opacity-20 rounded-circle p-2">
-                            <i class="fas fa-map-marker-alt text-white"></i>
+                        <div class="col-12">
+                            <div class="info-label mb-2">المشكلة ومبررات التدخل</div>
+                            <p class="mb-0 text-muted">{{ $project->detail->problem_and_justification ?? '-' }}</p>
                         </div>
-                        <h5 class="mb-0 fw-bold">مواقع المشروع</h5>
+                        <div class="col-12"><hr class="text-muted opacity-25"></div>
+                        <div class="col-md-6">
+                            <div class="info-label mb-2">مكونات المشروع</div>
+                            <p class="mb-0 text-muted">{{ $project->detail->project_components ?? '-' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-label mb-2">الأثر المتوقع</div>
+                            <p class="mb-0 text-muted">{{ $project->detail->expected_impact ?? '-' }}</p>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="elegant-table">
-                            <thead>
-                                <tr>
-                                    <th width="80">#</th>
-                                    <th>المحافظة</th>
-                                    <th>المديرية</th>
-                                    <th>المنطقة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($project->locations as $location)
-                                <tr class="floating-row">
-                                    <td class="fw-bold text-muted ps-4">{{ $loop->iteration }}</td>
-                                    <td class="fw-semibold">{{ optional($location->governorate)->name ?? 'جميع المحافظات' }}</td>
-                                    <td>{{ optional($location->directorate)->name ?? 'جميع المديريات' }}</td>
-                                    <td class="text-muted">{{ optional($location->subArea)->name ?? $location->area ?? 'جميع المناطق/العزل' }} / {{ optional($location->village)->name ?? 'جميع القرى/الحارات' }}</td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted opacity-50">
-                                        <i class="fas fa-map-marked-alt fa-3x mb-3"></i>
-                                        <p>لا توجد مواقع مسجلة</p>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                @else
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                        <p>لا توجد تفاصيل إضافية مسجلة</p>
                     </div>
-                </div>
                 @endif
+            </div>
+        </div>
 
-                <!-- Project Details -->
-                <div id="details-section" class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-primary">
-                            <i class="fas fa-file-alt me-2"></i> تفاصيل المشروع
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
-                        @if($project->detail)
-                            <div class="row g-4">
-                                <div class="col-12">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <div class="info-label mb-0 me-3">هل المشروع جزء من الخطة؟</div>
-                                        <div>
-                                            @if($project->detail->is_part_of_plan)
-                                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill"><i class="fas fa-check me-1"></i> نعم</span>
-                                            @else
-                                                <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill"><i class="fas fa-times me-1"></i> لا</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="bg-light p-3 rounded-3">
-                                        <div class="info-label text-primary mb-2">ملخص المشروع</div>
-                                        <p class="mb-0 text-dark" style="line-height: 1.6;">{{ $project->detail->project_summary ?? '-' }}</p>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="info-label mb-2">المشكلة ومبررات التدخل</div>
-                                    <p class="mb-0 text-muted">{{ $project->detail->problem_and_justification ?? '-' }}</p>
-                                </div>
-                                <div class="col-12"><hr class="text-muted opacity-25"></div>
-                                <div class="col-md-6">
-                                    <div class="info-label mb-2">مكونات المشروع</div>
-                                    <p class="mb-0 text-muted">{{ $project->detail->project_components ?? '-' }}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="info-label mb-2">الأثر المتوقع</div>
-                                    <p class="mb-0 text-muted">{{ $project->detail->expected_impact ?? '-' }}</p>
-                                </div>
-                            </div>
-                        @else
-                            <div class="text-center py-5 text-muted">
-                                <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
-                                <p>لا توجد تفاصيل إضافية مسجلة</p>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- 4. Overall Objective -->
-                <div class="content-section">
-                    <div class="section-header">
-                        <i class="fas fa-target"></i>
-                        الهدف الرئيسي
-                    </div>
-
-                    @if($project->mainObjectives && $project->mainObjectives->count() > 0)
-                        <div class="info-grid">
-                            @foreach($project->mainObjectives as $objective)
-                                <div class="info-item">
-                                    <div class="info-label">الهدف الرئيسي</div>
-                                    <div class="info-value">{{ $objective->objective ?? 'غير محدد' }}</div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <div class="no-data">
-                            <i class="fas fa-inbox me-2"></i>لا توجد أهداف رئيسية
-                        </div>
-                    @endif
-                </div>
-
-                <!-- 5. Specific Objectives, Results, and Outputs -->
-                <div class="content-section">
-                    <div class="section-header">
-                        <i class="fas fa-list-check"></i>
-                        الأهداف الخاصة والنتائج والمخرجات
-                    </div>
-
-                    @if($project->specialObjectives && $project->specialObjectives->count() > 0)
-                        @foreach($project->specialObjectives as $objective)
-                            <div class="subsection-title">
-                                <i class="fas fa-angle-left ms-2"></i>الهدف الخاص: {{ $objective->objective ?? 'غير محدد' }}
-                            </div>
-
-                            <!-- Results -->
-                            @if($objective->results && $objective->results->count() > 0)
-                                <div class="mt-4 mb-3 d-flex align-items-center gap-2 text-indigo-600 fw-bold">
-                                    <div class="bg-indigo-50 p-1 rounded">
-                                        <i class="fas fa-check-double small"></i>
-                                    </div>
-                                    <span>النتائج المستهدفة:</span>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="elegant-table">
-                                        <thead>
-                                            <tr>
-                                                <th width="60">#</th>
-                                                <th width="250">النتيجة</th>
-                                                <th>الوصف التفصيلي</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse($objective->results as $result)
-                                            <tr class="floating-row">
-                                                <td class="ps-3 text-slate-400 fw-bold">{{ $loop->iteration }}</td>
-                                                <td class="fw-bold text-slate-800">{{ $result->result_name ?? 'غير محدد' }}</td>
-                                                <td class="text-slate-500 small">{{ $result->description ?? 'بدون وصف' }}</td>
-                                            </tr>
-                                            @empty
-                                            <tr>
-                                                <td colspan="3" class="text-center py-4 text-slate-400">لا توجد نتائج</td>
-                                            </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                 <!-- Outputs -->
-                                 @foreach($objective->results as $result)
-                                     @if($result->outputs && $result->outputs->count() > 0)
-                                         <div class="mt-4 mb-3 d-flex align-items-center gap-2 text-emerald-600 fw-bold ms-4">
-                                             <div class="bg-emerald-50 p-1 rounded">
-                                                 <i class="fas fa-arrow-left small"></i>
-                                             </div>
-                                             <span>المخرجات لـ: {{ $result->result_name ?? 'غير محدد' }}</span>
-                                         </div>
-                                         <div class="table-responsive ms-4">
-                                             <table class="elegant-table">
-                                                 <thead>
-                                                     <tr>
-                                                         <th width="60">#</th>
-                                                         <th>المخرج</th>
-                                                         <th>الوصف</th>
-                                                         <th width="150" class="text-center">الكمية المتوقعة</th>
-                                                     </tr>
-                                                 </thead>
-                                                 <tbody>
-                                                     @forelse($result->outputs as $output)
-                                                     <tr class="floating-row">
-                                                         <td class="ps-3 text-slate-400 fw-bold">{{ $loop->iteration }}</td>
-                                                         <td class="fw-bold text-slate-800">{{ $output->output ?? 'غير محدد' }}</td>
-                                                         <td class="text-slate-500 small">{{ $output->description ?? 'بدون وصف' }}</td>
-                                                         <td class="text-center">
-                                                            <span class="badge-premium badge-premium-blue">{{ $output->target_value ?? '-' }}</span>
-                                                         </td>
-                                                     </tr>
-                                                     @empty
-                                                     <tr>
-                                                         <td colspan="4" class="text-center py-4 text-slate-400">لا توجد مخرجات</td>
-                                                     </tr>
-                                                     @endforelse
-                                                 </tbody>
-                                             </table>
-                                         </div>
-                                     @endif
-                                 @endforeach
-                            @endif
-                        @endforeach
-                    @else
-                        <div class="no-data">
-                            <i class="fas fa-inbox me-2"></i>لا توجد أهداف خاصة
-                        </div>
-                    @endif
-                </div>
+        <!-- Overall Objective -->
+        <div class="content-section">
+            <div class="section-header">
+                <i class="fas fa-target"></i>
+                الهدف الرئيسي
             </div>
 
-            <!-- Step 2: المخاطر والجهات والأنشطة والتكاليف -->
-            <div class="step-content" id="step-2">
-                <!-- الوضع المالي للمشروع (Phase 4) -->
-                @include('projects.partials.financial_status')
+            @if($project->mainObjectives && $project->mainObjectives->count() > 0)
+                <div class="info-grid">
+                    @foreach($project->mainObjectives as $objective)
+                        <div class="info-item">
+                            <div class="info-label">الهدف الرئيسي</div>
+                            <div class="info-value">{{ $objective->objective ?? 'غير محدد' }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="no-data">
+                    <i class="fas fa-inbox me-2"></i>لا توجد أهداف رئيسية
+                </div>
+            @endif
+        </div>
 
-                <!-- 1. Risks and Stakeholders -->
-                <div id="technical-details-section" class="content-section">
-                    <div class="section-header">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        المخاطر والجهات ذات الصلة
+        <!-- Specific Objectives, Results, and Outputs -->
+        <div class="content-section">
+            <div class="section-header">
+                <i class="fas fa-list-check"></i>
+                الأهداف الخاصة والنتائج والمخرجات
+            </div>
+
+            @if($project->specialObjectives && $project->specialObjectives->count() > 0)
+                @foreach($project->specialObjectives as $objective)
+                    <div class="subsection-title">
+                        <i class="fas fa-angle-left ms-2"></i>الهدف الخاص: {{ $objective->objective ?? 'غير محدد' }}
                     </div>
 
-                    <!-- Risks -->
-                    @if($project->risks && $project->risks->count() > 0)
-                        <div class="subsection-title mb-4 mt-4 fw-bold text-slate-700">
-                            <i class="fas fa-exclamation-triangle ms-2 text-rose-500"></i>المخاطر المحتملة واستراتيجيات التخفيف
+                    @if($objective->results && $objective->results->count() > 0)
+                        <div class="mt-4 mb-3 d-flex align-items-center gap-2 text-indigo-600 fw-bold">
+                            <div class="bg-indigo-50 p-1 rounded">
+                                <i class="fas fa-check-double small"></i>
+                            </div>
+                            <span>النتائج المستهدفة:</span>
                         </div>
                         <div class="table-responsive">
                             <table class="elegant-table">
                                 <thead>
                                     <tr>
                                         <th width="60">#</th>
-                                        <th>نوع الخطر</th>
-                                        <th width="150" class="text-center">مستوى الخطورة</th>
-                                        <th>الحلول المقترحة</th>
+                                        <th width="250">النتيجة</th>
+                                        <th>الوصف التفصيلي</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($project->risks as $risk)
+                                    @forelse($objective->results as $result)
                                     <tr class="floating-row">
                                         <td class="ps-3 text-slate-400 fw-bold">{{ $loop->iteration }}</td>
-                                        <td class="fw-bold text-slate-800">{{ $risk->risk ?? 'غير محدد' }}</td>
-                                        <td class="text-center">
-                                            @php
-                                                $premiumBadge = match($risk->risk_rate) {
-                                                    'high' => 'badge-premium-rose',
-                                                    'medium' => 'badge-premium-amber',
-                                                    'low' => 'badge-premium-green',
-                                                    default => 'badge-premium-blue'
-                                                };
-                                                $riskIcon = match($risk->risk_rate) {
-                                                    'high' => 'fa-fire',
-                                                    'medium' => 'fa-exclamation-circle',
-                                                    'low' => 'fa-check-circle',
-                                                    default => 'fa-question-circle'
-                                                };
-                                            @endphp
-                                            <span class="badge-premium {{ $premiumBadge }}">
-                                                <i class="fas {{ $riskIcon }}"></i>
-                                                {{ $risk->risk_rate ?? 'غير محدد' }}
-                                            </span>
-                                        </td>
-                                        <td class="small text-slate-500">{{ $risk->proposed_solution ?? 'بدون حل' }}</td>
+                                        <td class="fw-bold text-slate-800">{{ $result->result_name ?? 'غير محدد' }}</td>
+                                        <td class="text-slate-500 small">{{ $result->description ?? 'بدون وصف' }}</td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="4" class="text-center py-4 text-slate-400">لا توجد مخاطر مسجلة</td>
+                                        <td colspan="3" class="text-center py-4 text-slate-400">لا توجد نتائج</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
-                    @endif
 
-                    <!-- Supervising Authorities -->
-                    @php
-                        $supervisingAuthorities = $project->supervisingAuthorities()->with(['authority', 'parent'])->get();
-                    @endphp
-
-                    @if($supervisingAuthorities->count() > 0)
-                        <div class="subsection-title mb-4 fw-bold text-slate-700">
-                            <i class="fas fa-building ms-2 text-indigo-500"></i>الجهات المشرفة
-                        </div>
-                        <div class="table-responsive">
-                            <table class="elegant-table">
-                                <thead>
-                                    <tr>
-                                        <th width="80">#</th>
-                                        <th>اسم الجهة</th>
-                                        <th width="150" class="text-center">النوع</th>
-                                        <th>الجهة التابعة لها</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($supervisingAuthorities as $authority)
-                                    <tr class="floating-row">
-                                        <td class="text-center fw-bold text-slate-400">{{ $loop->iteration }}</td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
-                                                    <i class="fas fa-eye small"></i>
-                                                </div>
-                                                <span class="fw-bold text-slate-700">{{ $authority->authority->agency_name ?? 'غير محدد' }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            @if($authority->authority_type == 'internal')
-                                                <span class="badge-premium badge-premium-blue">
-                                                    <i class="fas fa-home"></i>داخلية
-                                                </span>
-                                            @else
-                                                <span class="badge-premium badge-premium-green">
-                                                    <i class="fas fa-external-link-alt"></i>خارجية
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($authority->parent && $authority->parent->agency_name)
-                                                <div class="d-flex align-items-center gap-2 text-slate-500 small">
-                                                    <i class="fas fa-level-up-alt fa-rotate-90 opacity-40"></i>
-                                                    <span>{{ $authority->parent->agency_name }}</span>
-                                                </div>
-                                            @else
-                                                <span class="text-slate-300 fst-italic">تبعية مباشرة</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-
-                    <!-- Implementing Entities -->
-                    @if($project->implementingEntities && $project->implementingEntities->count() > 0)
-                        <div class="subsection-title mb-4 mt-5 fw-bold text-slate-700">
-                            <i class="fas fa-cogs ms-2 text-indigo-500"></i>الجهات المنفذة
-                        </div>
-                        <div class="table-responsive">
-                            <table class="elegant-table">
-                                <thead>
-                                    <tr>
-                                        <th width="80">#</th>
-                                        <th>الجهة</th>
-                                        <th width="150" class="text-center">النوع</th>
-                                        <th>الجهة الرئيسية</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($project->implementingEntities as $entity)
-                                    <tr class="floating-row">
-                                        <td class="text-center fw-bold text-slate-400">{{ $loop->iteration }}</td>
-                                        <td class="fw-bold text-slate-700">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <i class="fas fa-building text-slate-300"></i>
-                                                {{ $entity->authority->agency_name ?? ($entity->internalEntity->name ?? 'غير محدد') }}
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            @if($entity->authority_type === 'internal')
-                                                <span class="badge-premium badge-premium-blue">داخلية</span>
-                                            @else
-                                                <span class="badge-premium badge-premium-green">خارجية</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-slate-500 small">
-                                            @if($entity->authority_type == 'internal')
-                                                @php
-                                                    $internalEnt = collect($internalEntities ?? [])->firstWhere('entity_name', optional($entity->internalEntity)->name);
-                                                @endphp
-                                                {{ $internalEnt['father_name'] ?? 'لا يوجد جهة أب' }}
-                                            @else
-                                                {{ $entity->parent->agency_name ?? 'لا يوجد' }}
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-
-                    <!-- Participating & Beneficiary Entities Combined Premium -->
-                    @if(($project->participatingEntities && $project->participatingEntities->count() > 0) || ($project->beneficiaryEntities && $project->beneficiaryEntities->count() > 0))
-                        <div class="subsection-title mb-4 mt-5 fw-bold text-slate-700">
-                            <i class="fas fa-users-cog ms-2 text-indigo-500"></i>الجهات المشاركة والمستفيدة
-                        </div>
-                        <div class="table-responsive">
-                            <table class="elegant-table">
-                                <thead>
-                                    <tr>
-                                        <th width="80">#</th>
-                                        <th width="150" class="text-center">الدور / النوع</th>
-                                        <th>الجهة</th>
-                                        <th>الجهة الأم / التبعية</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @php $index = 1; @endphp
-                                    @foreach($project->participatingEntities as $entity)
-                                    <tr class="floating-row">
-                                        <td class="text-center fw-bold text-slate-400">{{ $index++ }}</td>
-                                        <td class="text-center">
-                                            <span class="badge-premium badge-premium-amber">
-                                                <i class="fas fa-handshake"></i> مشاركة
-                                            </span>
-                                        </td>
-                                        <td class="fw-bold text-slate-700">{{ optional($entity->authority)->agency_name ?? 'غير محدد' }}</td>
-                                        <td class="text-slate-500 small">{{ optional($entity->parent)->agency_name ?? 'تبعية رئيسية' }}</td>
-                                    </tr>
-                                    @endforeach
-                                    @foreach($project->beneficiaryEntities as $entity)
-                                    <tr class="floating-row">
-                                        <td class="text-center fw-bold text-slate-400">{{ $index++ }}</td>
-                                        <td class="text-center">
-                                            <span class="badge-premium badge-premium-rose">
-                                                <i class="fas fa-hand-holding-heart"></i> مستفيدة
-                                            </span>
-                                        </td>
-                                        <td class="fw-bold text-slate-700">{{ optional($entity->authority)->agency_name ?? 'غير محدد' }}</td>
-                                        <td class="text-slate-500 small">{{ optional($entity->parent)->agency_name ?? 'تبعية رئيسية' }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @endif
-                </div>
-
-                <!-- 2. Preliminary Activities and Costs -->
-                @if($project->preliminaryActivities && $project->preliminaryActivities->count() > 0)
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-primary">
-                            <i class="fas fa-play-circle me-2"></i> الأنشطة التمهيدية
-                        </h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="accordion accordion-flush" id="prelimActivitiesAccordion">
-                            @foreach($project->preliminaryActivities as $actIndex => $activity)
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="prelimHeading{{ $actIndex }}">
-                                        <button class="accordion-button {{ $actIndex !== 0 ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#prelimCollapse{{ $actIndex }}" aria-expanded="{{ $actIndex === 0 ? 'true' : 'false' }}">
-                                            <div class="d-flex align-items-center w-100 justify-content-between pe-3">
-                                                <div>
-                                                    <span class="badge bg-secondary rounded-pill me-2">{{ $loop->iteration }}</span>
-                                                    <span class="fw-bold text-dark">{{ $activity->name ?? 'نشاط تمهيدي' }}</span>
-                                                </div>
-                                                <span class="badge bg-light text-dark border">الوزن: {{ $activity->weight ?? '0' }}%</span>
-                                            </div>
-                                        </button>
-                                    </h2>
-                                    <div id="prelimCollapse{{ $actIndex }}" class="accordion-collapse collapse {{ $actIndex === 0 ? 'show' : '' }}" aria-labelledby="prelimHeading{{ $actIndex }}" data-bs-parent="#prelimActivitiesAccordion">
-                                        <div class="accordion-body bg-light">
-                                            <!-- Procedures and Costs Premium -->
-                                            @if($activity->procedures && $activity->procedures->count() > 0)
-                                                <div class="table-responsive mt-3">
-                                                    <table class="elegant-table table-sm">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>اسم الإجراء</th>
-                                                                <th width="80" class="text-center">الأهمية</th>
-                                                                <th>وسائل التحقق</th>
-                                                                <th width="100" class="text-center">المدة</th>
-                                                                <th width="140" class="text-end">ميزانية الإجراء</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($activity->procedures as $procedure)
-                                                            <tr class="floating-row">
-                                                                <td class="fw-bold text-slate-700 ps-4">
-                                                                    <div class="d-flex align-items-center gap-2">
-                                                                        <i class="fas fa-chevron-left x-small text-slate-300"></i>
-                                                                        {{ $procedure->procedure_name ?? '-' }}
-                                                                    </div>
-                                                                </td>
-                                                                <td class="text-center">
-                                                                    <span class="badge-premium badge-premium-blue">{{ $procedure->weight ?? '-' }}%</span>
-                                                                </td>
-                                                                <td class="small text-slate-500">{{ $procedure->verification_means ?? '-' }}</td>
-                                                                <td class="text-center small text-slate-600 font-monospace">{{ $procedure->duration_days ?? '-' }} ي</td>
-                                                                <td class="text-end fw-bold text-emerald-600 font-monospace pe-3">
-                                                                    {{ $procedure->costs && $procedure->costs->sum('total') ? number_format($procedure->costs->sum('total'), 2) : '0.00' }}
-                                                                </td>
-                                                            </tr>
-                                                            <!-- Premium Nested Costs -->
-                                                            @if($procedure->costs && $procedure->costs->count() > 0)
-                                                                <tr>
-                                                                    <td colspan="5" class="py-0 px-4">
-                                                                        <div class="premium-nested-container">
-                                                                            @foreach($procedure->costs as $cost)
-                                                                            <div class="premium-nested-item">
-                                                                                <div class="d-flex align-items-center gap-3">
-                                                                                    <div class="text-indigo-400 opacity-50"><i class="fas fa-coins x-small"></i></div>
-                                                                                    <span class="fw-medium text-slate-600">{{ $cost->financialItem->name ?? 'بند' }}</span>
-                                                                                    <span class="badge border text-slate-400 rounded-pill x-small px-2">{{ $cost->unit->unit_name ?? '-' }}</span>
-                                                                                </div>
-                                                                                <div class="d-flex align-items-center gap-4">
-                                                                                    <span class="text-slate-400 x-small font-monospace">{{ number_format($cost->amount ?? 0, 2) }} × {{ $cost->quantity ?? 0 }}</span>
-                                                                                    <span class="fw-bold text-indigo-600 font-monospace">{{ number_format($cost->total ?? 0, 2) }}</span>
-                                                                                </div>
-                                                                            </div>
-                                                                            @endforeach
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            @endif
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            @else
-                                                <div class="text-muted small fst-italic text-center py-2">لا توجد إجراءات مسجلة</div>
-                                            @endif
-                                        </div>
+                        @foreach($objective->results as $result)
+                            @if($result->outputs && $result->outputs->count() > 0)
+                                <div class="mt-4 mb-3 d-flex align-items-center gap-2 text-emerald-600 fw-bold ms-4">
+                                    <div class="bg-emerald-50 p-1 rounded">
+                                        <i class="fas fa-arrow-left small"></i>
                                     </div>
+                                    <span>المخرجات لـ: {{ $result->result_name ?? 'غير محدد' }}</span>
                                 </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    <!-- Financial Summary Footer -->
-                    @if($project->preliminaryFinancialSummaries && $project->preliminaryFinancialSummaries->count() > 0)
-                    <div class="card-footer bg-light p-3">
-                        <h6 class="fw-bold text-dark mb-2 small text-uppercase">ملخص مالي (تمهيدي)</h6>
-                        <div class="d-flex flex-wrap gap-3">
-                            @foreach($project->preliminaryFinancialSummaries as $summary)
-                            <div class="badge bg-white text-dark border p-2 shadow-sm rounded-3 d-flex align-items-center">
-                                <span class="text-muted me-2">{{ $summary->item ?? '-' }}:</span>
-                                <span class="fw-bold font-monospace text-primary">{{ number_format($summary->amount ?? 0, 2) }}</span>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endif
-                </div>
-                @endif
-
-                <!-- 3. Executive Activities and Costs -->
-                @if($project->executiveActivities && $project->executiveActivities->count() > 0)
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-primary">
-                            <i class="fas fa-cogs me-2"></i> الأنشطة التنفيذية
-                        </h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="accordion accordion-flush" id="execActivitiesAccordion">
-                            @foreach($project->executiveActivities as $actIndex => $activity)
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="execHeading{{ $actIndex }}">
-                                        <button class="accordion-button {{ $actIndex !== 0 ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#execCollapse{{ $actIndex }}" aria-expanded="{{ $actIndex === 0 ? 'true' : 'false' }}">
-                                            <div class="d-flex align-items-center w-100 justify-content-between pe-3">
-                                                <div>
-                                                    <span class="badge bg-success bg-opacity-75 rounded-pill me-2">{{ $loop->iteration }}</span>
-                                                    <span class="fw-bold text-dark">{{ $activity->name ?? 'نشاط تنفيذي' }}</span>
-                                                </div>
-                                                <span class="badge bg-light text-dark border">الوزن: {{ $activity->weight ?? '0' }}%</span>
-                                            </div>
-                                        </button>
-                                    </h2>
-                                    <div id="execCollapse{{ $actIndex }}" class="accordion-collapse collapse {{ $actIndex === 0 ? 'show' : '' }}" aria-labelledby="execHeading{{ $actIndex }}" data-bs-parent="#execActivitiesAccordion">
-                                        <div class="accordion-body bg-light">
-                                            <!-- Activity Meta -->
-                                            <div class="row g-2 mb-3 small text-muted">
-                                                <div class="col-md-6">
-                                                    <div class="d-flex align-items-center">
-                                                        <i class="fas fa-box-open me-2"></i> المخرج: {{ optional($activity->resultOutput)->output ?? (is_string($activity->output) ? $activity->output : null) ?? '-' }}
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="d-flex align-items-center">
-                                                        <i class="fas fa-exclamation-circle me-2"></i> الخطر: {{ optional($activity->projectRisk)->risk ?? (is_string($activity->risk) ? $activity->risk : null) ?? '-' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Executive Actions and Costs Premium -->
-                                            @if($activity->actions && $activity->actions->count() > 0)
-                                                <div class="table-responsive mt-3">
-                                                    <table class="elegant-table table-sm">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>اسم الإجراء التنفيذي</th>
-                                                                <th width="80" class="text-center">الأهمية</th>
-                                                                <th>وسائل التحقق</th>
-                                                                <th width="100" class="text-center">المدة</th>
-                                                                <th width="140" class="text-end">ميزانية الإجراء</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($activity->actions as $action)
-                                                            <tr class="floating-row">
-                                                                <td class="fw-bold text-slate-700 ps-4">
-                                                                    <div class="d-flex align-items-center gap-2">
-                                                                        <i class="fas fa-play x-small text-indigo-300"></i>
-                                                                        {{ $action->action_name ?? '-' }}
-                                                                    </div>
-                                                                </td>
-                                                                <td class="text-center">
-                                                                    <span class="badge-premium badge-premium-blue">{{ $action->weight ?? '-' }}%</span>
-                                                                </td>
-                                                                <td class="small text-slate-500">{{ $action->verification_means ?? '-' }}</td>
-                                                                <td class="text-center small text-slate-600 font-monospace">{{ $action->duration_days ?? '-' }} ي</td>
-                                                                <td class="text-end fw-bold text-emerald-600 font-monospace pe-3">
-                                                                    {{ $action->costs && $action->costs->sum('total') ? number_format($action->costs->sum('total'), 2) : '0.00' }}
-                                                                </td>
-                                                            </tr>
-                                                            <!-- Premium Nested Costs -->
-                                                            @if($action->costs && $action->costs->count() > 0)
-                                                                <tr>
-                                                                    <td colspan="5" class="py-0 px-4">
-                                                                        <div class="premium-nested-container">
-                                                                            @foreach($action->costs as $cost)
-                                                                            <div class="premium-nested-item">
-                                                                                <div class="d-flex align-items-center gap-3">
-                                                                                    <div class="text-indigo-400 opacity-50"><i class="fas fa-coins x-small"></i></div>
-                                                                                    <span class="fw-medium text-slate-600">{{ $cost->financialItem->name ?? 'بند' }}</span>
-                                                                                    <span class="badge border text-slate-400 rounded-pill x-small px-2">{{ $cost->unit->unit_name ?? '-' }}</span>
-                                                                                </div>
-                                                                                <div class="d-flex align-items-center gap-4">
-                                                                                    <span class="text-slate-400 x-small font-monospace">{{ number_format($cost->amount ?? 0, 2) }} × {{ $cost->quantity ?? 0 }}</span>
-                                                                                    <span class="fw-bold text-indigo-600 font-monospace">{{ number_format($cost->total ?? 0, 2) }}</span>
-                                                                                </div>
-                                                                            </div>
-                                                                            @endforeach
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            @endif
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            @else
-                                                <div class="text-muted small fst-italic text-center py-2">لا توجد إجراءات مسجلة</div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                     <!-- Financial Summary Footer -->
-                    @if($project->executiveFinancialSummaries && $project->executiveFinancialSummaries->count() > 0)
-                    <div class="card-footer bg-light p-3">
-                        <h6 class="fw-bold text-dark mb-2 small text-uppercase">ملخص مالي (تنفيذي)</h6>
-                        <div class="d-flex flex-wrap gap-3">
-                            @foreach($project->executiveFinancialSummaries as $summary)
-                            <div class="badge bg-white text-dark border p-2 shadow-sm rounded-3 d-flex align-items-center">
-                                <span class="text-muted me-2">{{ $summary->item ?? '-' }}:</span>
-                                <span class="fw-bold font-monospace text-primary">{{ number_format($summary->amount ?? 0, 2) }}</span>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endif
-                </div>
-                @endif
-
-                <!-- 4. Financing and Costs -->
-                @if($project->financings && $project->financings->count() > 0)
-                <div class="modern-table-card animate-up delay-3">
-                    <div class="glass-header d-flex align-items-center gap-3">
-                        <div class="bg-success bg-opacity-10 text-success rounded-circle p-2">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <h5 class="mb-0 fw-bold text-dark">مصادر التمويل والتكاليف</h5>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="modern-table align-middle">
-                            <thead>
-                                <tr>
-                                    <th class="ps-4">المصدر</th>
-                                    <th>الجهة</th>
-                                    <th class="text-center">النوع</th>
-                                    <th class="text-end">المبلغ</th>
-                                    <th class="text-center">النسبة</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($project->financings as $financing)
-                                <tr>
-                                    <td class="ps-4 fw-bold text-dark">{{ optional($financing->fundingSource)->name ?? '-' }}</td>
-                                    <td>{{ optional($financing->authority)->agency_name ?? '-' }}</td>
-                                    <td class="text-center">
-                                        <span class="badge bg-light text-primary border">{{ optional($financing->financingType)->name ?? '-' }}</span>
-                                    </td>
-                                    <td class="text-end font-monospace text-success fw-bold">{{ number_format($financing->financing_amount ?? 0, 2) }}</td>
-                                    <td class="text-center">
-                                        <div class="d-flex align-items-center justify-content-center gap-2">
-                                            <div class="progress flex-grow-1" style="height: 6px; width: 60px; border-radius: 10px; background: #edf2f7;">
-                                                <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: {{ $financing->financing_percentage ?? 0 }}%"></div>
-                                            </div>
-                                            <span class="small fw-bold">{{ number_format($financing->financing_percentage ?? 0, 1) }}%</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Total Cost Summary -->
-                     @if($project->cost)
-                    <div class="card-footer bg-light p-4">
-                        <div class="row g-4 text-center">
-                            <div class="col-md-4">
-                                <div class="text-muted small mb-1">تكاليف التحضير</div>
-                                <div class="h5 mb-0 fw-bold">{{ number_format($project->cost->preparatory_cost ?? 0, 2) }}</div>
-                            </div>
-                            <div class="col-md-4 border-start border-end">
-                                <div class="text-muted small mb-1">تكاليف التنفيذ</div>
-                                <div class="h5 mb-0 fw-bold">{{ number_format($project->cost->execution_cost ?? 0, 2) }}</div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="text-primary small mb-1 fw-bold">إجمالي التكاليف</div>
-                                <div class="h4 mb-0 fw-bold text-primary">{{ number_format($project->cost->total_cost ?? 0, 2) }}</div>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-                </div>
-                @endif
-            </div>
-
-
-            <!-- Step 3: المراجعة والموافقة / مرحلة التنفيذ -->
-
-                @php
-                    $hasPendingApprovals = $project->projectApprovals()
-                        ->where('status', 'pending')
-                        ->exists();
-                    
-                    // Check if any approval is under financial/technical review
-                    $hasFinancialReview = $project->projectApprovals()
-                        ->where('status', 'financial_review')
-                        ->exists();
-                @endphp
-                <!-- Step 3: المراجعة والاعتماد -->
-            <div class="step-content" id="step-3">
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white border-bottom py-3">
-                        <h5 class="mb-0 fw-bold text-primary">
-                            <i class="fas fa-clipboard-check me-2"></i> المراجعة والاعتماد
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
-                        @if($project->status === 'in_progress' && !$hasPendingApprovals && !$hasFinancialReview)
-                            <!-- Execution Phase - Connected to logic -->
-                            <div class="alert alert-success border-0 shadow-sm rounded-3 p-4 mb-4 animate-fade-in">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-success text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
-                                        <i class="fas fa-rocket fa-2x"></i>
-                                    </div>
-                                    <div>
-                                        <h4 class="alert-heading fw-bold mb-1">المشروع في مرحلة التنفيذ</h4>
-                                        <p class="mb-0 text-success-emphasis">تم اعتماد المشروع بالكامل وهو الآن جاهز للتنفيذ والمتابعة.</p>
-                                    </div>
-                                </div>
-                                <hr class="my-3 border-success opacity-25">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <div class="d-flex align-items-center bg-white bg-opacity-75 p-2 rounded-3 text-success">
-                                            <i class="fas fa-check-circle me-2 fs-5"></i>
-                                            <span class="fw-semibold">اكتمال الموافقات</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="d-flex align-items-center bg-white bg-opacity-75 p-2 rounded-3 text-success">
-                                            <i class="fas fa-cogs me-2 fs-5"></i>
-                                            <span class="fw-semibold">جاهزية التشغيل</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="d-flex align-items-center bg-white bg-opacity-75 p-2 rounded-3 text-success">
-                                            <i class="fas fa-chart-line me-2 fs-5"></i>
-                                            <span class="fw-semibold">متابعة الأداء</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @else
-                            @if(in_array($project->status, ['draft', 'completed_draft']))
-                                {{-- Draft Completion Check --}}
-                                @if(!$project->isDraftComplete())
-                                    {{-- Draft Incomplete Warning --}}
-                                    <div class="alert alert-warning border-0 shadow-sm rounded-4 p-4 mb-4 animate-fade-in">
-                                        <div class="d-flex align-items-start">
-                                            <div class="bg-warning text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; flex-shrink: 0;">
-                                                <i class="fas fa-exclamation-triangle fa-2x"></i>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h4 class="alert-heading fw-bold mb-2">المشروع غير مكتمل</h4>
-                                                <p class="mb-3">يجب إكمال جميع البيانات المطلوبة قبل إرسال المشروع للموافقة.</p>
-                                                
-                                                <!-- Completion Progress -->
-                                                <div class="mb-3">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <span class="fw-semibold">نسبة الإكمال</span>
-                                                        <span class="badge bg-warning">{{ $project->getCompletionPercentage() }}%</span>
-                                                    </div>
-                                                    <div class="progress" style="height: 12px; border-radius: 10px;">
-                                                        <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" 
-                                                             role="progressbar" 
-                                                             style="width: {{ $project->getCompletionPercentage() }}%"
-                                                             aria-valuenow="{{ $project->getCompletionPercentage() }}" 
-                                                             aria-valuemin="0" 
-                                                             aria-valuemax="100"></div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <!-- Missing Fields Checklist -->
-                                                <div class="bg-white bg-opacity-75 rounded-3 p-3 border border-warning border-opacity-25">
-                                                    <h6 class="fw-bold mb-3 text-dark">
-                                                        <i class="fas fa-clipboard-list me-2"></i>الأقسام المطلوبة:
-                                                    </h6>
-                                                    <div class="row g-2">
-                                                        <div class="col-md-6">
-                                                            <div class="d-flex align-items-center p-2 rounded {{ $project->validateBasicInfo() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
-                                                                <i class="fas {{ $project->validateBasicInfo() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
-                                                                <span class="small fw-semibold">البيانات الأساسية</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="d-flex align-items-center p-2 rounded {{ $project->validateObjectives() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
-                                                                <i class="fas {{ $project->validateObjectives() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
-                                                                <span class="small fw-semibold">الأهداف والنتائج</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="d-flex align-items-center p-2 rounded {{ $project->validateLocations() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
-                                                                <i class="fas {{ $project->validateLocations() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
-                                                                <span class="small fw-semibold">المواقع</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="d-flex align-items-center p-2 rounded {{ $project->validateStakeholders() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
-                                                                <i class="fas {{ $project->validateStakeholders() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
-                                                                <span class="small fw-semibold">الجهات ذات الصلة</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="d-flex align-items-center p-2 rounded {{ $project->validateActivities() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
-                                                                <i class="fas {{ $project->validateActivities() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
-                                                                <span class="small fw-semibold">الأنشطة</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="d-flex align-items-center p-2 rounded {{ $project->validateFinancing() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
-                                                                <i class="fas {{ $project->validateFinancing() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
-                                                                <span class="small fw-semibold">التمويل والتكاليف</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="mt-3 d-flex gap-2">
-                                                    @can('update', $project)
-                                                    <a href="{{ route('projects.edit', $project->id) }}" class="btn btn-warning auth-perm-projects-edit">
-                                                        <i class="fas fa-edit me-2"></i>إكمال البيانات الناقصة
-                                                    </a>
-                                                    @endcan
-                                                    <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
-                                                        <i class="fas fa-sync-alt me-2"></i>تحديث الحالة
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @else
-                                    {{-- Draft Complete – prompt user to confirm draft --}}
-                                    <div class="text-center py-5">
-                                        <div class="mb-4">
-                                            <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 100px; height: 100px;">
-                                                <i class="fas fa-paper-plane text-primary" style="font-size: 2.5rem;"></i>
-                                            </div>
-                                        </div>
-                                        <h4 class="fw-bold text-dark mb-2">المسودة مكتملة وجاهزة للتأكيد</h4>
-                                        <p class="text-muted mb-4 mx-auto" style="max-width: 480px;">
-                                            جميع بيانات المشروع مكتملة. اضغط على "تأكيد المسودة" لإرسال المشروع إلى مراحل الاعتماد الرسمية.
-                                        </p>
-                                        <div class="d-flex justify-content-center gap-3 flex-wrap">
-                                            @can('finalize', $project)
-                                            <button type="button" class="btn btn-primary btn-lg fw-bold px-5 shadow-sm auth-perm-projects-finalize" onclick="confirmDraftModal()">
-                                                <i class="fas fa-check-circle me-2"></i>تأكيد المسودة
-                                            </button>
-                                            @endcan
-                                            @can('update', $project)
-                                            <a href="{{ route('projects.edit', $project->id) }}" class="btn btn-outline-secondary btn-lg px-4 auth-perm-projects-edit">
-                                                <i class="fas fa-edit me-2"></i>تعديل البيانات
-                                            </a>
-                                            @endcan
-                                        </div>
-                                    </div>
-                                @endif
-                            @else
-                                {{-- Project is in pending_approval or other approval status – show link to Approval Center --}}
-                                <div class="alert alert-info border-0 shadow-sm rounded-4 p-3 mb-3 animate-fade-in">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-info-circle fs-4 me-3 text-info"></i>
-                                        <div>
-                                            <strong>المشروع في مرحلة الاعتماد</strong>
-                                            <p class="mb-0 small text-info-emphasis">المشروع الآن قيد مراحل الاعتماد والموافقة. لا يمكن تعديل البيانات إلا في حال تم إرجاع المشروع إلى الجهة المنشئة للمراجعة.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-                                    <div class="card-body p-4 text-center">
-                                        <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle mb-3" style="width: 80px; height: 80px;">
-                                            <i class="fas fa-clipboard-check text-primary fs-2"></i>
-                                        </div>
-                                        <h5 class="fw-bold text-dark mb-2">إدارة ومتابعة الاعتمادات</h5>
-                                        <p class="text-muted mb-3 mx-auto" style="max-width: 520px;">
-                                            تتم متابعة مسار الاعتماد واتخاذ القرارات الإدارية والفنية الخاصة بهذا المشروع حصرياً من خلال <strong>مركز المراجعة والاعتمادات</strong>.
-                                        </p>
-                                        <a href="{{ route('approvals.show', $project->id) }}" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
-                                            <i class="fas fa-external-link-alt me-2"></i> الانتقال إلى مركز المراجعة والاعتمادات
-                                        </a>
-                                    </div>
+                                <div class="table-responsive ms-4">
+                                    <table class="elegant-table">
+                                        <thead>
+                                            <tr>
+                                                <th width="60">#</th>
+                                                <th>المخرج</th>
+                                                <th>الوصف</th>
+                                                <th width="150" class="text-center">الكمية المتوقعة</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($result->outputs as $output)
+                                            <tr class="floating-row">
+                                                <td class="ps-3 text-slate-400 fw-bold">{{ $loop->iteration }}</td>
+                                                <td class="fw-bold text-slate-800">{{ $output->output ?? 'غير محدد' }}</td>
+                                                <td class="text-slate-500 small">{{ $output->description ?? 'بدون وصف' }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge-premium badge-premium-blue">{{ $output->target_value ?? '-' }}</span>
+                                                </td>
+                                            </tr>
+                                            @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center py-4 text-slate-400">لا توجد مخرجات</td>
+                                            </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
                                 </div>
                             @endif
-                        @endif
+                        @endforeach
+                    @endif
+                @endforeach
+            @else
+                <div class="no-data">
+                    <i class="fas fa-inbox me-2"></i>لا توجد أهداف خاصة
+                </div>
+            @endif
+        </div>
 
-                        <!-- Activity History -->
-                        <div class="mt-5">
-                            <div class="bg-light rounded-3 p-3">
-                                @include('projects.partials.activity-history-display')
+        {{-- ============================================================ --}}
+        {{-- SECTION 2: المخاطر والجهات والأنشطة والتكاليف --}}
+        {{-- ============================================================ --}}
+
+        <!-- الوضع المالي للمشروع (Phase 4) -->
+        @include('projects.partials.financial_status')
+
+        <!-- Risks and Stakeholders -->
+        <div id="technical-details-section" class="content-section">
+            <div class="section-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                المخاطر والجهات ذات الصلة
+            </div>
+
+            <!-- Risks -->
+            @if($project->risks && $project->risks->count() > 0)
+                <div class="subsection-title mb-4 mt-4 fw-bold text-slate-700">
+                    <i class="fas fa-exclamation-triangle ms-2 text-rose-500"></i>المخاطر المحتملة واستراتيجيات التخفيف
+                </div>
+                <div class="table-responsive">
+                    <table class="elegant-table">
+                        <thead>
+                            <tr>
+                                <th width="60">#</th>
+                                <th>نوع الخطر</th>
+                                <th width="150" class="text-center">مستوى الخطورة</th>
+                                <th>الحلول المقترحة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($project->risks as $risk)
+                            <tr class="floating-row">
+                                <td class="ps-3 text-slate-400 fw-bold">{{ $loop->iteration }}</td>
+                                <td class="fw-bold text-slate-800">{{ $risk->risk ?? 'غير محدد' }}</td>
+                                <td class="text-center">
+                                    @php
+                                        $premiumBadge = match($risk->risk_rate) {
+                                            'high' => 'badge-premium-rose',
+                                            'medium' => 'badge-premium-amber',
+                                            'low' => 'badge-premium-green',
+                                            default => 'badge-premium-blue'
+                                        };
+                                        $riskIcon = match($risk->risk_rate) {
+                                            'high' => 'fa-fire',
+                                            'medium' => 'fa-exclamation-circle',
+                                            'low' => 'fa-check-circle',
+                                            default => 'fa-question-circle'
+                                        };
+                                    @endphp
+                                    <span class="badge-premium {{ $premiumBadge }}">
+                                        <i class="fas {{ $riskIcon }}"></i>
+                                        {{ $risk->risk_rate ?? 'غير محدد' }}
+                                    </span>
+                                </td>
+                                <td class="small text-slate-500">{{ $risk->proposed_solution ?? 'بدون حل' }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-slate-400">لا توجد مخاطر مسجلة</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
+            <!-- Supervising Authorities -->
+            @php
+                $supervisingAuthorities = $project->supervisingAuthorities()->with(['authority', 'parent'])->get();
+            @endphp
+
+            @if($supervisingAuthorities->count() > 0)
+                <div class="subsection-title mb-4 fw-bold text-slate-700">
+                    <i class="fas fa-building ms-2 text-indigo-500"></i>الجهات المشرفة
+                </div>
+                <div class="table-responsive">
+                    <table class="elegant-table">
+                        <thead>
+                            <tr>
+                                <th width="80">#</th>
+                                <th>اسم الجهة</th>
+                                <th width="150" class="text-center">النوع</th>
+                                <th>الجهة التابعة لها</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($supervisingAuthorities as $authority)
+                            <tr class="floating-row">
+                                <td class="text-center fw-bold text-slate-400">{{ $loop->iteration }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                                            <i class="fas fa-eye small"></i>
+                                        </div>
+                                        <span class="fw-bold text-slate-700">{{ $authority->authority->agency_name ?? 'غير محدد' }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    @if($authority->authority_type == 'internal')
+                                        <span class="badge-premium badge-premium-blue">
+                                            <i class="fas fa-home"></i>داخلية
+                                        </span>
+                                    @else
+                                        <span class="badge-premium badge-premium-green">
+                                            <i class="fas fa-external-link-alt"></i>خارجية
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($authority->parent && $authority->parent->agency_name)
+                                        <div class="d-flex align-items-center gap-2 text-slate-500 small">
+                                            <i class="fas fa-level-up-alt fa-rotate-90 opacity-40"></i>
+                                            <span>{{ $authority->parent->agency_name }}</span>
+                                        </div>
+                                    @else
+                                        <span class="text-slate-300 fst-italic">تبعية مباشرة</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
+            <!-- Implementing Entities -->
+            @if($project->implementingEntities && $project->implementingEntities->count() > 0)
+                <div class="subsection-title mb-4 mt-5 fw-bold text-slate-700">
+                    <i class="fas fa-cogs ms-2 text-indigo-500"></i>الجهات المنفذة
+                </div>
+                <div class="table-responsive">
+                    <table class="elegant-table">
+                        <thead>
+                            <tr>
+                                <th width="80">#</th>
+                                <th>الجهة</th>
+                                <th width="150" class="text-center">النوع</th>
+                                <th>الجهة الرئيسية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($project->implementingEntities as $entity)
+                            <tr class="floating-row">
+                                <td class="text-center fw-bold text-slate-400">{{ $loop->iteration }}</td>
+                                <td class="fw-bold text-slate-700">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fas fa-building text-slate-300"></i>
+                                        {{ $entity->authority->agency_name ?? ($entity->internalEntity->name ?? 'غير محدد') }}
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    @if($entity->authority_type === 'internal')
+                                        <span class="badge-premium badge-premium-blue">داخلية</span>
+                                    @else
+                                        <span class="badge-premium badge-premium-green">خارجية</span>
+                                    @endif
+                                </td>
+                                <td class="text-slate-500 small">
+                                    @if($entity->authority_type == 'internal')
+                                        @php
+                                            $internalEnt = collect($internalEntities ?? [])->firstWhere('entity_name', optional($entity->internalEntity)->name);
+                                        @endphp
+                                        {{ $internalEnt['father_name'] ?? 'لا يوجد جهة أب' }}
+                                    @else
+                                        {{ $entity->parent->agency_name ?? 'لا يوجد' }}
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
+            <!-- Participating & Beneficiary Entities -->
+            @if(($project->participatingEntities && $project->participatingEntities->count() > 0) || ($project->beneficiaryEntities && $project->beneficiaryEntities->count() > 0))
+                <div class="subsection-title mb-4 mt-5 fw-bold text-slate-700">
+                    <i class="fas fa-users-cog ms-2 text-indigo-500"></i>الجهات المشاركة والمستفيدة
+                </div>
+                <div class="table-responsive">
+                    <table class="elegant-table">
+                        <thead>
+                            <tr>
+                                <th width="80">#</th>
+                                <th width="150" class="text-center">الدور / النوع</th>
+                                <th>الجهة</th>
+                                <th>الجهة الأم / التبعية</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $index = 1; @endphp
+                            @foreach($project->participatingEntities as $entity)
+                            <tr class="floating-row">
+                                <td class="text-center fw-bold text-slate-400">{{ $index++ }}</td>
+                                <td class="text-center">
+                                    <span class="badge-premium badge-premium-amber">
+                                        <i class="fas fa-handshake"></i> مشاركة
+                                    </span>
+                                </td>
+                                <td class="fw-bold text-slate-700">{{ optional($entity->authority)->agency_name ?? 'غير محدد' }}</td>
+                                <td class="text-slate-500 small">{{ optional($entity->parent)->agency_name ?? 'تبعية رئيسية' }}</td>
+                            </tr>
+                            @endforeach
+                            @foreach($project->beneficiaryEntities as $entity)
+                            <tr class="floating-row">
+                                <td class="text-center fw-bold text-slate-400">{{ $index++ }}</td>
+                                <td class="text-center">
+                                    <span class="badge-premium badge-premium-rose">
+                                        <i class="fas fa-hand-holding-heart"></i> مستفيدة
+                                    </span>
+                                </td>
+                                <td class="fw-bold text-slate-700">{{ optional($entity->authority)->agency_name ?? 'غير محدد' }}</td>
+                                <td class="text-slate-500 small">{{ optional($entity->parent)->agency_name ?? 'تبعية رئيسية' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+
+        <!-- Preliminary Activities and Costs -->
+        @if($project->preliminaryActivities && $project->preliminaryActivities->count() > 0)
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-play-circle me-2"></i> الأنشطة التمهيدية
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="prelimActivitiesAccordion">
+                    @foreach($project->preliminaryActivities as $actIndex => $activity)
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="prelimHeading{{ $actIndex }}">
+                                <button class="accordion-button {{ $actIndex !== 0 ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#prelimCollapse{{ $actIndex }}" aria-expanded="{{ $actIndex === 0 ? 'true' : 'false' }}">
+                                    <div class="d-flex align-items-center w-100 justify-content-between pe-3">
+                                        <div>
+                                            <span class="badge bg-secondary rounded-pill me-2">{{ $loop->iteration }}</span>
+                                            <span class="fw-bold text-dark">{{ $activity->name ?? 'نشاط تمهيدي' }}</span>
+                                        </div>
+                                        <span class="badge bg-light text-dark border">الوزن: {{ $activity->weight ?? '0' }}%</span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="prelimCollapse{{ $actIndex }}" class="accordion-collapse collapse {{ $actIndex === 0 ? 'show' : '' }}" aria-labelledby="prelimHeading{{ $actIndex }}" data-bs-parent="#prelimActivitiesAccordion">
+                                <div class="accordion-body bg-light">
+                                    @if($activity->procedures && $activity->procedures->count() > 0)
+                                        <div class="table-responsive mt-3">
+                                            <table class="elegant-table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>اسم الإجراء</th>
+                                                        <th width="80" class="text-center">الأهمية</th>
+                                                        <th>وسائل التحقق</th>
+                                                        <th width="100" class="text-center">المدة</th>
+                                                        <th width="140" class="text-end">ميزانية الإجراء</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($activity->procedures as $procedure)
+                                                    <tr class="floating-row">
+                                                        <td class="fw-bold text-slate-700 ps-4">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <i class="fas fa-chevron-left x-small text-slate-300"></i>
+                                                                {{ $procedure->procedure_name ?? '-' }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge-premium badge-premium-blue">{{ $procedure->weight ?? '-' }}%</span>
+                                                        </td>
+                                                        <td class="small text-slate-500">{{ $procedure->verification_means ?? '-' }}</td>
+                                                        <td class="text-center small text-slate-600 font-monospace">{{ $procedure->duration_days ?? '-' }} ي</td>
+                                                        <td class="text-end fw-bold text-emerald-600 font-monospace pe-3">
+                                                            {{ $procedure->costs && $procedure->costs->sum('total') ? number_format($procedure->costs->sum('total'), 2) : '0.00' }}
+                                                        </td>
+                                                    </tr>
+                                                    @if($procedure->costs && $procedure->costs->count() > 0)
+                                                        <tr>
+                                                            <td colspan="5" class="py-0 px-4">
+                                                                <div class="premium-nested-container">
+                                                                    @foreach($procedure->costs as $cost)
+                                                                    <div class="premium-nested-item">
+                                                                        <div class="d-flex align-items-center gap-3">
+                                                                            <div class="text-indigo-400 opacity-50"><i class="fas fa-coins x-small"></i></div>
+                                                                            <span class="fw-medium text-slate-600">{{ $cost->financialItem->name ?? 'بند' }}</span>
+                                                                            <span class="badge border text-slate-400 rounded-pill x-small px-2">{{ $cost->unit->unit_name ?? '-' }}</span>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center gap-4">
+                                                                            <span class="text-slate-400 x-small font-monospace">{{ number_format($cost->amount ?? 0, 2) }} × {{ $cost->quantity ?? 0 }}</span>
+                                                                            <span class="fw-bold text-indigo-600 font-monospace">{{ number_format($cost->total ?? 0, 2) }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endif
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @else
+                                        <div class="text-muted small fst-italic text-center py-2">لا توجد إجراءات مسجلة</div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
+                    @endforeach
+                </div>
+            </div>
+            @if($project->preliminaryFinancialSummaries && $project->preliminaryFinancialSummaries->count() > 0)
+            <div class="card-footer bg-light p-3">
+                <h6 class="fw-bold text-dark mb-2 small text-uppercase">ملخص مالي (تمهيدي)</h6>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach($project->preliminaryFinancialSummaries as $summary)
+                    <div class="badge bg-white text-dark border p-2 shadow-sm rounded-3 d-flex align-items-center">
+                        <span class="text-muted me-2">{{ $summary->item ?? '-' }}:</span>
+                        <span class="fw-bold font-monospace text-primary">{{ number_format($summary->amount ?? 0, 2) }}</span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
+        @endif
+
+        <!-- Executive Activities and Costs -->
+        @if($project->executiveActivities && $project->executiveActivities->count() > 0)
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-cogs me-2"></i> الأنشطة التنفيذية
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="execActivitiesAccordion">
+                    @foreach($project->executiveActivities as $actIndex => $activity)
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="execHeading{{ $actIndex }}">
+                                <button class="accordion-button {{ $actIndex !== 0 ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#execCollapse{{ $actIndex }}" aria-expanded="{{ $actIndex === 0 ? 'true' : 'false' }}">
+                                    <div class="d-flex align-items-center w-100 justify-content-between pe-3">
+                                        <div>
+                                            <span class="badge bg-success bg-opacity-75 rounded-pill me-2">{{ $loop->iteration }}</span>
+                                            <span class="fw-bold text-dark">{{ $activity->name ?? 'نشاط تنفيذي' }}</span>
+                                        </div>
+                                        <span class="badge bg-light text-dark border">الوزن: {{ $activity->weight ?? '0' }}%</span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="execCollapse{{ $actIndex }}" class="accordion-collapse collapse {{ $actIndex === 0 ? 'show' : '' }}" aria-labelledby="execHeading{{ $actIndex }}" data-bs-parent="#execActivitiesAccordion">
+                                <div class="accordion-body bg-light">
+                                    <div class="row g-2 mb-3 small text-muted">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-box-open me-2"></i> المخرج: {{ optional($activity->resultOutput)->output ?? (is_string($activity->output) ? $activity->output : null) ?? '-' }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-exclamation-circle me-2"></i> الخطر: {{ optional($activity->projectRisk)->risk ?? (is_string($activity->risk) ? $activity->risk : null) ?? '-' }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    @if($activity->actions && $activity->actions->count() > 0)
+                                        <div class="table-responsive mt-3">
+                                            <table class="elegant-table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>اسم الإجراء التنفيذي</th>
+                                                        <th width="80" class="text-center">الأهمية</th>
+                                                        <th>وسائل التحقق</th>
+                                                        <th width="100" class="text-center">المدة</th>
+                                                        <th width="140" class="text-end">ميزانية الإجراء</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($activity->actions as $action)
+                                                    <tr class="floating-row">
+                                                        <td class="fw-bold text-slate-700 ps-4">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <i class="fas fa-play x-small text-indigo-300"></i>
+                                                                {{ $action->action_name ?? '-' }}
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <span class="badge-premium badge-premium-blue">{{ $action->weight ?? '-' }}%</span>
+                                                        </td>
+                                                        <td class="small text-slate-500">{{ $action->verification_means ?? '-' }}</td>
+                                                        <td class="text-center small text-slate-600 font-monospace">{{ $action->duration_days ?? '-' }} ي</td>
+                                                        <td class="text-end fw-bold text-emerald-600 font-monospace pe-3">
+                                                            {{ $action->costs && $action->costs->sum('total') ? number_format($action->costs->sum('total'), 2) : '0.00' }}
+                                                        </td>
+                                                    </tr>
+                                                    @if($action->costs && $action->costs->count() > 0)
+                                                        <tr>
+                                                            <td colspan="5" class="py-0 px-4">
+                                                                <div class="premium-nested-container">
+                                                                    @foreach($action->costs as $cost)
+                                                                    <div class="premium-nested-item">
+                                                                        <div class="d-flex align-items-center gap-3">
+                                                                            <div class="text-indigo-400 opacity-50"><i class="fas fa-coins x-small"></i></div>
+                                                                            <span class="fw-medium text-slate-600">{{ $cost->financialItem->name ?? 'بند' }}</span>
+                                                                            <span class="badge border text-slate-400 rounded-pill x-small px-2">{{ $cost->unit->unit_name ?? '-' }}</span>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center gap-4">
+                                                                            <span class="text-slate-400 x-small font-monospace">{{ number_format($cost->amount ?? 0, 2) }} × {{ $cost->quantity ?? 0 }}</span>
+                                                                            <span class="fw-bold text-indigo-600 font-monospace">{{ number_format($cost->total ?? 0, 2) }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endif
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @else
+                                        <div class="text-muted small fst-italic text-center py-2">لا توجد إجراءات مسجلة</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @if($project->executiveFinancialSummaries && $project->executiveFinancialSummaries->count() > 0)
+            <div class="card-footer bg-light p-3">
+                <h6 class="fw-bold text-dark mb-2 small text-uppercase">ملخص مالي (تنفيذي)</h6>
+                <div class="d-flex flex-wrap gap-3">
+                    @foreach($project->executiveFinancialSummaries as $summary)
+                    <div class="badge bg-white text-dark border p-2 shadow-sm rounded-3 d-flex align-items-center">
+                        <span class="text-muted me-2">{{ $summary->item ?? '-' }}:</span>
+                        <span class="fw-bold font-monospace text-primary">{{ number_format($summary->amount ?? 0, 2) }}</span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
+        @endif
+
+        <!-- Financing and Costs -->
+        @if($project->financings && $project->financings->count() > 0)
+        <div class="modern-table-card animate-up delay-3">
+            <div class="glass-header d-flex align-items-center gap-3">
+                <div class="bg-success bg-opacity-10 text-success rounded-circle p-2">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <h5 class="mb-0 fw-bold text-dark">مصادر التمويل والتكاليف</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="modern-table align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">المصدر</th>
+                            <th>الجهة</th>
+                            <th class="text-center">النوع</th>
+                            <th class="text-end">المبلغ</th>
+                            <th class="text-center">النسبة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($project->financings as $financing)
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">{{ optional($financing->fundingSource)->name ?? '-' }}</td>
+                            <td>{{ optional($financing->authority)->agency_name ?? '-' }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-primary border">{{ optional($financing->financingType)->name ?? '-' }}</span>
+                            </td>
+                            <td class="text-end font-monospace text-success fw-bold">{{ number_format($financing->financing_amount ?? 0, 2) }}</td>
+                            <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px; border-radius: 10px; background: #edf2f7;">
+                                        <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: {{ $financing->financing_percentage ?? 0 }}%"></div>
+                                    </div>
+                                    <span class="small fw-bold">{{ number_format($financing->financing_percentage ?? 0, 1) }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            @if($project->cost)
+            <div class="card-footer bg-light p-4">
+                <div class="row g-4 text-center">
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">تكاليف التحضير</div>
+                        <div class="h5 mb-0 fw-bold">{{ number_format($project->cost->preparatory_cost ?? 0, 2) }}</div>
+                    </div>
+                    <div class="col-md-4 border-start border-end">
+                        <div class="text-muted small mb-1">تكاليف التنفيذ</div>
+                        <div class="h5 mb-0 fw-bold">{{ number_format($project->cost->execution_cost ?? 0, 2) }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-primary small mb-1 fw-bold">إجمالي التكاليف</div>
+                        <div class="h4 mb-0 fw-bold text-primary">{{ number_format($project->cost->total_cost ?? 0, 2) }}</div>
                     </div>
                 </div>
             </div>
+            @endif
+        </div>
+        @endif
 
-            <!-- Navigation Buttons -->
-            <div class="wizard-navigation d-flex gap-2 justify-content-between mt-4">
-                <button type="button" class="btn btn-secondary btn-lg btn-navigation btn-prev px-4" id="prev-btn" style="display: none;">
-                    <i class="fas fa-arrow-right me-2"></i> السابق
-                </button>
-                
-                <div class="d-flex gap-2 ms-auto">
-                    <button type="button" class="btn btn-primary btn-lg btn-navigation btn-next px-4" id="next-btn">
-                        التالي <i class="fas fa-arrow-left ms-2"></i>
-                    </button>
-                    
-                    @if($project->status === 'in_progress')
-                        @can('execute', $project)
-                        <a href="{{ route('projects.execution', $project->id) }}" class="btn btn-success btn-lg btn-navigation px-4 auth-perm-projects-execute" id="execute-btn" style="display: none;">
-                            <i class="fas fa-play me-2"></i> تنفيذ المشروع
-                        </a>
-                        @endcan
-                        @can('viewSchedule', $project)
-                        <a href="{{ route('projects.schedule', $project->id) }}" class="btn btn-info btn-lg btn-navigation text-white px-4 auth-perm-projects-schedule" id="schedule-btn" style="display: none;">
-                            <i class="fas fa-calendar-alt me-2"></i> الجدول الزمني
-                        </a>
-                        @endcan
+        {{-- ============================================================ --}}
+        {{-- SECTION 3: الحالة / مرحلة التنفيذ (بدون مسار الموافقات) --}}
+        {{-- ============================================================ --}}
+
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="fas fa-clipboard-check me-2"></i> حالة المشروع
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                @if($project->status === 'in_progress')
+                    <div class="alert alert-success border-0 shadow-sm rounded-3 p-4 mb-0 animate-fade-in">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-success text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                                <i class="fas fa-rocket fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="alert-heading fw-bold mb-1">المشروع في مرحلة التنفيذ</h4>
+                                <p class="mb-0 text-success-emphasis">تم اعتماد المشروع بالكامل وهو الآن جاهز للتنفيذ والمتابعة.</p>
+                            </div>
+                        </div>
+                    </div>
+                @elseif(in_array($project->status, ['draft', 'completed_draft']))
+                    @if(!$project->isDraftComplete())
+                        <div class="alert alert-warning border-0 shadow-sm rounded-4 p-4 mb-0 animate-fade-in">
+                            <div class="d-flex align-items-start">
+                                <div class="bg-warning text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; flex-shrink: 0;">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h4 class="alert-heading fw-bold mb-2">المشروع غير مكتمل</h4>
+                                    <p class="mb-3">يجب إكمال جميع البيانات المطلوبة قبل إرسال المشروع للموافقة.</p>
+
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="fw-semibold">نسبة الإكمال</span>
+                                            <span class="badge bg-warning">{{ $project->getCompletionPercentage() }}%</span>
+                                        </div>
+                                        <div class="progress" style="height: 12px; border-radius: 10px;">
+                                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
+                                                 role="progressbar"
+                                                 style="width: {{ $project->getCompletionPercentage() }}%"
+                                                 aria-valuenow="{{ $project->getCompletionPercentage() }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white bg-opacity-75 rounded-3 p-3 border border-warning border-opacity-25">
+                                        <h6 class="fw-bold mb-3 text-dark">
+                                            <i class="fas fa-clipboard-list me-2"></i>الأقسام المطلوبة:
+                                        </h6>
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center p-2 rounded {{ $project->validateBasicInfo() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
+                                                    <i class="fas {{ $project->validateBasicInfo() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
+                                                    <span class="small fw-semibold">البيانات الأساسية</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center p-2 rounded {{ $project->validateObjectives() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
+                                                    <i class="fas {{ $project->validateObjectives() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
+                                                    <span class="small fw-semibold">الأهداف والنتائج</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center p-2 rounded {{ $project->validateLocations() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
+                                                    <i class="fas {{ $project->validateLocations() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
+                                                    <span class="small fw-semibold">المواقع</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center p-2 rounded {{ $project->validateStakeholders() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
+                                                    <i class="fas {{ $project->validateStakeholders() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
+                                                    <span class="small fw-semibold">الجهات ذات الصلة</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center p-2 rounded {{ $project->validateActivities() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
+                                                    <i class="fas {{ $project->validateActivities() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
+                                                    <span class="small fw-semibold">الأنشطة</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="d-flex align-items-center p-2 rounded {{ $project->validateFinancing() ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 'bg-light text-muted border border-secondary border-opacity-25' }}">
+                                                    <i class="fas {{ $project->validateFinancing() ? 'fa-check-circle' : 'fa-circle' }} me-2"></i>
+                                                    <span class="small fw-semibold">التمويل والتكاليف</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 d-flex gap-2">
+                                        @can('update', $project)
+                                        <a href="{{ route('projects.edit', $project->id) }}" class="btn btn-warning auth-perm-projects-edit">
+                                            <i class="fas fa-edit me-2"></i>إكمال البيانات الناقصة
+                                        </a>
+                                        @endcan
+                                        <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+                                            <i class="fas fa-sync-alt me-2"></i>تحديث الحالة
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="text-center py-4">
+                            <div class="mb-4">
+                                <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle" style="width: 100px; height: 100px;">
+                                    <i class="fas fa-paper-plane text-primary" style="font-size: 2.5rem;"></i>
+                                </div>
+                            </div>
+                            <h4 class="fw-bold text-dark mb-2">المسودة مكتملة وجاهزة للتأكيد</h4>
+                            <p class="text-muted mb-4 mx-auto" style="max-width: 480px;">
+                                جميع بيانات المشروع مكتملة. اضغط على "تأكيد المسودة" لإرسال المشروع إلى مراحل الاعتماد الرسمية.
+                            </p>
+                            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                                @can('finalize', $project)
+                                <button type="button" class="btn btn-primary btn-lg fw-bold px-5 shadow-sm auth-perm-projects-finalize" onclick="confirmDraftModal()">
+                                    <i class="fas fa-check-circle me-2"></i>تأكيد المسودة
+                                </button>
+                                @endcan
+                                @can('update', $project)
+                                <a href="{{ route('projects.edit', $project->id) }}" class="btn btn-outline-secondary btn-lg px-4 auth-perm-projects-edit">
+                                    <i class="fas fa-edit me-2"></i>تعديل البيانات
+                                </a>
+                                @endcan
+                            </div>
+                        </div>
                     @endif
+                @else
+                    {{-- Pending approval or other statuses --}}
+                    <div class="alert alert-info border-0 shadow-sm rounded-4 p-3 mb-3 animate-fade-in">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle fs-4 me-3 text-info"></i>
+                            <div>
+                                <strong>المشروع في مرحلة الاعتماد</strong>
+                                <p class="mb-0 small text-info-emphasis">المشروع الآن قيد مراحل الاعتماد والموافقة. لا يمكن تعديل البيانات إلا في حال تم إرجاع المشروع إلى الجهة المنشئة للمراجعة.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                        <div class="card-body p-4 text-center">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle mb-3" style="width: 80px; height: 80px;">
+                                <i class="fas fa-clipboard-check text-primary fs-2"></i>
+                            </div>
+                            <h5 class="fw-bold text-dark mb-2">إدارة ومتابعة الاعتمادات</h5>
+                            <p class="text-muted mb-3 mx-auto" style="max-width: 520px;">
+                                تتم متابعة مسار الاعتماد واتخاذ القرارات الإدارية والفنية الخاصة بهذا المشروع حصرياً من خلال <strong>مركز المراجعة والاعتمادات</strong>.
+                            </p>
+                            <a href="{{ route('approvals.show', $project->id) }}" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                <i class="fas fa-external-link-alt me-2"></i> الانتقال إلى مركز المراجعة والاعتمادات
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Activity History -->
+                <div class="mt-5">
+                    <div class="bg-light rounded-3 p-3">
+                        @include('projects.partials.activity-history-display')
+                    </div>
                 </div>
             </div>
+        </div>
 
     </div>
 </div>
 
 {{-- Bootstrap loaded via footer component (local asset) --}}
-<script src="{{ asset('js/approval-form.js') }}"></script>
 <script>
     // Confirm Draft Modal
     function confirmDraftModal() {
@@ -1681,140 +1316,5 @@
         const modal = new bootstrap.Modal(document.getElementById('revertToDraftModal'));
         modal.show();
     }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Wizard script loaded successfully');
-        
-        const steps = document.querySelectorAll('.wizard-step');
-        const stepContents = document.querySelectorAll('.step-content');
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const executeBtn = document.getElementById('execute-btn');
-        const scheduleBtn = document.getElementById('schedule-btn');
-        
-        let currentStep = 1;
-        const totalSteps = 3;
-        const projectStatus = '{{ $project->status }}';
-        const isExecutionPhase = projectStatus === 'in_progress';
-        
-        console.log('Found elements:', {
-            steps: steps.length,
-            stepContents: stepContents.length,
-            prevBtn: !!prevBtn,
-            nextBtn: !!nextBtn,
-            executeBtn: !!executeBtn,
-            isExecutionPhase: isExecutionPhase,
-            projectStatus: projectStatus,
-            totalSteps: totalSteps
-        });
-
-        function updateWizard(shouldScroll = true) {
-            console.log('Updating wizard to step:', currentStep);
-            
-            // تحديث الخطوات
-            steps.forEach((step, index) => {
-                const stepNumber = parseInt(step.dataset.step);
-                step.classList.remove('active', 'completed');
-                
-                if (stepNumber < currentStep) {
-                    step.classList.add('completed');
-                } else if (stepNumber === currentStep) {
-                    step.classList.add('active');
-                }
-            });
-
-            // تحديث المحتوى
-            stepContents.forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            const currentContent = document.getElementById(`step-${currentStep}`);
-            if (currentContent) {
-                currentContent.classList.add('active');
-            }
-
-            // تحديث الأزرار
-            if (currentStep === 1) {
-                prevBtn.style.display = 'none';
-                nextBtn.style.display = 'inline-flex';
-                if(executeBtn) executeBtn.style.display = 'none';
-                if(scheduleBtn) scheduleBtn.style.display = 'none';
-            } 
-            else if (currentStep === totalSteps) {
-                prevBtn.style.display = 'inline-flex';
-                nextBtn.style.display = 'none';
-                if(executeBtn) executeBtn.style.display = isExecutionPhase ? 'inline-flex' : 'none';
-                if(scheduleBtn) scheduleBtn.style.display = isExecutionPhase ? 'inline-flex' : 'none';
-            }
-            else {
-                prevBtn.style.display = 'inline-flex';
-                nextBtn.style.display = 'inline-flex';
-                if(executeBtn) executeBtn.style.display = 'none';
-                if(scheduleBtn) scheduleBtn.style.display = 'none';
-            }
-
-            if (shouldScroll) {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
-
-        // زر التالي
-        nextBtn.addEventListener('click', function() {
-            console.log('Next button clicked, current step:', currentStep);
-            if (currentStep < totalSteps) {
-                currentStep++;
-                updateWizard();
-            }
-        });
-
-        // زر السابق
-        prevBtn.addEventListener('click', function() {
-            console.log('Previous button clicked, current step:', currentStep);
-            if (currentStep > 1) {
-                currentStep--;
-                updateWizard();
-            }
-        });
-
-        // التنقل المباشر بالضغط على الخطوات
-        steps.forEach(step => {
-            step.addEventListener('click', function() {
-                const stepNumber = parseInt(this.dataset.step);
-                console.log('Step clicked:', stepNumber);
-                if (stepNumber !== currentStep) {
-                    currentStep = stepNumber;
-                    updateWizard();
-                }
-            });
-        });
-
-        // التهيئة الأولية مع دعم الربط العميق (Deep Linking)
-        const urlParams = new URLSearchParams(window.location.search);
-        const stepParam = urlParams.get('step');
-        const sectionParam = urlParams.get('section');
-
-        if (stepParam && !isNaN(stepParam)) {
-            const step = parseInt(stepParam);
-            if (step >= 1 && step <= totalSteps) {
-                currentStep = step;
-            }
-        } else if (isExecutionPhase) {
-            currentStep = totalSteps;
-        }
-
-        updateWizard(false);
-
-        // إذا تم تحديد قسم معين، قم بالتمرير إليه
-        if (sectionParam) {
-            setTimeout(() => {
-                const section = document.getElementById(sectionParam);
-                if (section) {
-                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    section.classList.add('highlight-section');
-                    setTimeout(() => section.classList.remove('highlight-section'), 3000);
-                }
-            }, 500);
-        }
-    });
 </script>
 @endsection
