@@ -113,6 +113,7 @@ class SmsServiceTest extends TestCase
 
         $this->assertFalse($result['ok']);
         $this->assertEquals('failed', $result['status']);
+        $this->assertSame('Unauthorized', $result['reason']);
         $this->assertDatabaseHas('sms_logs', [
             'recipient_user_id' => $user->id,
             'phone_number' => '07711122233',

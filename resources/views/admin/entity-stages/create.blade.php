@@ -28,13 +28,13 @@
             <form action="{{ route('admin.entity-stages.store', ['tab' => $tab]) }}" method="POST">
             @endcan
                 @csrf
-                <input type="hidden" name="tab" value="{{ $tab }}">
+                <input type="hidden" name="tab" id="form-tab" value="{{ $tab }}">
                 
                 <div class="row mb-5">
                     <div class="col-md-6">
                         @if($tab === 'internal')
                             <label class="form-label fw-bold">الجهة الداخلية <span class="text-danger">*</span></label>
-                            <select name="entity_id" class="form-select select2-search" required>
+                            <select name="entity_id" id="entity_id" class="form-select select2-search" required>
                                 <option value="">-- اختر الجهة الداخلية --</option>
                                 @foreach($entities as $entity)
                                     <option value="{{ $entity->id }}" @selected(old('entity_id') == $entity->id)>
@@ -44,7 +44,7 @@
                             </select>
                         @else
                             <label class="form-label fw-bold">الجهة الخارجية <span class="text-danger">*</span></label>
-                            <select name="authority_id" class="form-select select2-search" required>
+                            <select name="authority_id" id="authority_id" class="form-select select2-search" required>
                                 <option value="">-- اختر الجهة الخارجية --</option>
                                 @foreach($authorities as $authority)
                                     <option value="{{ $authority->id }}" @selected(old('authority_id') == $authority->id)>
@@ -120,17 +120,23 @@
                 </button>
             </div>
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">الاسم الداخلي (Key)</label>
                     <input type="text" class="form-control form-control-sm stage-key-input" name="stages[__INDEX__][stage]" required placeholder="مثال: technical_review">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">اسم المرحلة (عربي)</label>
                     <input type="text" class="form-control form-control-sm stage-name-ar-input" name="stages[__INDEX__][stage_name_ar]" required placeholder="مثال: مراجعة فنية">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">اسم المرحلة (إنجليزي)</label>
                     <input type="text" class="form-control form-control-sm" name="stages[__INDEX__][stage_name_en]" placeholder="مثال: Technical Review">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">المسؤول عن هذه المرحلة</label>
+                    <select name="stages[__INDEX__][responsible_user_id]" class="form-select form-select-sm stage-user-select">
+                        <option value="">-- اختر المستخدم --</option>
+                    </select>
                 </div>
                 <div class="col-12 mt-3">
                     <label class="form-label small fw-bold">الإجراءات المتاحة</label>
@@ -146,14 +152,6 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="reject">
                             <label class="form-check-label small">رفض (Reject)</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="technical_review">
-                            <label class="form-check-label small">اعتماد فني</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="financial_review">
-                            <label class="form-check-label small">اعتماد مالي</label>
                         </div>
                     </div>
                 </div>
@@ -174,8 +172,48 @@
         });
 
         let stageIndex = 0;
+        let eligibleUsers = [];
 
-        function addStage(key = '', nameAr = '', nameEn = '', actions = ['approve', 'return']) {
+        function fetchEligibleUsers() {
+            let entityId = $('#entity_id').val();
+            let authorityId = $('#authority_id').val();
+            let tab = $('#form-tab').val();
+
+            if ((tab === 'internal' && !entityId) || (tab === 'external' && !authorityId)) {
+                eligibleUsers = [];
+                updateUserSelects();
+                return;
+            }
+
+            let data = { tab: tab };
+            if (tab === 'internal') data.entity_id = entityId;
+            if (tab === 'external') data.authority_id = authorityId;
+
+            $.ajax({
+                url: "{{ route('admin.entity-stages.eligible-users') }}",
+                data: data,
+                success: function(users) {
+                    eligibleUsers = users;
+                    updateUserSelects();
+                }
+            });
+        }
+
+        $('#entity_id, #authority_id').change(fetchEligibleUsers);
+
+        function updateUserSelects() {
+            $('.stage-user-select').each(function() {
+                let $select = $(this);
+                let val = $select.val();
+                $select.empty().append('<option value="">-- اختر المستخدم --</option>');
+                eligibleUsers.forEach(user => {
+                    let selected = (user.id == val) ? 'selected' : '';
+                    $select.append(`<option value="${user.id}" ${selected}>${user.name}</option>`);
+                });
+            });
+        }
+
+        function addStage(key = '', nameAr = '', nameEn = '', actions = ['approve', 'return'], responsibleUserId = '') {
             const template = $('#stage-template').html();
             const $newStage = $(template.replace(/__INDEX__/g, stageIndex));
             
@@ -187,6 +225,13 @@
             $newStage.find('input[type="checkbox"]').prop('checked', false);
             actions.forEach(action => {
                 $newStage.find(`input[value="${action}"]`).prop('checked', true);
+            });
+
+            // Populate select
+            let $select = $newStage.find('.stage-user-select');
+            eligibleUsers.forEach(user => {
+                let selected = (user.id == responsibleUserId) ? 'selected' : '';
+                $select.append(`<option value="${user.id}" ${selected}>${user.name}</option>`);
             });
 
             $('#stages-container').append($newStage);
@@ -206,10 +251,12 @@
             });
         });
 
-        // Initialize default stages
-        addStage('technical_review', 'مراجعة فنية', 'Technical Review', ['technical_review', 'return']);
-        addStage('financial_review', 'مراجعة مالية', 'Financial Review', ['financial_review', 'return']);
-        addStage('stage_approval', 'اعتماد', 'Approval', ['approve', 'return', 'reject']);
+        // Initialize default stages only on create page
+        if ($('#stages-container').children().length === 0 && !window.hasExistingStages) {
+            addStage('technical_review', 'مراجعة فنية', 'Technical Review', ['approve', 'return']);
+            addStage('financial_review', 'مراجعة مالية', 'Financial Review', ['approve', 'return']);
+            addStage('final_approval', 'اعتماد نهائي', 'Final Approval', ['approve', 'return', 'reject']);
+        }
 
         $('#route_destination_type').on('change', function() {
             if ($(this).val() === 'authority') {

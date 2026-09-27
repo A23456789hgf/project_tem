@@ -62,6 +62,10 @@ class ProjectApproval extends Model
         'is_active',
         'return_target',
         'returned_to_step_order',
+        'assigned_user_id',
+        'stage_key',
+        'stage_name',
+        'available_actions',
     ];
 
     protected $casts = [
@@ -79,6 +83,7 @@ class ProjectApproval extends Model
         'is_active' => 'boolean',
         'returned_to_step_order' => 'integer',
         'attachments' => 'array',
+        'available_actions' => 'array',
         'notes' => 'string',
         'financial_review_notes' => 'string',
         'technical_review_notes' => 'string',

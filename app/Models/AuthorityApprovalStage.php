@@ -13,6 +13,9 @@ class AuthorityApprovalStage extends Model
     protected $fillable = [
         'authority_id',
         'stage',
+        'stage_name_ar',
+        'stage_name_en',
+        'available_actions',
         'stage_order',
         'responsible_user_id',
         'is_active',
@@ -22,6 +25,7 @@ class AuthorityApprovalStage extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'available_actions' => 'array',
     ];
 
     public function authority()

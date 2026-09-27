@@ -69,6 +69,8 @@ class SmppSmsService
         $cachedToken = Cache::get($cacheKey);
 
         if (! empty($cachedToken)) {
+            Log::info('SMPP authentication succeeded using cached token.');
+
             return $cachedToken;
         }
 
@@ -93,7 +95,7 @@ class SmppSmsService
 
             if ($response->failed()) {
                 $payload = $response->json();
-                $payload = is_array($payload) ? $payload : ['message' => $response->body()];
+                $payload = is_array($payload) ? $payload : [];
                 $this->authenticationFailureReason = $this->extractProviderReason(
                     $payload,
                     'SMPP authentication failed (HTTP '.$response->status().')'
@@ -101,7 +103,7 @@ class SmppSmsService
 
                 Log::error('SMPP login failed.', [
                     'status' => $response->status(),
-                    'error' => $payload,
+                    'error' => $payload !== [] ? $payload : $response->body(),
                 ]);
 
                 return null;
@@ -119,6 +121,11 @@ class SmppSmsService
 
             $ttlSeconds = (int) ($data['expires_in'] ?? config('sms.token_ttl', 3300));
             Cache::put($cacheKey, $token, max(60, $ttlSeconds));
+
+            Log::info('SMPP authentication succeeded.', [
+                'status' => $response->status(),
+                'login_url' => $loginUrl,
+            ]);
 
             return $token;
         } catch (ConnectionException $e) {
@@ -143,6 +150,11 @@ class SmppSmsService
         $senderId = $sentByUserId ?? Auth::id();
 
         if (empty($cleanPhone)) {
+            Log::warning('SMS send failed because the phone number is empty.', [
+                'userId' => $userId,
+                'event' => $eventName,
+            ]);
+
             return $this->logSms($userId, $mobileNo, $message, 'failed', null, 'Phone number is empty', $eventName, $senderId);
         }
 
@@ -164,6 +176,12 @@ class SmppSmsService
         $sendUrl = $this->sendUrl();
 
         if (empty($sendUrl)) {
+            Log::error('SMS send failed because the send URL is not configured.', [
+                'userId' => $userId,
+                'phone' => $cleanPhone,
+                'event' => $eventName,
+            ]);
+
             return $this->logSms($userId, $cleanPhone, $message, 'failed', null, 'SMPP send URL is not configured', $eventName, $senderId);
         }
 
@@ -299,6 +317,13 @@ class SmppSmsService
             $decoded = $response->json();
 
             if ($response->successful()) {
+                Log::info('SMS sent successfully.', [
+                    'userId' => $userId,
+                    'phone' => $mobileNo,
+                    'status' => $response->status(),
+                    'send_url' => $sendUrl,
+                ]);
+
                 return [
                     'ok' => true,
                     'userId' => $userId,

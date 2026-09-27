@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="mb-0 text-primary fw-bold">تعديل مراحل الجهة: {{ $tab === 'internal' ? $entity->name : $authority->name }}</h4>
-            <small class="text-muted">تفعيل أو تعطيل مراحل الموافقات وتعيين المسؤولين</small>
+            <small class="text-muted">تحديد مراحل المراجعة والاعتماد لجهة معينة</small>
         </div>
         <a href="{{ route('admin.entity-stages.index') }}" class="btn btn-outline-secondary shadow-sm">
             <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
@@ -21,104 +21,65 @@
             </ul>
         </div>
     @endif
-    @if(session('warning'))
-        <div class="alert alert-warning border-0 shadow-sm rounded-4"><i class="fas fa-exclamation-triangle me-1"></i> {{ session('warning') }}</div>
-    @endif
 
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-5">
-            @can('stages.edit')
-            <form action="{{ route('admin.entity-stages.update', $tab === 'internal' ? $entity->id : $authority->id) }}" method="POST">
+            @can('stages.create')
+            <form action="{{ route('admin.entity-stages.update', $tab === 'internal' ? $entity->id : $authority->id), ['tab' => $tab]) }}" method="POST">
             @endcan
                 @csrf
                 @method('PUT')
-                <input type="hidden" name="tab" value="{{ $tab }}">
+                <input type="hidden" name="tab" id="form-tab" value="{{ $tab }}">
+                @if($tab === 'internal')
+                <input type="hidden" name="entity_id" value="{{ $entity->id }}">
+                @else
+                <input type="hidden" name="authority_id" value="{{ $authority->id }}">
+                @endif
                 
-                <h5 class="fw-bold mb-4">المراحل المتاحة للجهة</h5>
-                
-                <div class="row g-4">
-                    @foreach($stageTypes as $stageType)
-                        @php
-                            if ($tab === 'internal') {
-                                $stageConfig = $entity->approvalStages->firstWhere('stage', $stageType->value);
-                            } else {
-                                $stageConfig = $stages->firstWhere('stage', $stageType->value);
-                            }
-                            $isEnabled = $stageConfig !== null && $stageConfig->is_active;
-                            $assignedUserId = $stageConfig?->responsible_user_id;
-                        @endphp
-                        
-                        <div class="col-12">
-                            <div class="card border border-1 shadow-sm rounded-4 stage-edit-card {{ $isEnabled ? 'border-primary' : '' }}">
-                                <div class="card-body p-4">
-                                    <div class="row align-items-center">
-                                        
-                                        <!-- Stage Toggle -->
-                                        <div class="col-md-4 d-flex align-items-center gap-3">
-                                            <div class="form-check form-switch fs-3 m-0">
-                                                <input class="form-check-input stage-toggle" type="checkbox" role="switch" 
-                                                    name="stages[{{ $stageType->value }}][enabled]" 
-                                                    value="1" 
-                                                    id="stage_toggle_{{ $stageType->value }}"
-                                                    data-target="#user_select_container_{{ $stageType->value }}"
-                                                    data-stage="{{ $stageType->value }}"
-                                                    {{ old("stages.{$stageType->value}.enabled", $isEnabled) ? 'checked' : '' }}>
-                                            </div>
-                                            <div>
-                                                <label class="form-check-label fw-bold d-block fs-5" for="stage_toggle_{{ $stageType->value }}">
-                                                    {{ $stageType->label() }}
-                                                </label>
-                                                <span class="badge bg-secondary">الترتيب: {{ $stageType->stageOrder() }}</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- User Selection -->
-                                        <div class="col-md-8">
-                                            <div id="user_select_container_{{ $stageType->value }}" 
-                                                 class="{{ old("stages.{$stageType->value}.enabled", $isEnabled) ? '' : 'd-none' }}">
-                                                
-                                                <label class="form-label fw-semibold text-muted small">المسؤول عن هذه المرحلة</label>
-                                                <select name="stages[{{ $stageType->value }}][responsible_user_id]" 
-                                                        class="form-select user-select" 
-                                                        data-id="{{ $tab === 'internal' ? $entity->id : $authority->id }}"
-                                                        data-stage="{{ $stageType->value }}">
-                                                    
-                                                    <option value="">-- يتم تحديده تلقائياً من المستخدمين إن وجد / أو اختر يدوياً --</option>
-                                                    @if($assignedUserId && $stageConfig->responsibleUser)
-                                                        <option value="{{ $assignedUserId }}" selected>
-                                                            {{ $stageConfig->responsibleUser->name }} (الحالي)
-                                                        </option>
-                                                    @endif
-                                                </select>
-                                                <div class="form-text">سيتم جلب المستخدمين الذين لديهم مسؤولية "{{ $stageType->label() }}" في هذه الجهة.</div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
+                <div class="row mb-5">
+                    <div class="col-md-6">
+                        @if($tab === 'internal')
+                            <label class="form-label fw-bold">الجهة الداخلية <span class="text-danger">*</span></label>
+                            <select name="entity_id" id="entity_id" disabled class="form-select select2-search" required>
+                                <option value="">-- اختر الجهة الداخلية --</option>
+                                @foreach($entities as $entity)
+                                    <option value="{{ $entity->id }}" @selected(true)>
+                                        {{ $entity->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @else
+                            <label class="form-label fw-bold">الجهة الخارجية <span class="text-danger">*</span></label>
+                            <select name="authority_id" id="authority_id" disabled class="form-select select2-search" required>
+                                <option value="">-- اختر الجهة الخارجية --</option>
+                                @foreach($authorities as $authority)
+                                    <option value="{{ $authority->id }}" @selected(true)>
+                                        {{ $authority->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @endif
+                        <div class="form-text">تعديل مسار الموافقات للجهة الحالية.</div>
+                    </div>
                 </div>
 
                 @if($tab === 'external')
-                <hr class="my-5 border-light">
-                <h5 class="fw-bold mb-4">إعداد المسار (الوجهة التالية)</h5>
-                <div class="row g-4 mb-4">
+                <div class="row mb-5">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">الوجهة التالية في المسار <span class="text-danger">*</span></label>
                         <select name="route_destination_type" id="route_destination_type" class="form-select" required>
-                            <option value="ministry" @selected(old('route_destination_type', $route?->destination_type) == 'ministry')>الوزارة كجهة نهائية (Ministry Root)</option>
-                            <option value="authority" @selected(old('route_destination_type', $route?->destination_type) == 'authority')>جهة خارجية أخرى</option>
+                            <option value="ministry" @selected(old('route_destination_type') == 'ministry')>الوزارة كجهة نهائية (Ministry Root)</option>
+                            <option value="authority" @selected(old('route_destination_type') == 'authority')>جهة خارجية أخرى</option>
                         </select>
+                        <div class="form-text">إلى أين سيتم توجيه المشروع بعد انتهاء اعتمادات هذه الجهة؟</div>
                     </div>
-                    <div class="col-md-6" id="destination_authority_container" style="display: {{ old('route_destination_type', $route?->destination_type) == 'authority' ? 'block' : 'none' }};">
+                    <div class="col-md-6" id="destination_authority_container" style="display: {{ old('route_destination_type') == 'authority' ? 'block' : 'none' }};">
                         <label class="form-label fw-bold">الجهة الخارجية الوجهة <span class="text-danger">*</span></label>
                         <select name="destination_authority_id" class="form-select select2-search">
                             <option value="">-- اختر الجهة الخارجية الوجهة --</option>
-                            @foreach($authorities as $auth)
-                                <option value="{{ $auth->id }}" @selected(old('destination_authority_id', $route?->destination_authority_id) == $auth->id)>
-                                    {{ $auth->name }}
+                            @foreach($authorities as $authority)
+                                <option value="{{ $authority->id }}" @selected(old('destination_authority_id') == $authority->id)>
+                                    {{ $authority->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -126,9 +87,28 @@
                 </div>
                 @endif
 
-                <div class="d-flex justify-content-end gap-3 mt-5 border-top pt-4">
-                    <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm">
-                        <i class="fas fa-save me-1"></i> حفظ التعديلات
+                <hr class="border-light">
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">مراحل المراجعة والاعتماد</h5>
+                            <p class="text-muted small mb-0">أضف المراحل التي سيمر بها المشروع بالتسلسل المطلوب.</p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-stage-btn">
+                            <i class="fas fa-plus"></i> إضافة مرحلة جديدة
+                        </button>
+                    </div>
+                    
+                    <div id="stages-container">
+                        <!-- Default Stages injected by JS -->
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-3 mt-5">
+                    <button type="reset" class="btn btn-light px-4">تفريغ الحقول</button>
+                    <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">
+                        <i class="fas fa-save me-1"></i> حفظ المراحل
                     </button>
                 </div>
             </form>
@@ -136,99 +116,163 @@
     </div>
 </div>
 
-<style>
-    .stage-edit-card {
-        transition: border-color 0.2s;
-    }
-</style>
+<template id="stage-template">
+    <div class="card border border-2 rounded-4 mb-3 stage-row">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h6 class="fw-bold text-primary mb-0 stage-title">مرحلة جديدة</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-stage-btn">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">الاسم الداخلي (Key)</label>
+                    <input type="text" class="form-control form-control-sm stage-key-input" name="stages[__INDEX__][stage]" required placeholder="مثال: technical_review">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">اسم المرحلة (عربي)</label>
+                    <input type="text" class="form-control form-control-sm stage-name-ar-input" name="stages[__INDEX__][stage_name_ar]" required placeholder="مثال: مراجعة فنية">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">اسم المرحلة (إنجليزي)</label>
+                    <input type="text" class="form-control form-control-sm" name="stages[__INDEX__][stage_name_en]" placeholder="مثال: Technical Review">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">المسؤول عن هذه المرحلة</label>
+                    <select name="stages[__INDEX__][responsible_user_id]" class="form-select form-select-sm stage-user-select">
+                        <option value="">-- اختر المستخدم --</option>
+                    </select>
+                </div>
+                <div class="col-12 mt-3">
+                    <label class="form-label small fw-bold">الإجراءات المتاحة</label>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="approve" checked>
+                            <label class="form-check-label small">اعتماد (Approve)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="return" checked>
+                            <label class="form-check-label small">إعادة (Return)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="reject">
+                            <label class="form-check-label small">رفض (Reject)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
 @endsection
 
 @section('scripts')
 <script>
     $(document).ready(function() {
-        
-        // Handle toggle visibility
-        $('.stage-toggle').on('change', function() {
-            const targetContainer = $($(this).data('target'));
-            const card = $(this).closest('.stage-edit-card');
-            
-            if ($(this).is(':checked')) {
-                targetContainer.removeClass('d-none');
-                card.addClass('border-primary');
-                
-                // Fetch eligible users if the select is empty
-                const selectEl = targetContainer.find('select');
-                if(selectEl.find('option').length <= 1) {
-                    loadEligibleUsers(selectEl);
-                }
-            } else {
-                targetContainer.addClass('d-none');
-                card.removeClass('border-primary');
-            }
-        });
-
-        // Initialize Select2
-        $('.user-select').select2({
+        $('.select2-search').select2({
             dir: "rtl",
             theme: "bootstrap-5",
             width: '100%'
         });
 
-        // Load users on initial load for checked items
-        $('.user-select').each(function() {
-            if (!$(this).closest('div[id^="user_select_container"]').hasClass('d-none')) {
-                // If there's only the default option, or just 1 selected option from backend, fetch full list
-                loadEligibleUsers($(this));
-            }
-        });
+        let stageIndex = 0;
+        let eligibleUsers = [];
 
-        function loadEligibleUsers(selectElement) {
-            const idValue = selectElement.data('id');
-            const stage = selectElement.data('stage');
-            const currentValue = selectElement.val(); // Keep current selection
-            
-            const params = { stage: stage };
-            @if($tab === 'internal')
-                params.entity_id = idValue;
-                params.tab = 'internal';
-            @else
-                params.authority_id = idValue;
-                params.tab = 'external';
-            @endif
+        function fetchEligibleUsers() {
+            let entityId = $('#entity_id').val();
+            let authorityId = $('#authority_id').val();
+            let tab = $('#form-tab').val();
+
+            if ((tab === 'internal' && !entityId) || (tab === 'external' && !authorityId)) {
+                eligibleUsers = [];
+                updateUserSelects();
+                return;
+            }
+
+            let data = { tab: tab };
+            if (tab === 'internal') data.entity_id = entityId;
+            if (tab === 'external') data.authority_id = authorityId;
 
             $.ajax({
                 url: "{{ route('admin.entity-stages.eligible-users') }}",
-                data: params,
+                data: data,
                 success: function(users) {
-                    // Store current option text if it exists so we don't lose it if it's not in the list (though it should be)
-                    const currentText = selectElement.find('option:selected').text();
-                    
-                    selectElement.empty();
-                    selectElement.append('<option value="">-- اختر المسؤول --</option>');
-                    
-                    let foundCurrent = false;
-                    
-                    users.forEach(function(user) {
-                        const isSelected = (currentValue == user.id);
-                        if (isSelected) foundCurrent = true;
-                        
-                        const option = new Option(user.name + ' (' + user.user_id + ')', user.id, false, isSelected);
-                        selectElement.append(option);
-                    });
-                    
-                    // Re-append the current value if it wasn't returned by AJAX (e.g. user was deactivated)
-                    if (currentValue && !foundCurrent) {
-                        selectElement.append(new Option(currentText + ' (غير متوفر في القائمة)', currentValue, false, true));
-                    }
-                    
-                    selectElement.trigger('change');
-                },
-                error: function() {
-                    console.error("Failed to load eligible users for stage " + stage);
+                    eligibleUsers = users;
+                    updateUserSelects();
                 }
             });
         }
+
+        $('#entity_id, #authority_id').change(fetchEligibleUsers);
+
+        function updateUserSelects() {
+            $('.stage-user-select').each(function() {
+                let $select = $(this);
+                let val = $select.val();
+                $select.empty().append('<option value="">-- اختر المستخدم --</option>');
+                eligibleUsers.forEach(user => {
+                    let selected = (user.id == val) ? 'selected' : '';
+                    $select.append(`<option value="${user.id}" ${selected}>${user.name}</option>`);
+                });
+            });
+        }
+
+        function addStage(key = '', nameAr = '', nameEn = '', actions = ['approve', 'return'], responsibleUserId = '') {
+            const template = $('#stage-template').html();
+            const $newStage = $(template.replace(/__INDEX__/g, stageIndex));
+            
+            $newStage.find('.stage-title').text('مرحلة ' + (stageIndex + 1));
+            $newStage.find('.stage-key-input').val(key);
+            $newStage.find('.stage-name-ar-input').val(nameAr);
+            $newStage.find('input[name="stages['+stageIndex+'][stage_name_en]"]').val(nameEn);
+            
+            $newStage.find('input[type="checkbox"]').prop('checked', false);
+            actions.forEach(action => {
+                $newStage.find(`input[value="${action}"]`).prop('checked', true);
+            });
+
+            // Populate select
+            let $select = $newStage.find('.stage-user-select');
+            eligibleUsers.forEach(user => {
+                let selected = (user.id == responsibleUserId) ? 'selected' : '';
+                $select.append(`<option value="${user.id}" ${selected}>${user.name}</option>`);
+            });
+
+            $('#stages-container').append($newStage);
+            stageIndex++;
+        }
+
+        $('#add-stage-btn').click(function() {
+            addStage();
+        });
+
+        $(document).on('click', '.remove-stage-btn', function() {
+            $(this).closest('.stage-row').remove();
+            // Re-index titles
+            let i = 1;
+            $('#stages-container .stage-row').each(function() {
+                $(this).find('.stage-title').text('مرحلة ' + i++);
+            });
+        });
+
+        // Initialize default stages only on create page
         
+        window.hasExistingStages = true;
+        @foreach($stages as $st)
+            addStage('{{ $st->stage }}', '{{ $st->stage_name_ar }}', '{{ $st->stage_name_en }}', {!! $st->available_actions ? $st->available_actions : json_encode(['approve','return']) !!}, '{{ $st->responsible_user_id }}');
+        @endforeach
+        
+        // Trigger fetch users for selected entity/authority on load
+        fetchEligibleUsers();
+
+        if ($('#stages-container').children().length === 0 && !window.hasExistingStages) {
+            addStage('technical_review', 'مراجعة فنية', 'Technical Review', ['approve', 'return']);
+            addStage('financial_review', 'مراجعة مالية', 'Financial Review', ['approve', 'return']);
+            addStage('final_approval', 'اعتماد نهائي', 'Final Approval', ['approve', 'return', 'reject']);
+        }
+
         $('#route_destination_type').on('change', function() {
             if ($(this).val() === 'authority') {
                 $('#destination_authority_container').show();

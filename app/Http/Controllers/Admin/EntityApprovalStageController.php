@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\EntityResponsibilityType;
-use App\Enums\UserResponsibilityType;
 use App\Http\Controllers\Controller;
 use App\Models\Authority;
 use App\Models\AuthorityApprovalRoute;
@@ -58,16 +56,13 @@ class EntityApprovalStageController extends Controller
     public function create(Request $request)
     {
         $tab = $request->get('tab', 'internal');
-        $stageTypes = EntityResponsibilityType::orderedCases();
 
         if ($tab === 'internal') {
             $entities = InternalEntity::orderBy('name')->get();
-
-            return view('admin.entity-stages.create', compact('entities', 'stageTypes', 'tab'));
+            return view('admin.entity-stages.create', compact('entities', 'tab'));
         } else {
             $authorities = Authority::orderBy('agency_name')->get();
-
-            return view('admin.entity-stages.create', compact('authorities', 'stageTypes', 'tab'));
+            return view('admin.entity-stages.create', compact('authorities', 'tab'));
         }
     }
 
@@ -83,6 +78,7 @@ class EntityApprovalStageController extends Controller
                 'stages.*.stage_name_ar' => ['required', 'string'],
                 'stages.*.stage_name_en' => ['nullable', 'string'],
                 'stages.*.available_actions' => ['nullable', 'array'],
+                'stages.*.responsible_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
             ]);
 
             $entityId = $request->entity_id;
@@ -101,7 +97,10 @@ class EntityApprovalStageController extends Controller
                             'stage_name_en' => $stageData['stage_name_en'] ?? $stageData['stage_name_ar'],
                             'available_actions' => isset($stageData['available_actions']) ? json_encode($stageData['available_actions']) : json_encode(['approve', 'return']),
                             'stage_order' => $order++,
+                            'responsible_user_id' => $stageData['responsible_user_id'] ?? null,
+                            'is_active' => true,
                             'created_by' => Auth::id(),
+                            'updated_by' => Auth::id(),
                         ]
                     );
                 }
@@ -116,6 +115,7 @@ class EntityApprovalStageController extends Controller
                 'stages.*.stage_name_ar' => ['required', 'string'],
                 'stages.*.stage_name_en' => ['nullable', 'string'],
                 'stages.*.available_actions' => ['nullable', 'array'],
+                'stages.*.responsible_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
                 'route_destination_type' => ['nullable', 'string', Rule::in(['ministry', 'authority'])],
                 'destination_authority_id' => ['nullable', 'integer', Rule::exists('authorities', 'id')],
             ]);
@@ -137,7 +137,10 @@ class EntityApprovalStageController extends Controller
                                 'stage_name_en' => $stageData['stage_name_en'] ?? $stageData['stage_name_ar'],
                                 'available_actions' => isset($stageData['available_actions']) ? json_encode($stageData['available_actions']) : json_encode(['approve', 'return']),
                                 'stage_order' => $order++,
+                                'responsible_user_id' => $stageData['responsible_user_id'] ?? null,
+                                'is_active' => true,
                                 'created_by' => Auth::id(),
+                                'updated_by' => Auth::id(),
                             ]
                         );
                     }
@@ -173,98 +176,79 @@ class EntityApprovalStageController extends Controller
     public function edit($id, Request $request)
     {
         $tab = $request->get('tab', 'internal');
-        $stageTypes = EntityResponsibilityType::orderedCases();
 
         if ($tab === 'internal') {
             $entity = InternalEntity::findOrFail($id);
-            $entity->load('approvalStages');
+            $stages = EntityApprovalStage::where('entity_id', $id)->orderBy('stage_order')->get();
 
-            return view('admin.entity-stages.edit', compact('entity', 'stageTypes', 'tab'));
+            return view('admin.entity-stages.edit', compact('entity', 'stages', 'tab'));
         } else {
             $authority = Authority::findOrFail($id);
-            $stages = AuthorityApprovalStage::where('authority_id', $id)->get();
+            $stages = AuthorityApprovalStage::where('authority_id', $id)->orderBy('stage_order')->get();
             $route = AuthorityApprovalRoute::where('authority_id', $id)->first();
             $authorities = Authority::where('id', '!=', $id)->orderBy('name')->get();
 
-            return view('admin.entity-stages.edit', compact('authority', 'stages', 'route', 'authorities', 'stageTypes', 'tab'));
+            return view('admin.entity-stages.edit', compact('authority', 'stages', 'route', 'authorities', 'tab'));
         }
     }
 
     public function update(Request $request, $id)
     {
         $tab = $request->get('tab', 'internal');
-        $stageTypes = EntityResponsibilityType::orderedCases();
 
-        $rules = [];
-        foreach ($stageTypes as $stageType) {
-            $key = $stageType->value;
-            $rules["stages.{$key}.enabled"] = ['nullable', 'boolean'];
-            $rules["stages.{$key}.responsible_user_id"] = [
-                'nullable',
-                'integer',
-                Rule::exists('users', 'id'),
-            ];
-        }
+        $rules = [
+            'stages' => ['required', 'array', 'min:1'],
+            'stages.*.stage' => ['required', 'string'],
+            'stages.*.stage_name_ar' => ['required', 'string'],
+            'stages.*.stage_name_en' => ['nullable', 'string'],
+            'stages.*.available_actions' => ['nullable', 'array'],
+            'stages.*.responsible_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
+        ];
 
         if ($tab === 'external') {
             $rules['route_destination_type'] = ['nullable', 'string', Rule::in(['ministry', 'authority'])];
             $rules['destination_authority_id'] = ['nullable', 'integer', Rule::exists('authorities', 'id')];
         }
 
-        $validated = $request->validate($rules);
-        $stages = $validated['stages'] ?? [];
+        $request->validate($rules);
+        $stages = $request->stages;
         $errors = [];
 
         if ($tab === 'internal') {
             $entity = InternalEntity::findOrFail($id);
             try {
-                DB::transaction(function () use ($entity, $stageTypes, $stages, &$errors) {
-                    foreach ($stageTypes as $stageType) {
-                        $key = $stageType->value;
-                        $isEnabled = ! empty($stages[$key]['enabled']);
-                        $userId = $stages[$key]['responsible_user_id'] ?? null;
+                DB::transaction(function () use ($entity, $stages, &$errors) {
+                    $existingStages = EntityApprovalStage::where('entity_id', $entity->id)->get()->keyBy('stage');
+                    $newStageKeys = collect($stages)->pluck('stage')->filter()->toArray();
 
-                        if (! $isEnabled) {
+                    // Delete missing stages (if no pending)
+                    foreach ($existingStages as $stageKey => $existing) {
+                        if (!in_array($stageKey, $newStageKeys)) {
+                            // Check if used
                             $hasPending = ProjectApproval::where('entity_id', $entity->id)
-                                ->where('phase', $stageType->phaseCode())
+                                ->where('stage_key', $stageKey)
                                 ->where('status', 'Pending')
                                 ->exists();
 
                             if ($hasPending) {
-                                $errors[$key] = "لا يمكن حذف مرحلة [{$stageType->label()}] لأن هناك معاملات نشطة تعتمد عليها.";
-
-                                continue;
-                            }
-
-                            EntityApprovalStage::where('entity_id', $entity->id)
-                                ->where('stage', $key)
-                                ->update(['is_active' => false]);
-
-                            continue;
-                        }
-
-                        if ($userId) {
-                            $user = User::withoutGlobalScopes()->find($userId);
-                            if (! $user || $user->status !== 'Active' || (int) $user->entity_id !== (int) $entity->id) {
-                                $errors[$key] = "المستخدم المحدد لمرحلة [{$stageType->label()}] غير صالح أو لا ينتمي للجهة.";
-
-                                continue;
-                            }
-
-                            $requiredResponsibility = UserResponsibilityType::forStage($stageType);
-                            if ($user->responsibility !== $requiredResponsibility) {
-                                $errors[$key] = 'المستخدم المحدد مسؤوليته لا تتوافق مع نوع المرحلة.';
-
-                                continue;
+                                $errors[] = "لا يمكن حذف مرحلة [{$existing->stage_name_ar}] لأن هناك معاملات نشطة تعتمد عليها.";
+                            } else {
+                                $existing->delete();
                             }
                         }
+                    }
 
+                    $order = 1;
+                    foreach ($stages as $stageData) {
                         EntityApprovalStage::updateOrCreate(
-                            ['entity_id' => $entity->id, 'stage' => $key],
+                            ['entity_id' => $entity->id, 'stage' => $stageData['stage']],
                             [
-                                'stage_order' => $stageType->stageOrder(),
+                                'stage_name_ar' => $stageData['stage_name_ar'],
+                                'stage_name_en' => $stageData['stage_name_en'] ?? $stageData['stage_name_ar'],
+                                'available_actions' => isset($stageData['available_actions']) ? json_encode($stageData['available_actions']) : json_encode(['approve', 'return']),
+                                'stage_order' => $order++,
+                                'responsible_user_id' => $stageData['responsible_user_id'] ?? null,
                                 'is_active' => true,
-                                'responsible_user_id' => $userId ?: null,
                                 'updated_by' => Auth::id(),
                             ]
                         );
@@ -276,46 +260,37 @@ class EntityApprovalStageController extends Controller
         } else {
             $authority = Authority::findOrFail($id);
             try {
-                DB::transaction(function () use ($authority, $stageTypes, $stages, $request, &$errors) {
-                    foreach ($stageTypes as $stageType) {
-                        $key = $stageType->value;
-                        $isEnabled = ! empty($stages[$key]['enabled']);
-                        $userId = $stages[$key]['responsible_user_id'] ?? null;
+                DB::transaction(function () use ($authority, $stages, $request, &$errors) {
+                    $existingStages = AuthorityApprovalStage::where('authority_id', $authority->id)->get()->keyBy('stage');
+                    $newStageKeys = collect($stages)->pluck('stage')->filter()->toArray();
 
-                        if (! $isEnabled) {
+                    foreach ($existingStages as $stageKey => $existing) {
+                        if (!in_array($stageKey, $newStageKeys)) {
+                            // Check if used
                             $hasPending = ProjectApproval::where('authority_id', $authority->id)
-                                ->where('phase', $stageType->phaseCode())
+                                ->where('stage_key', $stageKey)
                                 ->where('status', 'Pending')
                                 ->exists();
 
                             if ($hasPending) {
-                                $errors[$key] = "لا يمكن حذف مرحلة [{$stageType->label()}] لأن هناك معاملات نشطة تعتمد عليها.";
-
-                                continue;
-                            }
-
-                            AuthorityApprovalStage::where('authority_id', $authority->id)
-                                ->where('stage', $key)
-                                ->update(['is_active' => false]);
-
-                            continue;
-                        }
-
-                        if ($userId) {
-                            $user = User::withoutGlobalScopes()->find($userId);
-                            if (! $user || $user->status !== 'Active' || (int) $user->authority_id !== (int) $authority->id) {
-                                $errors[$key] = "المستخدم المحدد لمرحلة [{$stageType->label()}] غير صالح أو لا ينتمي للجهة الخارجية.";
-
-                                continue;
+                                $errors[] = "لا يمكن حذف مرحلة [{$existing->stage_name_ar}] لأن هناك معاملات نشطة تعتمد عليها.";
+                            } else {
+                                $existing->delete();
                             }
                         }
+                    }
 
+                    $order = 1;
+                    foreach ($stages as $stageData) {
                         AuthorityApprovalStage::updateOrCreate(
-                            ['authority_id' => $authority->id, 'stage' => $key],
+                            ['authority_id' => $authority->id, 'stage' => $stageData['stage']],
                             [
-                                'stage_order' => $stageType->stageOrder(),
+                                'stage_name_ar' => $stageData['stage_name_ar'],
+                                'stage_name_en' => $stageData['stage_name_en'] ?? $stageData['stage_name_ar'],
+                                'available_actions' => isset($stageData['available_actions']) ? json_encode($stageData['available_actions']) : json_encode(['approve', 'return']),
+                                'stage_order' => $order++,
+                                'responsible_user_id' => $stageData['responsible_user_id'] ?? null,
                                 'is_active' => true,
-                                'responsible_user_id' => $userId ?: null,
                                 'updated_by' => Auth::id(),
                             ]
                         );
@@ -346,7 +321,7 @@ class EntityApprovalStageController extends Controller
         }
 
         if (! empty($errors)) {
-            return back()->withErrors($errors)->withInput()->with('warning', 'تم حفظ بعض المراحل مع وجود أخطاء.');
+            return back()->withErrors($errors)->withInput()->with('warning', 'تم حفظ بعض المراحل مع وجود أخطاء في حذف مراحل مرتبطة بمعاملات.');
         }
 
         return redirect()->route('admin.entity-stages.index', ['tab' => $tab])->with('success', 'تم تحديث الإعدادات بنجاح.');
@@ -359,9 +334,8 @@ class EntityApprovalStageController extends Controller
         if ($tab === 'internal') {
             $stage = EntityApprovalStage::findOrFail($id);
             if ($stage->is_active) {
-                $stageType = EntityResponsibilityType::from($stage->stage);
                 $hasPending = ProjectApproval::where('entity_id', $stage->entity_id)
-                    ->where('phase', $stageType->phaseCode())
+                    ->where('stage_key', $stage->stage)
                     ->where('status', 'Pending')
                     ->exists();
 
@@ -373,9 +347,8 @@ class EntityApprovalStageController extends Controller
         } else {
             $stage = AuthorityApprovalStage::findOrFail($id);
             if ($stage->is_active) {
-                $stageType = EntityResponsibilityType::from($stage->stage);
                 $hasPending = ProjectApproval::where('authority_id', $stage->authority_id)
-                    ->where('phase', $stageType->phaseCode())
+                    ->where('stage_key', $stage->stage)
                     ->where('status', 'Pending')
                     ->exists();
 
@@ -395,9 +368,8 @@ class EntityApprovalStageController extends Controller
 
         if ($tab === 'internal') {
             $stage = EntityApprovalStage::findOrFail($id);
-            $stageType = EntityResponsibilityType::from($stage->stage);
             $hasPending = ProjectApproval::where('entity_id', $stage->entity_id)
-                ->where('phase', $stageType->phaseCode())
+                ->where('stage_key', $stage->stage)
                 ->where('status', 'Pending')
                 ->exists();
 
@@ -407,9 +379,8 @@ class EntityApprovalStageController extends Controller
             $stage->delete();
         } else {
             $stage = AuthorityApprovalStage::findOrFail($id);
-            $stageType = EntityResponsibilityType::from($stage->stage);
             $hasPending = ProjectApproval::where('authority_id', $stage->authority_id)
-                ->where('phase', $stageType->phaseCode())
+                ->where('stage_key', $stage->stage)
                 ->where('status', 'Pending')
                 ->exists();
 
@@ -429,25 +400,20 @@ class EntityApprovalStageController extends Controller
         $request->validate([
             'entity_id' => [$tab === 'internal' ? 'required' : 'nullable', 'integer'],
             'authority_id' => [$tab === 'external' ? 'required' : 'nullable', 'integer'],
-            'stage' => ['required', 'string', Rule::in(array_column(EntityResponsibilityType::cases(), 'value'))],
         ]);
 
-        $stageType = EntityResponsibilityType::from($request->stage);
-
         if ($tab === 'internal') {
-            $requiredResp = UserResponsibilityType::forStage($stageType);
             $users = User::withoutGlobalScopes()
                 ->where('entity_id', $request->entity_id)
                 ->where('status', 'Active')
-                ->where('responsibility', $requiredResp->value)
                 ->orderBy('name')
-                ->get(['id', 'name', 'user_id']);
+                ->get(['id', 'name']);
         } else {
             $users = User::withoutGlobalScopes()
                 ->where('authority_id', $request->authority_id)
                 ->where('status', 'Active')
                 ->orderBy('name')
-                ->get(['id', 'name', 'user_id']);
+                ->get(['id', 'name']);
         }
 
         return response()->json($users);
