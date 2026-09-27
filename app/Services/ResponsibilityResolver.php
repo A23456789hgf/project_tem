@@ -149,13 +149,18 @@ class ResponsibilityResolver
             return null;
         }
 
-        $userId = match ($type) {
-            EntityResponsibilityType::TechnicalReview => $approvalStep->technical_reviewer_id
-                ?? $approvalStep->technical_review_user_id ?? null,
-            EntityResponsibilityType::FinancialReview => $approvalStep->financial_reviewer_id
-                ?? $approvalStep->financial_review_user_id ?? null,
-            EntityResponsibilityType::Approval => $approvalStep->assigned_user_id ?? null,
-        };
+        $userId = $approvalStep->assigned_user_id;
+
+        // Fallback for legacy snapshot records
+        if (! $userId && $type) {
+            $userId = match ($type) {
+                EntityResponsibilityType::TechnicalReview => $approvalStep->technical_reviewer_id
+                    ?? $approvalStep->technical_review_user_id ?? null,
+                EntityResponsibilityType::FinancialReview => $approvalStep->financial_reviewer_id
+                    ?? $approvalStep->financial_review_user_id ?? null,
+                default => null,
+            };
+        }
 
         return $userId ? User::withoutGlobalScopes()->find((int) $userId) : null;
     }

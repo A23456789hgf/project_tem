@@ -449,5 +449,82 @@
 
         </div>
     </div>
+
+    <!-- ERP Stock Reports Row -->
+    <div class="row mb-4">
+        <div class="col-12 mb-3">
+            <h5 class="font-weight-bold text-report-primary"><i class="fas fa-boxes me-2"></i>تقارير المخزون والمشتريات</h5>
+            <hr>
+        </div>
+        
+        @can('reports.purchase_invoices.view')
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4" style="transition: transform 0.2s;">
+                <div class="card-body text-center p-4">
+                    <div class="avatar-md bg-light rounded-circle text-report-primary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px; border: 1px solid rgba(44, 95, 45, 0.1)">
+                        <i class="fas fa-file-invoice-dollar fa-2x"></i>
+                    </div>
+                    <h5 class="font-weight-bold text-report-primary mb-2">فواتير الشراء</h5>
+                    <p class="text-muted small mb-4">استعراض وتتبع فواتير الشراء وأرصدة الموردين</p>
+                    <a href="{{ route('projects.reports.purchase_invoices') }}" class="btn btn-outline-primary rounded-pill w-100">
+                        عرض التقرير <i class="fas fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endcan
+
+        @can('reports.stock_ledger.view')
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4" style="transition: transform 0.2s;">
+                <div class="card-body text-center p-4">
+                    <div class="avatar-md bg-light rounded-circle text-report-primary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px; border: 1px solid rgba(44, 95, 45, 0.1)">
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                    <h5 class="font-weight-bold text-report-primary mb-2">سجل المخزون</h5>
+                    <p class="text-muted small mb-4">تقرير تفصيلي يعرض حركات وأرصدة المخزون</p>
+                    <a href="{{ route('projects.reports.stock_ledger') }}" class="btn btn-outline-primary rounded-pill w-100">
+                        عرض التقرير <i class="fas fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endcan
+
+        @can('reports.material_requests.view')
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4" style="transition: transform 0.2s;">
+                <div class="card-body text-center p-4">
+                    <div class="avatar-md bg-light rounded-circle text-report-primary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px; border: 1px solid rgba(44, 95, 45, 0.1)">
+                        <i class="fas fa-clipboard-list fa-2x"></i>
+                    </div>
+                    <h5 class="font-weight-bold text-report-primary mb-2">طلبات المواد</h5>
+                    <p class="text-muted small mb-4">متابعة طلبات توفير المواد للمشاريع</p>
+                    <a href="{{ route('projects.reports.material_requests') }}" class="btn btn-outline-primary rounded-pill w-100">
+                        عرض التقرير <i class="fas fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endcan
+
+        @can('reports.stock_entries.view')
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4" style="transition: transform 0.2s;">
+                <div class="card-body text-center p-4">
+                    <div class="avatar-md bg-light rounded-circle text-report-primary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:60px;height:60px; border: 1px solid rgba(44, 95, 45, 0.1)">
+                        <i class="fas fa-dolly fa-2x"></i>
+                    </div>
+                    <h5 class="font-weight-bold text-report-primary mb-2">صرف المواد</h5>
+                    <p class="text-muted small mb-4">استعراض حركات صرف المواد للمشاريع</p>
+                    <a href="{{ route('projects.reports.stock_entries') }}" class="btn btn-outline-primary rounded-pill w-100">
+                        عرض التقرير <i class="fas fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endcan
+
+    </div>
 </div>
 @endsection

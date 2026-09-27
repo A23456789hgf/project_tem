@@ -84,31 +84,18 @@
                 <hr class="border-light">
 
                 <div class="mb-4">
-                    <h5 class="fw-bold mb-3">مراحل المراجعة والاعتماد</h5>
-                    <p class="text-muted small mb-4">اختر المراحل التي سيمر بها المشروع عند إرساله من هذه الجهة. سيتم ترتيبها منطقياً بشكل تلقائي.</p>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">مراحل المراجعة والاعتماد</h5>
+                            <p class="text-muted small mb-0">أضف المراحل التي سيمر بها المشروع بالتسلسل المطلوب.</p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-stage-btn">
+                            <i class="fas fa-plus"></i> إضافة مرحلة جديدة
+                        </button>
+                    </div>
                     
-                    <div class="row g-4">
-                        @foreach($stageTypes as $stageType)
-                            <div class="col-md-4">
-                                <div class="card border border-2 h-100 rounded-4 stage-card">
-                                    <div class="card-body d-flex align-items-center gap-3">
-                                        <div class="form-check form-switch fs-4 m-0">
-                                            <input class="form-check-input" type="checkbox" role="switch" 
-                                                name="stages[]" 
-                                                value="{{ $stageType->value }}" 
-                                                id="stage_{{ $stageType->value }}"
-                                                {{ in_array($stageType->value, old('stages', [])) ? 'checked' : '' }}>
-                                        </div>
-                                        <div>
-                                            <label class="form-check-label fw-bold d-block" for="stage_{{ $stageType->value }}">
-                                                {{ $stageType->label() }}
-                                            </label>
-                                            <small class="text-muted">ترتيب التنفيذ: {{ $stageType->stageOrder() }}</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+                    <div id="stages-container">
+                        <!-- Default Stages injected by JS -->
                     </div>
                 </div>
 
@@ -123,20 +110,58 @@
     </div>
 </div>
 
-<style>
-    .stage-card {
-        transition: all 0.2s ease-in-out;
-        cursor: pointer;
-    }
-    .stage-card:hover {
-        border-color: var(--bs-primary) !important;
-        background-color: rgba(var(--bs-primary-rgb), 0.03);
-    }
-    .stage-card:has(input:checked) {
-        border-color: var(--bs-primary) !important;
-        background-color: rgba(var(--bs-primary-rgb), 0.05);
-    }
-</style>
+<template id="stage-template">
+    <div class="card border border-2 rounded-4 mb-3 stage-row">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h6 class="fw-bold text-primary mb-0 stage-title">مرحلة جديدة</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-stage-btn">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">الاسم الداخلي (Key)</label>
+                    <input type="text" class="form-control form-control-sm stage-key-input" name="stages[__INDEX__][stage]" required placeholder="مثال: technical_review">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">اسم المرحلة (عربي)</label>
+                    <input type="text" class="form-control form-control-sm stage-name-ar-input" name="stages[__INDEX__][stage_name_ar]" required placeholder="مثال: مراجعة فنية">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">اسم المرحلة (إنجليزي)</label>
+                    <input type="text" class="form-control form-control-sm" name="stages[__INDEX__][stage_name_en]" placeholder="مثال: Technical Review">
+                </div>
+                <div class="col-12 mt-3">
+                    <label class="form-label small fw-bold">الإجراءات المتاحة</label>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="approve" checked>
+                            <label class="form-check-label small">اعتماد (Approve)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="return" checked>
+                            <label class="form-check-label small">إعادة (Return)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="reject">
+                            <label class="form-check-label small">رفض (Reject)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="technical_review">
+                            <label class="form-check-label small">اعتماد فني</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="financial_review">
+                            <label class="form-check-label small">اعتماد مالي</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
 @endsection
 
 @section('scripts')
@@ -148,13 +173,43 @@
             width: '100%'
         });
 
-        // Make the whole card clickable for the checkbox
-        $('.stage-card').on('click', function(e) {
-            if (e.target.tagName !== 'INPUT') {
-                const checkbox = $(this).find('input[type="checkbox"]');
-                checkbox.prop('checked', !checkbox.prop('checked'));
-            }
+        let stageIndex = 0;
+
+        function addStage(key = '', nameAr = '', nameEn = '', actions = ['approve', 'return']) {
+            const template = $('#stage-template').html();
+            const $newStage = $(template.replace(/__INDEX__/g, stageIndex));
+            
+            $newStage.find('.stage-title').text('مرحلة ' + (stageIndex + 1));
+            $newStage.find('.stage-key-input').val(key);
+            $newStage.find('.stage-name-ar-input').val(nameAr);
+            $newStage.find('input[name="stages['+stageIndex+'][stage_name_en]"]').val(nameEn);
+            
+            $newStage.find('input[type="checkbox"]').prop('checked', false);
+            actions.forEach(action => {
+                $newStage.find(`input[value="${action}"]`).prop('checked', true);
+            });
+
+            $('#stages-container').append($newStage);
+            stageIndex++;
+        }
+
+        $('#add-stage-btn').click(function() {
+            addStage();
         });
+
+        $(document).on('click', '.remove-stage-btn', function() {
+            $(this).closest('.stage-row').remove();
+            // Re-index titles
+            let i = 1;
+            $('#stages-container .stage-row').each(function() {
+                $(this).find('.stage-title').text('مرحلة ' + i++);
+            });
+        });
+
+        // Initialize default stages
+        addStage('technical_review', 'مراجعة فنية', 'Technical Review', ['technical_review', 'return']);
+        addStage('financial_review', 'مراجعة مالية', 'Financial Review', ['financial_review', 'return']);
+        addStage('stage_approval', 'اعتماد', 'Approval', ['approve', 'return', 'reject']);
 
         $('#route_destination_type').on('change', function() {
             if ($(this).val() === 'authority') {

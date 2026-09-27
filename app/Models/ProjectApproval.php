@@ -239,6 +239,9 @@ class ProjectApproval extends Model
 
     public function getPhaseLabel(): string
     {
+        if (!empty($this->stage_name)) {
+            return $this->stage_name;
+        }
         return $this->getPhaseEnum()?->label() ?? 'اعتماد';
     }
 

@@ -1,53 +1,29 @@
 <?php
+require __DIR__ . '/vendor/autoload.php';
+$app = require_once __DIR__ . '/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
 
-require 'vendor/autoload.php';
-require 'bootstrap/app.php';
-$app = app();
-$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+$erp = app(App\Services\ErpNextService::class);
 
-use App\Models\Project;
-use App\Services\ErpNextService;
+$params = [
+    'fields' => '["name", "transaction_date", "company", "status", "schedule_date"]',
+    'filters' => json_encode([
+        ['docstatus', '=', 1],
+        ['status', '=', 'Pending']
+    ]),
+    'limit_page_length' => 1
+];
 
-echo "==================================================\n";
-echo "Testing ERPNext Gateway\n";
-echo "==================================================\n";
+$response = $erp->get('/api/resource/Material Request', $params);
+$json = $response->json();
+dump('List JSON:', $json);
 
-$config = config('external.erpnext', []);
-$erpUrl = $config['base_url'] ?? 'NULL';
-$erpUser = $config['user'] ?? 'NULL';
-$apiKey = $config['api_key'] ?? 'NULL';
-
-echo 'ERP URL: '.$erpUrl."\n";
-echo 'User: '.$erpUser."\n";
-echo 'API Key: '.($apiKey !== 'NULL' ? 'Present' : 'Missing')."\n";
-
-try {
-    $service = app(ErpNextService::class);
-
-    // Testing Authentication by calling getProject with a fake ID or checking auth logic
-    // We can just use the public getProject method which calls getAuthToken implicitly
-    echo "\n--- Testing ERPNext Auth & Connection ---\n";
-    $result = $service->getProject('DUMMY-TEST-ID-123');
-    echo "Connection/Auth Status: SUCCESS\n";
-    echo 'Result: '.json_encode($result)."\n";
-} catch (Exception $e) {
-    echo "Connection/Auth Status: FAILED\n";
-    echo 'Error: '.$e->getMessage()."\n";
-}
-
-// Let's test a real project sync if there's a project
-$project = Project::first();
-if ($project) {
-    echo "\n--- Testing Project Sync ---\n";
-    echo 'Project ID: '.$project->id.' | Name: '.$project->project_name."\n";
-    try {
-        $syncResult = $service->sendProject($project);
-        echo "Sync Status: SUCCESS\n";
-        echo 'Response: '.json_encode($syncResult)."\n";
-    } catch (Exception $e) {
-        echo "Sync Status: FAILED\n";
-        echo 'Error: '.$e->getMessage()."\n";
+if (isset($json['data'][0]['name'])) {
+    $name = $json['data'][0]['name'];
+    $details = $erp->get('/api/resource/Material Request/' . urlencode($name))->json();
+    dump('Details JSON keys:', array_keys($details['data'] ?? []));
+    if (isset($details['data']['items'][0])) {
+        dump('Item keys:', array_keys($details['data']['items'][0]));
     }
-} else {
-    echo "\nNo project found in DB to test sync.\n";
 }

@@ -147,9 +147,7 @@
 
 <!-- سكريبت SweetAlert (local) -->
 <script src="{{ asset('js/libs/sweetalert2.all.min.js') }}"></script>
-@can('logout')
 <form id="logout-form" method="POST" action="{{ route('logout') }}" class="d-none">@csrf</form>
-@endcan
 
 <script>
     function confirmLogout() {
@@ -497,6 +495,42 @@
                                     <a class="nav-link {{ request()->routeIs('projects.reports.quality') ? 'active' : '' }}"
                                         href="{{ route('projects.reports.quality') }}">
                                         تقرير الجودة
+                                    </a>
+                                </li>
+                            @endcan
+                            
+                            @can('reports.material_requests.view')
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('projects.reports.material_requests') ? 'active' : '' }}"
+                                        href="{{ route('projects.reports.material_requests') }}">
+                                        طلبات المواد
+                                    </a>
+                                </li>
+                            @endcan
+                            
+                            @can('reports.stock_entries.view')
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('projects.reports.stock_entries') ? 'active' : '' }}"
+                                        href="{{ route('projects.reports.stock_entries') }}">
+                                        صرف المواد
+                                    </a>
+                                </li>
+                            @endcan
+                            
+                            @can('reports.stock_ledger.view')
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('projects.reports.stock_ledger') ? 'active' : '' }}"
+                                        href="{{ route('projects.reports.stock_ledger') }}">
+                                        سجل المخزون
+                                    </a>
+                                </li>
+                            @endcan
+                            
+                            @can('reports.purchase_invoices.view')
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('projects.reports.purchase_invoices') ? 'active' : '' }}"
+                                        href="{{ route('projects.reports.purchase_invoices') }}">
+                                        فواتير الشراء
                                     </a>
                                 </li>
                             @endcan

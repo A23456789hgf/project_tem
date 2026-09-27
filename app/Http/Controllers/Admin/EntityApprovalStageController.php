@@ -48,7 +48,7 @@ class EntityApprovalStageController extends Controller
             $stages = $query->orderBy('authority_id')->orderBy('stage_order')->paginate(20)
                 ->appends(['tab' => 'external', 'authority_id' => $request->authority_id]);
 
-            $authorities = Authority::orderBy('name')->get();
+            $authorities = Authority::orderBy('agency_name')->get();
             $routes = AuthorityApprovalRoute::with(['authority', 'destinationAuthority'])->get();
 
             return view('admin.entity-stages.index', compact('stages', 'authorities', 'routes', 'tab'));
@@ -65,7 +65,7 @@ class EntityApprovalStageController extends Controller
 
             return view('admin.entity-stages.create', compact('entities', 'stageTypes', 'tab'));
         } else {
-            $authorities = Authority::orderBy('name')->get();
+            $authorities = Authority::orderBy('agency_name')->get();
 
             return view('admin.entity-stages.create', compact('authorities', 'stageTypes', 'tab'));
         }
@@ -79,26 +79,31 @@ class EntityApprovalStageController extends Controller
             $request->validate([
                 'entity_id' => ['required', 'integer', Rule::exists('internal_entities', 'id')],
                 'stages' => ['required', 'array', 'min:1'],
-                'stages.*' => ['string', Rule::in(array_column(EntityResponsibilityType::cases(), 'value'))],
+                'stages.*.stage' => ['required', 'string'],
+                'stages.*.stage_name_ar' => ['required', 'string'],
+                'stages.*.stage_name_en' => ['nullable', 'string'],
+                'stages.*.available_actions' => ['nullable', 'array'],
             ]);
 
             $entityId = $request->entity_id;
             $selectedStages = $request->stages;
 
             DB::transaction(function () use ($entityId, $selectedStages) {
-                foreach (EntityResponsibilityType::orderedCases() as $stageType) {
-                    if (in_array($stageType->value, $selectedStages)) {
-                        EntityApprovalStage::firstOrCreate(
-                            [
-                                'entity_id' => $entityId,
-                                'stage' => $stageType->value,
-                            ],
-                            [
-                                'stage_order' => $stageType->stageOrder(),
-                                'created_by' => Auth::id(),
-                            ]
-                        );
-                    }
+                $order = 1;
+                foreach ($selectedStages as $stageData) {
+                    EntityApprovalStage::updateOrCreate(
+                        [
+                            'entity_id' => $entityId,
+                            'stage' => $stageData['stage'],
+                        ],
+                        [
+                            'stage_name_ar' => $stageData['stage_name_ar'],
+                            'stage_name_en' => $stageData['stage_name_en'] ?? $stageData['stage_name_ar'],
+                            'available_actions' => isset($stageData['available_actions']) ? json_encode($stageData['available_actions']) : json_encode(['approve', 'return']),
+                            'stage_order' => $order++,
+                            'created_by' => Auth::id(),
+                        ]
+                    );
                 }
             });
 
@@ -107,7 +112,10 @@ class EntityApprovalStageController extends Controller
             $request->validate([
                 'authority_id' => ['required', 'integer', Rule::exists('authorities', 'id')],
                 'stages' => ['required', 'array', 'min:1'],
-                'stages.*' => ['string', Rule::in(array_column(EntityResponsibilityType::cases(), 'value'))],
+                'stages.*.stage' => ['required', 'string'],
+                'stages.*.stage_name_ar' => ['required', 'string'],
+                'stages.*.stage_name_en' => ['nullable', 'string'],
+                'stages.*.available_actions' => ['nullable', 'array'],
                 'route_destination_type' => ['nullable', 'string', Rule::in(['ministry', 'authority'])],
                 'destination_authority_id' => ['nullable', 'integer', Rule::exists('authorities', 'id')],
             ]);
@@ -117,19 +125,21 @@ class EntityApprovalStageController extends Controller
 
             try {
                 DB::transaction(function () use ($authorityId, $selectedStages, $request) {
-                    foreach (EntityResponsibilityType::orderedCases() as $stageType) {
-                        if (in_array($stageType->value, $selectedStages)) {
-                            AuthorityApprovalStage::firstOrCreate(
-                                [
-                                    'authority_id' => $authorityId,
-                                    'stage' => $stageType->value,
-                                ],
-                                [
-                                    'stage_order' => $stageType->stageOrder(),
-                                    'created_by' => Auth::id(),
-                                ]
-                            );
-                        }
+                    $order = 1;
+                    foreach ($selectedStages as $stageData) {
+                        AuthorityApprovalStage::updateOrCreate(
+                            [
+                                'authority_id' => $authorityId,
+                                'stage' => $stageData['stage'],
+                            ],
+                            [
+                                'stage_name_ar' => $stageData['stage_name_ar'],
+                                'stage_name_en' => $stageData['stage_name_en'] ?? $stageData['stage_name_ar'],
+                                'available_actions' => isset($stageData['available_actions']) ? json_encode($stageData['available_actions']) : json_encode(['approve', 'return']),
+                                'stage_order' => $order++,
+                                'created_by' => Auth::id(),
+                            ]
+                        );
                     }
 
                     // Save route if provided

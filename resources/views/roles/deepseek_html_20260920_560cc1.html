@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>8 — لوحة الوحدات المرئية</title>
+<style>
+:root{
+  --bg:#f4f7fb;--card:#fff;--line:#e5e7eb;--text:#172033;--muted:#64748b;--soft:#f8fafc;
+  --accent:#eef2ff;--accent-line:#c7d2fe;
+  --ok:#166534;--ok-bg:#dcfce7;--warn:#92400e;--warn-bg:#fef3c7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Tahoma,Arial,sans-serif;direction:rtl}
+.wrap{max-width:1400px;margin:28px auto;padding:0 18px}
+.head,.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 7px 22px rgba(15,23,42,.05)}
+.head{padding:20px;margin-bottom:16px}
+h1,h2,h3,h4{margin-top:0}
+.sub,.muted{color:var(--muted);font-size:13px}
+.head-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+
+.input,.select,.btn{border:1px solid #d9e0e8;border-radius:10px;padding:10px 12px;background:#fff;font:inherit;color:inherit}
+.btn{cursor:pointer;transition:.15s;white-space:nowrap}
+.btn:hover{background:#f1f5f9}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:disabled:hover{background:#fff}
+.primary{background:#172033;color:#fff;border-color:#172033}
+.primary:hover{background:#0f172a}
+.badge{display:inline-block;background:var(--accent);border-radius:999px;padding:5px 10px;font-size:12px;white-space:nowrap}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.badge.sm{padding:3px 8px;font-size:11px}
+
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.bar{padding:12px;margin-bottom:14px}
+.bar .grow{flex:1;min-width:220px}
+.input{min-width:0}
+.bar .input{width:auto}
+
+.seg{display:inline-flex;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:8px 13px;border-radius:9px;cursor:pointer;font:inherit;font-size:13px;color:var(--muted);transition:.15s}
+.seg button:hover{background:var(--accent);color:var(--text)}
+.seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(15,23,42,.12);font-weight:bold}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 0}
+.stat{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.stat b{font-size:24px;display:block;line-height:1.3}
+.stat span{font-size:12px;color:var(--muted)}
+
+/* ===== البطاقات ===== */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:13px}
+.tile{padding:18px;display:flex;flex-direction:column;cursor:pointer;transition:.18s}
+.tile:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(15,23,42,.09);border-color:var(--accent-line)}
+.tiletop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tiletop h3{margin:0;font-size:16px;display:flex;align-items:center;gap:7px}
+.desc{font-size:12.5px;min-height:32px;margin:10px 0 0;line-height:1.6}
+.meter{height:7px;background:#edf2f7;border-radius:20px;overflow:hidden;margin:13px 0}
+.meter span{display:block;height:100%;border-radius:20px;animation:fill .4s ease}
+@keyframes fill{from{width:0}}
+.lv-zero{background:#cbd5e1}
+.lv-low{background:#ef4444}
+.lv-mid{background:#f59e0b}
+.lv-high{background:#10b981}
+
+.mini{display:flex;gap:7px;flex-wrap:wrap}
+.mini span{background:#f8fafc;border:1px solid var(--line);padding:6px 8px;border-radius:8px;font-size:12px;white-space:nowrap}
+.mini span.more{background:var(--accent);border-color:var(--accent-line);color:#3730a3}
+
+.scope-line{margin:12px 0 0;font-size:12px;line-height:1.7}
+.tile-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tile-actions .btn{flex:1;font-size:13px;padding:9px 10px}
+
+.empty{padding:46px 20px;text-align:center;color:var(--muted);font-size:13px}
+.empty b{display:block;font-size:16px;color:var(--text);margin-bottom:6px}
+
+/* ===== النافذة المنبثقة ===== */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60}
+.overlay[hidden]{display:none}
+.dialog{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 60px rgba(15,23,42,.28);
+  width:min(860px,100%);max-height:92vh;display:flex;flex-direction:column;animation:pop .18s ease}
+@keyframes pop{from{transform:translateY(10px);opacity:.6}}
+
+.dlg-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.dlg-head h3{margin:0 0 8px;font-size:17px}
+.dlg-head .x{border:0;background:transparent;font-size:17px;cursor:pointer;color:var(--muted);line-height:1;padding:7px;border-radius:9px}
+.dlg-head .x:hover{background:var(--soft);color:var(--text)}
+
+.crumbs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.crumbs .sep{opacity:.5}
+.crumbs .link{cursor:pointer;color:#3730a3;background:var(--accent);padding:3px 9px;border-radius:8px;transition:.15s}
+.crumbs .link:hover{background:var(--accent-line)}
+.crumbs .cur{font-weight:bold;color:var(--text)}
+
+.dlg-body{padding:18px 20px;overflow:auto;flex:1}
+.dlg-foot{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:14px 20px;border-top:1px solid var(--line);background:var(--soft);border-radius:0 0 18px 18px}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.op{display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:#fafafa;border-radius:11px;padding:10px 12px;cursor:pointer;font-size:13.5px;transition:.15s}
+.op:hover{border-color:var(--accent-line)}
+.op.on{background:var(--accent);border-color:var(--accent-line)}
+.op input{accent-color:#172033;width:16px;height:16px;flex:none}
+.section{font-weight:bold;margin:18px 0 10px;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.section.first{margin-top:0}
+.mini-label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;font-weight:normal}
+.mini-label input{accent-color:#172033;width:15px;height:15px}
+.scopes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel-desc{margin:0 0 12px;font-size:12.5px;line-height:1.6}
+
+/* بطاقات الصفحات داخل النافذة */
+.pages-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:11px}
+.page-card{border:1px solid var(--line);border-radius:14px;padding:14px;cursor:pointer;background:#fff;transition:.18s;display:flex;flex-direction:column;gap:6px}
+.page-card:hover{border-color:var(--accent-line);background:var(--accent);transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,.07)}
+.page-card .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.page-card .nm{font-weight:bold;font-size:14px;display:flex;align-items:center;gap:7px;min-width:0}
+.page-card .nm span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.page-card .desc{font-size:12px;color:var(--muted);min-height:32px;line-height:1.55;margin:0}
+.page-card .bar{height:4px;border-radius:20px;background:#eef2f7;overflow:hidden;margin-top:4px}
+.page-card .bar span{display:block;height:100%;border-radius:20px}
+
+.toast{position:fixed;inset-inline:0;bottom:24px;margin:auto;width:max-content;max-width:90%;background:#172033;color:#fff;
+  padding:12px 18px;border-radius:12px;font-size:14px;box-shadow:0 12px 30px rgba(15,23,42,.25);
+  opacity:0;transform:translateY(12px);pointer-events:none;transition:.25s;z-index:80}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.warn{background:#92400e}
+
+@media(max-width:760px){
+  .stats{grid-template-columns:1fr 1fr}
+  .scopes{grid-template-columns:1fr}
+  .input{width:100%}
+  .bar .grow{min-width:0;width:100%}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <section class="head">
+    <div class="head-top">
+      <div>
+        <h1>8 — لوحة الوحدات المرئية</h1>
+        <div class="sub">اختر وحدة ← ثم اختر صفحة ← ثم حرّر عملياتها.</div>
+      </div>
+      <span class="badge" id="headBadge">—</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="stModules">0</b><span>الوحدات</span></div>
+      <div class="stat"><b id="stPages">0</b><span>الصفحات</span></div>
+      <div class="stat"><b id="stGranted">0</b><span>عمليات مفعّلة</span></div>
+      <div class="stat"><b id="stCoverage">0%</b><span>نسبة التغطية</span></div>
+    </div>
+  </section>
+
+  <section class="card bar toolbar">
+    <input class="input grow" id="search" type="search" placeholder="ابحث عن وحدة…">
+    <div class="seg" id="filters">
+      <button data-filter="all" class="on">الكل</button>
+      <button data-filter="active">مفعّلة</button>
+      <button data-filter="full">مكتملة</button>
+      <button data-filter="off">معطّلة</button>
+    </div>
+    <select class="select" id="sort">
+      <option value="default">الترتيب الافتراضي</option>
+      <option value="high">الأعلى تغطية</option>
+      <option value="low">الأقل تغطية</option>
+      <option value="name">الاسم (أ–ي)</option>
+    </select>
+    <span style="flex:1"></span>
+    <button class="btn" id="resetAll">↺ استعادة الافتراضي</button>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+  <div class="empty card" id="empty" hidden>
+    <b>لا توجد وحدات مطابقة</b>
+    جرّب تغيير كلمة البحث أو إلغاء التصفية الحالية.
+  </div>
+
+</main>
+
+<!-- ===== نافذة Drill-down ===== -->
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true">
+    <div class="dlg-head">
+      <div style="min-width:0">
+        <h3 id="dlgTitle">إدارة الصلاحيات</h3>
+        <div class="crumbs" id="dlgCrumbs"></div>
+      </div>
+      <button class="x" id="dlgClose" aria-label="إغلاق">✕</button>
+    </div>
+
+    <div class="dlg-body" id="dlgBody"></div>
+
+    <div class="dlg-foot">
+      <button class="btn primary" id="dlgSave">💾 حفظ الوحدة</button>
+      <button class="btn" id="dlgCancel">إلغاء</button>
+      <span style="flex:1"></span>
+      <button class="btn" id="dlgAll">تفعيل الكل</button>
+      <button class="btn" id="dlgNone">تعطيل الكل</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============ 1) البيانات ============ */
+const OPERATIONS = [
+  { key:'view',    label:'عرض',     icon:'👁' },
+  { key:'add',     label:'إضافة',   icon:'➕' },
+  { key:'edit',    label:'تعديل',   icon:'✏️' },
+  { key:'delete',  label:'حذف',     icon:'🗑' },
+  { key:'export',  label:'تصدير',   icon:'⬇️' },
+  { key:'approve', label:'اعتماد',  icon:'✅' },
+  { key:'assign',  label:'إسناد',   icon:'🔗' },
+  { key:'archive', label:'أرشفة',   icon:'📦' }
+];
+const OP_KEYS = OPERATIONS.map(o => o.key);
+
+const SCOPE_OPTIONS = [['self','جهتي'],['dept','إدارتي'],['gov','محافظتي'],['all','كل الجهات']];
+const SCOPE_LABEL = Object.fromEntries(SCOPE_OPTIONS);
+const SCOPE_ICON  = { self:'🏢', dept:'🏬', gov:'🏙️', all:'🌐' };
+
+const opsWith = (...keys) => {
+  const o = {}; OP_KEYS.forEach(k => o[k] = false);
+  keys.forEach(k => o[k] = true); return o;
+};
+
+const INITIAL = [
+  { id:'projects', icon:'📁', name:'المشاريع',
+    desc:'إدارة المشاريع ومراحلها ومتابعة نسب الإنجاز.',
+    scopes:{ view:'self', edit:'dept' },
+    pages:[
+      { id:'list',     icon:'📋', name:'قائمة المشاريع', desc:'عرض وتصفية جميع المشاريع بحسب الحالة والجهة.',
+        ops: opsWith('view','add','edit','export') },
+      { id:'detail',   icon:'📄', name:'تفاصيل المشروع', desc:'البيانات الأساسية والمرفقات وسجل التحديثات.',
+        ops: opsWith('view','edit','assign') },
+      { id:'progress', icon:'📈', name:'متابعة الإنجاز', desc:'نسب الإنجاز والمؤشرات والتقارير المرتبطة.',
+        ops: opsWith('view','edit','export','approve') }
+    ]
+  },
+  { id:'plans', icon:'📅', name:'الخطط',
+    desc:'إعداد الخطط التشغيلية والسنوية وربطها بالمؤشرات.',
+    scopes:{ view:'dept', edit:'self' },
+    pages:[
+      { id:'list',   icon:'📋', name:'قائمة الخطط',  desc:'عرض الخطط وتصفيتها بحسب السنة والحالة.',
+        ops: opsWith('view','add','export') },
+      { id:'editor', icon:'✏️', name:'محرر الخطة',   desc:'إضافة الأنشطة والمستهدفات وربطها بالمؤشرات.',
+        ops: opsWith('view','edit') },
+      { id:'approve',icon:'✅', name:'اعتماد الخطة', desc:'مراجعة الخطة واعتمادها من الجهة المختصة.',
+        ops: opsWith('view','approve','assign') }
+    ]
+  },
+  { id:'internal', icon:'🏢', name:'الجهات الداخلية',
+    desc:'الإدارات والأقسام والمستويات التنظيمية.',
+    scopes:{ view:'gov', edit:'dept' },
+    pages:[
+      { id:'list',    icon:'📋', name:'قائمة الجهات', desc:'عرض الجهات الداخلية وهرمها التنظيمي.',
+        ops: opsWith('view','export') },
+      { id:'editor',  icon:'✏️', name:'تحرير الجهة',  desc:'بيانات الجهة والمسؤولين المرتبطين بها.',
+        ops: opsWith('view','add','edit','delete') },
+      { id:'members', icon:'👥', name:'منسوبو الجهة', desc:'إدارة منسوبي الجهة وأدوارهم.',
+        ops: opsWith('view','assign') }
+    ]
+  },
+  { id:'external', icon:'🌐', name:'الجهات الخارجية',
+    desc:'الشركاء والموردون والجهات المتعاونة.',
+    scopes:{ view:'all', edit:'self' },
+    pages:[
+      { id:'list',   icon:'📋', name:'قائمة الجهات', desc:'عرض الجهات الخارجية وجهات التواصل.',
+        ops: opsWith('view','export') },
+      { id:'detail', icon:'📄', name:'بيانات الجهة',  desc:'معلومات التواصل والاتفاقيات.',
+        ops: opsWith('view') }
+    ]
+  },
+  { id:'users', icon:'👥', name:'المستخدمون',
+    desc:'الحسابات والأدوار وصلاحيات الدخول.',
+    scopes:{ view:'all', edit:'gov' },
+    pages:[
+      { id:'list',     icon:'📋', name:'قائمة المستخدمين',  desc:'عرض الحسابات وتصفيتها بحسب الحالة والدور.',
+        ops: opsWith('view','add','edit','delete','export') },
+      { id:'roles',    icon:'🔐', name:'الأدوار والصلاحيات', desc:'إدارة الأدوار وربطها بالمستخدمين.',
+        ops: opsWith('view','add','edit','delete','assign','approve') },
+      { id:'activity', icon:'📜', name:'سجل النشاط',        desc:'تتبّع تسجيلات الدخول والعمليات الحسّاسة.',
+        ops: opsWith('view','export','archive') }
+    ]
+  },
+  { id:'reports', icon:'📊', name:'التقارير',
+    desc:'بناء التقارير ولوحات المؤشرات وتصديرها.',
+    scopes:{ view:'dept', edit:'self' },
+    pages:[
+      { id:'gallery', icon:'🗂', name:'مكتبة التقارير', desc:'استعراض التقارير المتاحة وتصنيفاتها.',
+        ops: opsWith('view','export') },
+      { id:'builder', icon:'🛠', name:'منشئ التقارير',  desc:'بناء تقارير مخصّصة بحسب المعايير.',
+        ops: opsWith('view','add','edit') },
+      { id:'dash',    icon:'📈', name:'لوحات المؤشرات', desc:'مؤشرات الأداء ولوحات المتابعة.',
+        ops: opsWith('view','archive') }
+    ]
+  }
+];
+
+/* ============ 2) أدوات ============ */
+const $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const pageGranted   = p => OP_KEYS.filter(k => p.ops[k]).length;
+const moduleGranted = m => m.pages.reduce((s,p) => s + pageGranted(p), 0);
+const modulePossible= m => m.pages.length * OP_KEYS.length;
+const pageFull      = p => pageGranted(p) === OP_KEYS.length;
+const moduleFull    = m => m.pages.every(pageFull);
+const pct = (g,t) => t ? Math.round(g/t*100) : 0;
+const lv  = (g,t) => g === 0 ? 'zero' : g === t ? 'high' : (g/t) >= .6 ? 'high' : (g/t) >= .3 ? 'mid' : 'low';
+
+/* ============ 3) الحالة ============ */
+const state = {
+  modules: clone(INITIAL),
+  search: '',
+  filter: 'all',
+  sort: 'default',
+  editingId: null,
+  editingPageId: null,
+  view: 'pages',   // 'pages' | 'ops'
+  draft: null
+};
+
+/* ============ 4) DOM ============ */
+const tilesEl = $('#tiles');
+const emptyEl = $('#empty');
+const overlay = $('#overlay');
+
+/* ============ 5) Toast ============ */
+let toastTimer;
+function toast(msg, kind){
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (kind === 'warn' ? ' warn' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 2400);
+}
+
+/* ============ 6) الفلترة والترتيب ============ */
+function visibleModules(){
+  const q = state.search.trim();
+  let list = state.modules.filter(m => {
+    if (q && !(m.name.includes(q) || m.desc.includes(q))) return false;
+    const g = moduleGranted(m);
+    if (state.filter === 'active') return g > 0;
+    if (state.filter === 'full')   return moduleFull(m);
+    if (state.filter === 'off')    return g === 0;
+    return true;
+  });
+  if (state.sort === 'name') list = [...list].sort((a,b) => a.name.localeCompare(b.name,'ar'));
+  if (state.sort === 'high') list = [...list].sort((a,b) => (moduleGranted(b)/modulePossible(b)) - (moduleGranted(a)/modulePossible(a)));
+  if (state.sort === 'low')  list = [...list].sort((a,b) => (moduleGranted(a)/modulePossible(a)) - (moduleGranted(b)/modulePossible(b)));
+  return list;
+}
+
+/* ============ 7) الرسم ============ */
+function renderTiles(){
+  const list = visibleModules();
+  emptyEl.hidden = list.length > 0;
+  tilesEl.hidden = list.length === 0;
+
+  tilesEl.innerHTML = list.map(m => {
+    const g = moduleGranted(m), t = modulePossible(m);
+    const full = moduleFull(m);
+    const completed = m.pages.filter(pageFull).length;
+
+    return `
+      <article class="card tile" data-id="${m.id}">
+        <div class="tiletop">
+          <h3>${esc(m.icon)} ${esc(m.name)}</h3>
+          <span class="badge ${full?'ok':''}">${g}/${t}</span>
+        </div>
+        <div class="meter"><span class="lv-${lv(g,t)}" style="width:${pct(g,t)}%"></span></div>
+        <div class="mini">
+          <span>📄 ${m.pages.length} صفحات</span>
+          <span class="${completed===m.pages.length?'more':''}">✓ ${completed} مكتملة</span>
+          <span>${g} عملية</span>
+        </div>
+        <p class="muted desc">${esc(m.desc)}</p>
+        <p class="muted scope-line">
+          ${SCOPE_ICON[m.scopes.view]} العرض: ${SCOPE_LABEL[m.scopes.view]}
+          &nbsp;·&nbsp;
+          ${SCOPE_ICON[m.scopes.edit]} التعديل: ${SCOPE_LABEL[m.scopes.edit]}
+        </p>
+        <div class="tile-actions">
+          <button class="btn primary" data-act="open" data-id="${m.id}">فتح الوحدة ←</button>
+          <button class="btn" data-act="quick" data-id="${m.id}">
+            ${full ? 'تعطيل الكل' : 'تفعيل الكل'}
+          </button>
+        </div>
+      </article>`;
+  }).join('');
+
+  $('#headBadge').textContent = `يُعرض ${list.length} من ${state.modules.length} وحدة`;
+}
+
+function renderStats(){
+  const total   = state.modules.length;
+  const pages   = state.modules.reduce((s,m) => s + m.pages.length, 0);
+  const granted = state.modules.reduce((s,m) => s + moduleGranted(m), 0);
+  const possible= state.modules.reduce((s,m) => s + modulePossible(m), 0);
+  $('#stModules').textContent  = total;
+  $('#stPages').textContent    = pages;
+  $('#stGranted').textContent  = granted;
+  $('#stCoverage').textContent = (possible ? Math.round(granted/possible*100) : 0) + '%';
+}
+
+/* ============ 8) نافذة Drill-down ============ */
+function openEditor(id){
+  const m = state.modules.find(x => x.id === id);
+  if (!m) return;
+  state.editingId = id;
+  state.draft = clone(m);
+  state.editingPageId = null;
+  state.view = 'pages';
+
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderDialog();
+}
+
+function closeEditor(){
+  overlay.hidden = true;
+  document.body.style.overflow = '';
+  state.editingId = null;
+  state.editingPageId = null;
+  state.draft = null;
+}
+
+const curDraftModule = () => state.draft;
+const curDraftPage   = () => state.draft && state.draft.pages.find(p => p.id === state.editingPageId);
+const dialogDirty    = () => {
+  const m = state.modules.find(x => x.id === state.editingId);
+  return m && JSON.stringify(state.draft) !== JSON.stringify(m);
+};
+
+function renderDialog(){
+  const d = curDraftModule();
+  if (!d) return;
+
+  const dirty = dialogDirty();
+
+  /* ---- العنوان ---- */
+  $('#dlgTitle').textContent = 'إدارة صلاحيات: ' + d.name;
+
+  /* ---- Breadcrumbs ---- */
+  const cr = [];
+  if (state.view === 'pages'){
+    cr.push(`<span class="cur">${esc(d.icon)} ${esc(d.name)}</span>`);
+  } else {
+    const p = curDraftPage();
+    cr.push(`<span class="link" data-crumb="module">${esc(d.icon)} ${esc(d.name)}</span>`);
+    cr.push(`<span class="sep">›</span>`);
+    cr.push(`<span class="cur">${esc(p.icon)} ${esc(p.name)}</span>`);
+  }
+  $('#dlgCrumbs').innerHTML = cr.join('');
+
+  /* ---- المحتوى ---- */
+  if (state.view === 'pages'){
+    const g = moduleGranted(d), t = modulePossible(d);
+    const scopesHtml = [
+      { key:'view', label:'نطاق العرض',  icon:'👁' },
+      { key:'edit', label:'نطاق التعديل', icon:'✏️' }
+    ].map(f => `
+      <label class="field">
+        <span class="muted">${f.icon} ${f.label}</span>
+        <select class="select" data-scope="${f.key}">
+          ${SCOPE_OPTIONS.map(([v,l]) =>
+            `<option value="${v}" ${d.scopes[f.key]===v?'selected':''}>${l}</option>`).join('')}
+        </select>
+      </label>`).join('');
+
+    const pagesHtml = d.pages.map(p => {
+      const pg = pageGranted(p), full = pg === OP_KEYS.length;
+      return `
+        <div class="page-card" data-page="${p.id}" role="button" tabindex="0">
+          <div class="top">
+            <span class="nm">${p.icon} <span>${esc(p.name)}</span></span>
+            <span class="badge sm ${full?'ok':''}">${pg}/${OP_KEYS.length}</span>
+          </div>
+          <p class="desc">${esc(p.desc)}</p>
+          <div class="bar"><span class="lv-${lv(pg,OP_KEYS.length)}" style="width:${pct(pg,OP_KEYS.length)}%"></span></div>
+        </div>`;
+    }).join('');
+
+    $('#dlgBody').innerHTML = `
+      <p class="muted panel-desc">${esc(d.desc)}</p>
+
+      <div class="section first">
+        <span>🎯 نطاق البيانات للوحدة</span>
+      </div>
+      <div class="scopes">${scopesHtml}</div>
+
+      <div class="section">
+        <span>📄 الصفحات <span class="muted">(${d.pages.length})</span></span>
+        <span class="badge ${g===t?'ok':''}">${g}/${t} عملية</span>
+      </div>
+      <p class="muted panel-desc">اختر صفحة لعرض عملياتها وتحريرها.</p>
+      <div class="pages-grid">${pagesHtml}</div>
+    `;
+  } else {
+    const p = curDraftPage();
+    if (!p){ state.view = 'pages'; renderDialog(); return; }
+
+    const allOn = pageGranted(p) === OP_KEYS.length;
+
+    const opsHtml = OPERATIONS.map(op => `
+      <label class="op ${p.ops[op.key]?'on':''}">
+        <input type="checkbox" data-op="${op.key}" ${p.ops[op.key]?'checked':''}>
+        <span>${op.icon} ${op.label}</span>
+      </label>`).join('');
+
+    $('#dlgBody').innerHTML = `
+      <div class="section first">
+        <span>${p.icon} ${esc(p.name)}</span>
+        <label class="mini-label">
+          <input type="checkbox" data-page-all ${allOn?'checked':''}>
+          كل عمليات الصفحة
+        </label>
+      </div>
+      <p class="muted panel-desc">${esc(p.desc)}</p>
+
+      <div class="grid">${opsHtml}</div>
+
+      <div class="section">↩ الانتقال</div>
+      <p class="muted panel-desc">
+        اضغط على <span class="link" data-crumb="module" style="padding:2px 8px">${esc(d.icon)} ${esc(d.name)}</span>
+        في الأعلى للعودة إلى قائمة الصفحات.
+      </p>
+    `;
+  }
+
+  /* ---- أزرار الحفظ ---- */
+  $('#dlgSave').disabled = !dirty;
+  $('#dlgCancel').disabled = !dirty;
+}
+
+function saveEditor(){
+  const m = state.modules.find(x => x.id === state.editingId);
+  if (!m) return;
+  Object.assign(m, clone(state.draft));
+  renderTiles(); renderStats(); renderDialog();
+  toast('تم حفظ الوحدة ✓');
+}
+
+function cancelEditor(){
+  const m = state.modules.find(x => x.id === state.editingId);
+  if (!m) return;
+  state.draft = clone(m);
+  renderDialog();
+  toast('تم إلغاء التغييرات', 'warn');
+}
+
+/* ============ 9) أفعال سريعة ============ */
+function quickToggle(id){
+  const m = state.modules.find(x => x.id === id);
+  if (!m) return;
+  const full = moduleFull(m);
+  m.pages.forEach(p => OP_KEYS.forEach(k => p.ops[k] = !full));
+  renderTiles(); renderStats();
+  toast(full ? `تم تعطيل كل عمليات «${m.name}»` : `تم تفعيل كل عمليات «${m.name}»`,
+        full ? 'warn' : undefined);
+}
+
+function resetAll(){
+  if (!confirm('سيتم إرجاع جميع الوحدات والصفحات والعمليات إلى الحالة الأصلية. متابعة؟')) return;
+  state.modules = clone(INITIAL);
+  state.search = ''; state.filter = 'all'; state.sort = 'default';
+  $('#search').value = ''; $('#sort').value = 'default';
+  document.querySelectorAll('#filters button').forEach(b =>
+    b.classList.toggle('on', b.dataset.filter === 'all'));
+  renderTiles(); renderStats();
+  toast('تمت استعادة الإعدادات الافتراضية', 'warn');
+}
+
+/* ============ 10) الأحداث ============ */
+tilesEl.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if (btn){
+    const id = btn.dataset.id;
+    if (btn.dataset.act === 'open') openEditor(id);
+    else quickToggle(id);
+    return;
+  }
+  const tile = e.target.closest('.tile');
+  if (tile) openEditor(tile.dataset.id);
+});
+
+$('#search').addEventListener('input', e => { state.search = e.target.value; renderTiles(); });
+$('#filters').addEventListener('click', e => {
+  const b = e.target.closest('button[data-filter]'); if (!b) return;
+  state.filter = b.dataset.filter;
+  document.querySelectorAll('#filters button').forEach(x => x.classList.toggle('on', x === b));
+  renderTiles();
+});
+$('#sort').addEventListener('change', e => { state.sort = e.target.value; renderTiles(); });
+$('#resetAll').addEventListener('click', resetAll);
+
+/* ---- داخل النافذة ---- */
+$('#dlgBody').addEventListener('click', e => {
+  /* بطاقة صفحة */
+  const card = e.target.closest('[data-page]');
+  if (card){
+    state.editingPageId = card.dataset.page;
+    state.view = 'ops';
+    renderDialog();
+    return;
+  }
+  /* رابط breadcrumb */
+  const cr = e.target.closest('[data-crumb="module"]');
+  if (cr){
+    state.view = 'pages';
+    state.editingPageId = null;
+    renderDialog();
+  }
+});
+
+$('#dlgBody').addEventListener('change', e => {
+  const t = e.target;
+  if (!state.draft) return;
+
+  if (t.matches('[data-scope]')){
+    state.draft.scopes[t.dataset.scope] = t.value;
+    renderDialog();
+    return;
+  }
+  const p = curDraftPage();
+  if (!p) return;
+
+  if (t.matches('[data-op]')){
+    p.ops[t.dataset.op] = t.checked;
+    renderDialog();
+  } else if (t.matches('[data-page-all]')){
+    OP_KEYS.forEach(k => p.ops[k] = t.checked);
+    renderDialog();
+  }
+});
+
+$('#dlgSave').addEventListener('click', saveEditor);
+$('#dlgCancel').addEventListener('click', cancelEditor);
+$('#dlgClose').addEventListener('click', () => {
+  if (dialogDirty() && !confirm('لديك تغييرات غير محفوظة. إغلاق بدون حفظ؟')) return;
+  closeEditor();
+});
+
+$('#dlgAll').addEventListener('click', () => {
+  if (!state.draft) return;
+  state.draft.pages.forEach(p => OP_KEYS.forEach(k => p.ops[k] = true));
+  renderDialog(); renderTiles();
+  toast('تم تفعيل كل العمليات (لن تُحفظ تلقائياً)');
+});
+
+$('#dlgNone').addEventListener('click', () => {
+  if (!state.draft) return;
+  state.draft.pages.forEach(p => OP_KEYS.forEach(k => p.ops[k] = false));
+  renderDialog(); renderTiles();
+  toast('تم تعطيل كل العمليات (لن تُحفظ تلقائياً)', 'warn');
+});
+
+overlay.addEventListener('click', e => {
+  if (e.target !== overlay) return;
+  if (dialogDirty() && !confirm('لديك تغييرات غير محفوظة. إغلاق بدون حفظ؟')) return;
+  closeEditor();
+});
+
+document.addEventListener('keydown', e => {
+  if (overlay.hidden) return;
+  if (e.key === 'Escape'){
+    if (state.view === 'ops'){ state.view = 'pages'; state.editingPageId = null; renderDialog(); }
+    else {
+      if (dialogDirty() && !confirm('لديك تغييرات غير محفوظة. إغلاق بدون حفظ؟')) return;
+      closeEditor();
+    }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
+    e.preventDefault();
+    if (!dialogDirty()) return;
+    saveEditor();
+  }
+});
+
+/* ============ 11) التشغيل ============ */
+renderTiles();
+renderStats();
+</script>
+</body>
+</html>

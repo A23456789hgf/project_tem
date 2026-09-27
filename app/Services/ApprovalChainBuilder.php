@@ -200,14 +200,14 @@ class ApprovalChainBuilder
                     }
 
                     $stageEnum = EntityResponsibilityType::tryFrom($stageConfig->stage);
-                    $phaseCode = $stageEnum ? $stageEnum->phaseCode() : ($stageConfig->stage === 'approval' ? 'stage_approval' : $stageConfig->stage);
-                    $stageLabel = $stageEnum ? $stageEnum->label() : ($stageConfig->stage === 'approval' ? 'اعتماد' : ($stageConfig->stage === 'technical_review' ? 'مراجعة فنية' : ($stageConfig->stage === 'financial_review' ? 'مراجعة مالية' : $stageConfig->stage)));
+                    $phaseCode = $stageEnum ? $stageEnum->phaseCode() : str_replace(' ', '_', strtolower($stageConfig->stage_name_en ?? $stageConfig->stage));
+                    $stageLabel = $stageConfig->stage_name_ar ?? ($stageEnum ? $stageEnum->label() : $stageConfig->stage);
 
                     $stages[] = [
                         'order' => $order++,
                         'code' => 'authority_'.$node['id'].'_'.$phaseCode,
                         'name_ar' => $node['name'].' - '.$stageLabel,
-                        'name_en' => $node['name'].' - '.($stageEnum ? $stageEnum->value : $stageConfig->stage),
+                        'name_en' => $node['name'].' - '.($stageConfig->stage_name_en ?? ($stageEnum ? $stageEnum->value : $stageConfig->stage)),
                         'entity_id' => null,
                         'authority_id' => $node['id'],
                         'entity_name' => $node['name'],
@@ -218,6 +218,9 @@ class ApprovalChainBuilder
                         'stage_type' => $stageEnum ? $stageEnum->value : $stageConfig->stage,
                         'approver_scope' => 'external',
                         'is_ministry_root' => false,
+                        'stage_key' => $phaseCode,
+                        'stage_name' => $stageLabel,
+                        'available_actions' => $stageConfig->available_actions,
                     ];
                 }
             } elseif ($node['type'] === 'internal') {
@@ -229,23 +232,20 @@ class ApprovalChainBuilder
 
                 foreach ($configuredStages as $stageConfig) {
                     $stageEnum = $stageConfig->stageEnum();
-                    if (! $stageEnum) {
-                        continue;
-                    }
+                    $phaseCode = $stageEnum ? $stageEnum->phaseCode() : str_replace(' ', '_', strtolower($stageConfig->stage_name_en ?? $stageConfig->stage));
+                    $stageLabel = $stageConfig->stage_name_ar ?? ($stageEnum ? $stageEnum->label() : $stageConfig->stage);
 
                     if (! $stageConfig->hasValidResponsibleUser()) {
                         throw new ConfigurationException(
-                            "الجهة الداخلية: {$node['name']} | المرحلة: {$stageEnum->label()} | المشكلة: لم يتم تحديد مسؤول نشط لهذه المرحلة."
+                            "الجهة الداخلية: {$node['name']} | المرحلة: {$stageLabel} | المشكلة: لم يتم تحديد مسؤول نشط لهذه المرحلة."
                         );
                     }
-
-                    $phaseCode = $stageEnum->phaseCode();
 
                     $stages[] = [
                         'order' => $order++,
                         'code' => 'entity_'.$node['id'].'_'.$phaseCode,
-                        'name_ar' => $node['name'].' - '.$stageEnum->label(),
-                        'name_en' => $node['name'].' - '.$stageEnum->value,
+                        'name_ar' => $node['name'].' - '.$stageLabel,
+                        'name_en' => $node['name'].' - '.($stageConfig->stage_name_en ?? ($stageEnum ? $stageEnum->value : $stageConfig->stage)),
                         'entity_id' => $node['id'],
                         'authority_id' => null,
                         'entity_name' => $node['name'],
@@ -253,9 +253,12 @@ class ApprovalChainBuilder
                         'is_entity_stage' => true,
                         'is_implementation' => false,
                         'responsible_user_id' => $stageConfig->responsible_user_id,
-                        'stage_type' => $stageEnum->value,
+                        'stage_type' => $stageEnum ? $stageEnum->value : $stageConfig->stage,
                         'approver_scope' => 'internal',
                         'is_ministry_root' => $node['is_ministry_root'],
+                        'stage_key' => $phaseCode,
+                        'stage_name' => $stageLabel,
+                        'available_actions' => $stageConfig->available_actions,
                     ];
                 }
             }

@@ -108,13 +108,17 @@ class ApprovalService
                     'status' => $isFirst ? ApprovalStepStatus::Pending->value : ApprovalStepStatus::Locked->value,
                     'is_active' => $isFirst,
                     'created_by' => $user->id,
-                    'financial_review_status' => ($stageData['phase'] === 'financial_review') ? 'pending' : null,
-                    'technical_review_status' => ($stageData['phase'] === 'technical_review') ? 'pending' : null,
-                    // Snapshot the responsible user to preserve historic records
-                    // even if entity stage configuration changes in the future.
-                    'technical_reviewer_id' => ($stageData['phase'] === 'technical_review') ? $responsibleUserId : null,
-                    'financial_reviewer_id' => ($stageData['phase'] === 'financial_review') ? $responsibleUserId : null,
-                    'assigned_user_id' => ($stageData['phase'] === 'stage_approval') ? $responsibleUserId : null,
+                    // Legacy hardcoded fields (kept null or unused for new dynamic workflow)
+                    'financial_review_status' => null,
+                    'technical_review_status' => null,
+                    'technical_reviewer_id' => null,
+                    'financial_reviewer_id' => null,
+                    
+                    // Unified Dynamic Fields
+                    'assigned_user_id' => $responsibleUserId,
+                    'stage_key' => $stageData['stage_key'] ?? null,
+                    'stage_name' => $stageData['stage_name'] ?? null,
+                    'available_actions' => isset($stageData['available_actions']) ? (is_array($stageData['available_actions']) ? json_encode($stageData['available_actions']) : $stageData['available_actions']) : null,
                 ]);
 
                 $createdApprovals->push($approval);
@@ -236,56 +240,29 @@ class ApprovalService
                 }
             }
         }
-        if ($step->phase === 'technical_review') {
-            $assignedId = $step->technical_reviewer_id ?? $step->technical_review_user_id;
-            if ($assignedId) {
-                if ((int) $assignedId !== (int) $user->id) {
-                    return false;
-                }
-            } else {
-                if ($step->approver_scope === 'external') {
-                    if ($userAuthorityId !== $stepAuthorityId) {
-                        return false;
-                    }
-                } else {
-                    if ($userEntityId !== $stepEntityId) {
-                        return false;
-                    }
-                }
+        // Unified dynamic stage logic with legacy fallback
+        $assignedId = $step->assigned_user_id;
+        
+        if (!$assignedId) {
+            if ($step->phase === 'technical_review') {
+                $assignedId = $step->technical_reviewer_id ?? $step->technical_review_user_id;
+            } elseif ($step->phase === 'financial_review') {
+                $assignedId = $step->financial_reviewer_id ?? $step->financial_review_user_id;
             }
-        } elseif ($step->phase === 'financial_review') {
-            $assignedId = $step->financial_reviewer_id ?? $step->financial_review_user_id;
-            if ($assignedId) {
-                if ((int) $assignedId !== (int) $user->id) {
-                    return false;
-                }
-            } else {
-                if ($step->approver_scope === 'external') {
-                    if ($userAuthorityId !== $stepAuthorityId) {
-                        return false;
-                    }
-                } else {
-                    if ($userEntityId !== $stepEntityId) {
-                        return false;
-                    }
-                }
+        }
+
+        if ($assignedId) {
+            if ((int) $assignedId !== (int) $user->id) {
+                return false;
             }
         } else {
-            // All other phases (stage approvals, etc.) must be explicitly assigned to the user
-            $assignedId = $step->assigned_user_id;
-            if ($assignedId) {
-                if ((int) $assignedId !== (int) $user->id) {
+            if ($step->approver_scope === 'external') {
+                if ($userAuthorityId !== $stepAuthorityId) {
                     return false;
                 }
             } else {
-                if ($step->approver_scope === 'external') {
-                    if ($userAuthorityId !== $stepAuthorityId) {
-                        return false;
-                    }
-                } else {
-                    if ($userEntityId !== $stepEntityId) {
-                        return false;
-                    }
+                if ($userEntityId !== $stepEntityId) {
+                    return false;
                 }
             }
         }

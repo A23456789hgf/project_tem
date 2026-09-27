@@ -483,6 +483,37 @@ Route::middleware('auth')->group(function () {
     });
 
     // ========================================
+    // تقارير المخزون (ERP Stock Reports)
+    // ========================================
+    Route::prefix('projects/reports')->name('projects.reports.')->group(function () {
+        // Shared Lookup (Controller handles canAny authorization)
+        Route::get('/material-requests/api/lookup', [App\Http\Controllers\Project\ErpStockReportController::class, 'apiLookup'])->name('material_requests.api_lookup');
+
+        // طلبات المواد
+        Route::middleware('can:reports.material_requests.view')->group(function () {
+            Route::get('/material-requests', [App\Http\Controllers\Project\ErpStockReportController::class, 'materialRequests'])->name('material_requests');
+            Route::get('/material-requests/items/{name}', [App\Http\Controllers\Project\ErpStockReportController::class, 'materialRequestItems'])->name('material_requests.items');
+        });
+
+        // صرف المواد
+        Route::middleware('can:reports.stock_entries.view')->group(function () {
+            Route::get('/stock-entries', [App\Http\Controllers\Project\ErpStockReportController::class, 'stockEntries'])->name('stock_entries');
+            Route::get('/stock-entries/items/{name}', [App\Http\Controllers\Project\ErpStockReportController::class, 'stockEntryItems'])->name('stock_entries.items');
+        });
+
+        // سجل المخزون
+        Route::middleware('can:reports.stock_ledger.view')->group(function () {
+            Route::get('/stock-ledger', [App\Http\Controllers\Project\ErpStockReportController::class, 'stockLedger'])->name('stock_ledger');
+        });
+
+        // فواتير الشراء
+        Route::middleware('can:reports.purchase_invoices.view')->group(function () {
+            Route::get('/purchase-invoices', [App\Http\Controllers\Project\PurchaseInvoiceController::class, 'purchaseInvoices'])->name('purchase_invoices');
+            Route::get('/purchase-invoices/items/{name}', [App\Http\Controllers\Project\PurchaseInvoiceController::class, 'purchaseInvoiceItems'])->name('purchase_invoices.items');
+        });
+    });
+
+    // ========================================
     // إدارة المشاريع (Projects)
     // ========================================
     Route::group(['prefix' => 'projects', 'as' => 'projects.'], function () {

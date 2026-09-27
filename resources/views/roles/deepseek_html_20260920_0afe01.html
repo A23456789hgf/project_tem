@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>7 — الوحدات / الصفحات / العمليات</title>
+<style>
+:root{
+  --bg:#f4f7fb;--card:#fff;--line:#e5e7eb;--text:#172033;--muted:#64748b;
+  --soft:#f8fafc;--accent:#eef2ff;--accent-line:#c7d2fe;
+  --ok:#166534;--ok-bg:#dcfce7;--warn:#92400e;--warn-bg:#fef3c7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Tahoma,Arial,sans-serif;direction:rtl}
+.wrap{max-width:1560px;margin:28px auto;padding:0 18px}
+.head,.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 7px 22px rgba(15,23,42,.05)}
+.head{padding:20px;margin-bottom:16px}
+h1,h2,h3,h4{margin-top:0}
+.sub,.muted{color:var(--muted);font-size:13px}
+.head-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.input,.select,.btn{border:1px solid #d9e0e8;border-radius:10px;padding:9px 12px;background:#fff;font:inherit;color:inherit;width:100%}
+.btn{cursor:pointer;transition:.15s;white-space:nowrap;width:auto}
+.btn:hover{background:#f1f5f9}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:disabled:hover{background:#fff}
+.primary{background:#172033;color:#fff;border-color:#172033}
+.primary:hover{background:#0f172a}
+.danger{background:#fee2e2;border-color:#fecaca;color:#991b1b}
+.danger:hover{background:#fecaca}
+.badge{display:inline-block;background:var(--accent);border-radius:999px;padding:5px 10px;font-size:12px;white-space:nowrap}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.badge.sm{padding:3px 8px;font-size:11px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 0}
+.stat{padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}
+.stat b{font-size:24px;display:block;line-height:1.3}
+.stat span{font-size:12px;color:var(--muted)}
+
+.md3{display:grid;grid-template-columns:290px 260px 1fr;min-height:740px;overflow:hidden}
+.col{display:flex;flex-direction:column;min-width:0;min-height:0}
+.col:not(:last-child){border-left:1px solid var(--line)}
+.col-head{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft)}
+.col-head h3{margin:0;font-size:13.5px;font-weight:bold;display:flex;align-items:center;gap:7px}
+.col-head .cnt{font-size:11.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+.col-search{padding:10px 12px;border-bottom:1px solid var(--line)}
+.col-body{flex:1;overflow:auto;padding:10px;min-height:100px}
+
+.item{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:11px;margin-bottom:6px;cursor:pointer;border:1px solid transparent;transition:.15s}
+.item:hover{background:var(--accent)}
+.item.active{background:var(--accent);border-color:var(--accent-line)}
+.item .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.item .nm{font-size:13.5px;font-weight:bold;display:flex;align-items:center;gap:7px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .meta{font-size:11.5px;color:var(--muted)}
+.item .bar{height:4px;border-radius:20px;background:#eef2f7;overflow:hidden;margin-top:5px}
+.item .bar span{display:block;height:100%;border-radius:20px}
+.lv-zero{background:#cbd5e1}
+.lv-low{background:#ef4444}
+.lv-mid{background:#f59e0b}
+.lv-high{background:#10b981}
+.dot{width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;flex:none}
+
+.detail-body{flex:1;overflow:auto;padding:20px;min-height:100px}
+
+.detail-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:16px}
+.detail-head h2{margin-bottom:4px;font-size:19px}
+.detail-head .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+.crumbs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:12px}
+.crumbs .sep{opacity:.5}
+.crumbs .link{cursor:pointer;color:#3730a3}
+.crumbs .link:hover{text-decoration:underline}
+
+.section{font-weight:bold;margin:18px 0 10px;font-size:14px}
+.section.first{margin-top:0}
+.scopes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.op{display:flex;gap:8px;align-items:center;border:1px solid var(--line);background:#fafafa;border-radius:11px;padding:10px 12px;cursor:pointer;font-size:13.5px;transition:.15s}
+.op:hover{border-color:var(--accent-line)}
+.op.on{background:var(--accent);border-color:var(--accent-line)}
+.op input{accent-color:#172033;width:16px;height:16px;flex:none}
+.mini{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.mini input{accent-color:#172033;width:15px;height:15px}
+
+.empty{padding:40px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7}
+.empty b{display:block;font-size:15px;color:var(--text);margin-bottom:6px}
+.empty .ico{font-size:34px;display:block;margin-bottom:10px;opacity:.6}
+
+.actions{border-top:1px solid var(--line);padding:13px 16px;display:flex;gap:9px;flex-wrap:wrap;align-items:center;background:var(--soft)}
+
+.toast{position:fixed;inset-inline:0;bottom:24px;margin:auto;width:max-content;max-width:90%;background:#172033;color:#fff;
+  padding:12px 18px;border-radius:12px;font-size:14px;box-shadow:0 12px 30px rgba(15,23,42,.25);opacity:0;transform:translateY(12px);
+  pointer-events:none;transition:.25s;z-index:50}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.warn{background:#92400e}
+
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:18px;z-index:60}
+.overlay[hidden]{display:none}
+.dialog{max-width:460px;width:100%;padding:22px;border-radius:18px;background:#fff;border:1px solid var(--line);box-shadow:0 20px 50px rgba(15,23,42,.25)}
+.dialog h3{margin-bottom:6px}
+.dialog .toolbar{margin-top:18px}
+.dialog .input{width:100%}
+
+@media(max-width:1100px){.md3{grid-template-columns:250px 230px 1fr}}
+@media(max-width:900px){
+  .md3{grid-template-columns:1fr;min-height:0}
+  .col:not(:last-child){border-left:0;border-bottom:1px solid var(--line)}
+  .col-body{max-height:320px}
+  .stats{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){.scopes{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <section class="head">
+    <div class="head-top">
+      <div>
+        <h1>7 — الوحدات / الصفحات / العمليات</h1>
+        <div class="sub">اختر وحدة ← ثم اختر صفحة ← ثم حرّر عملياتها ونطاق بياناتها.</div>
+      </div>
+      <span class="badge" id="globalState">محفوظ</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="stModules">0</b><span>الوحدات</span></div>
+      <div class="stat"><b id="stPages">0</b><span>الصفحات</span></div>
+      <div class="stat"><b id="stGranted">0</b><span>العمليات المفعّلة</span></div>
+      <div class="stat"><b id="stCoverage">0%</b><span>نسبة التغطية</span></div>
+    </div>
+
+    <div class="toolbar" style="margin-top:14px">
+      <button class="btn" id="addModule">＋ وحدة جديدة</button>
+      <button class="btn" id="resetAll">↺ استعادة الافتراضي</button>
+    </div>
+  </section>
+
+  <section class="card md3">
+    <aside class="col col-modules">
+      <div class="col-head"><h3>📦 الوحدات</h3><span class="cnt" id="cModules">0</span></div>
+      <div class="col-search"><input class="input" id="searchModules" placeholder="ابحث عن وحدة…"></div>
+      <div class="col-body" id="moduleList"></div>
+    </aside>
+
+    <aside class="col col-pages">
+      <div class="col-head"><h3>📄 الصفحات</h3><span class="cnt" id="cPages">—</span></div>
+      <div class="col-search"><input class="input" id="searchPages" placeholder="ابحث عن صفحة…"></div>
+      <div class="col-body" id="pageList"></div>
+    </aside>
+
+    <section class="col col-ops">
+      <div class="col-head"><h3>⚙️ العمليات</h3><span class="cnt" id="cOps">—</span></div>
+      <div class="detail-body" id="opsPanel"></div>
+      <div class="actions" id="opsActions"></div>
+    </section>
+  </section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true">
+    <h3 id="dlgTitle"></h3>
+    <p class="muted" id="dlgText" style="margin:0 0 12px"></p>
+    <input class="input" id="dlgInput" hidden>
+    <div class="toolbar">
+      <button class="btn primary" id="dlgOk"></button>
+      <button class="btn" id="dlgCancel"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 1) البيانات ============ */
+const OPERATIONS = [
+  { key:'view',    label:'عرض',     icon:'👁' },
+  { key:'add',     label:'إضافة',   icon:'➕' },
+  { key:'edit',    label:'تعديل',   icon:'✏️' },
+  { key:'delete',  label:'حذف',     icon:'🗑' },
+  { key:'export',  label:'تصدير',   icon:'⬇️' },
+  { key:'approve', label:'اعتماد',  icon:'✅' },
+  { key:'assign',  label:'إسناد',   icon:'🔗' },
+  { key:'archive', label:'أرشفة',   icon:'📦' }
+];
+const OP_KEYS = OPERATIONS.map(o => o.key);
+
+const SCOPE_OPTIONS = [['self','جهتي'],['dept','إدارتي'],['gov','محافظتي'],['all','كل الجهات']];
+const SCOPE_LABEL = Object.fromEntries(SCOPE_OPTIONS);
+const SCOPE_ICON  = { self:'🏢', dept:'🏬', gov:'🏙️', all:'🌐' };
+
+const opsWith = (...keys) => {
+  const o = {}; OP_KEYS.forEach(k => o[k] = false);
+  keys.forEach(k => o[k] = true); return o;
+};
+
+const INITIAL = [
+  { id:'projects', icon:'📁', name:'المشاريع',
+    desc:'إدارة المشاريع ومراحلها ومتابعة نسب الإنجاز.',
+    scopes:{ view:'self', edit:'dept' },
+    pages:[
+      { id:'list',     icon:'📋', name:'قائمة المشاريع', desc:'عرض وتصفية جميع المشاريع بحسب الحالة والجهة.',
+        ops: opsWith('view','add','edit','export') },
+      { id:'detail',   icon:'📄', name:'تفاصيل المشروع', desc:'البيانات الأساسية والمرفقات وسجل التحديثات.',
+        ops: opsWith('view','edit','assign') },
+      { id:'progress', icon:'📈', name:'متابعة الإنجاز', desc:'نسب الإنجاز والمؤشرات والتقارير المرتبطة.',
+        ops: opsWith('view','edit','export','approve') }
+    ]
+  },
+  { id:'plans', icon:'📅', name:'الخطط',
+    desc:'إعداد الخطط التشغيلية والسنوية وربطها بالمؤشرات.',
+    scopes:{ view:'dept', edit:'self' },
+    pages:[
+      { id:'list',   icon:'📋', name:'قائمة الخطط',  desc:'عرض الخطط وتصفيتها بحسب السنة والحالة.',
+        ops: opsWith('view','add','export') },
+      { id:'editor', icon:'✏️', name:'محرر الخطة',   desc:'إضافة الأنشطة والمستهدفات وربطها بالمؤشرات.',
+        ops: opsWith('view','edit') },
+      { id:'approve',icon:'✅', name:'اعتماد الخطة', desc:'مراجعة الخطة واعتمادها من الجهة المختصة.',
+        ops: opsWith('view','approve','assign') }
+    ]
+  },
+  { id:'internal', icon:'🏢', name:'الجهات الداخلية',
+    desc:'الإدارات والأقسام والمستويات التنظيمية.',
+    scopes:{ view:'gov', edit:'dept' },
+    pages:[
+      { id:'list',    icon:'📋', name:'قائمة الجهات', desc:'عرض الجهات الداخلية وهرمها التنظيمي.',
+        ops: opsWith('view','export') },
+      { id:'editor',  icon:'✏️', name:'تحرير الجهة',  desc:'بيانات الجهة والمسؤولين المرتبطين بها.',
+        ops: opsWith('view','add','edit','delete') },
+      { id:'members', icon:'👥', name:'منسوبو الجهة', desc:'إدارة منسوبي الجهة وأدوارهم.',
+        ops: opsWith('view','assign') }
+    ]
+  },
+  { id:'external', icon:'🌐', name:'الجهات الخارجية',
+    desc:'الشركاء والموردون والجهات المتعاونة.',
+    scopes:{ view:'all', edit:'self' },
+    pages:[
+      { id:'list',   icon:'📋', name:'قائمة الجهات', desc:'عرض الجهات الخارجية وجهات التواصل.',
+        ops: opsWith('view','export') },
+      { id:'detail', icon:'📄', name:'بيانات الجهة',  desc:'معلومات التواصل والاتفاقيات.',
+        ops: opsWith('view') }
+    ]
+  },
+  { id:'users', icon:'👥', name:'المستخدمون',
+    desc:'الحسابات والأدوار وصلاحيات الدخول.',
+    scopes:{ view:'all', edit:'gov' },
+    pages:[
+      { id:'list',     icon:'📋', name:'قائمة المستخدمين',  desc:'عرض الحسابات وتصفيتها بحسب الحالة والدور.',
+        ops: opsWith('view','add','edit','delete','export') },
+      { id:'roles',    icon:'🔐', name:'الأدوار والصلاحيات', desc:'إدارة الأدوار وربطها بالمستخدمين.',
+        ops: opsWith('view','add','edit','delete','assign','approve') },
+      { id:'activity', icon:'📜', name:'سجل النشاط',        desc:'تتبّع تسجيلات الدخول والعمليات الحسّاسة.',
+        ops: opsWith('view','export','archive') }
+    ]
+  },
+  { id:'reports', icon:'📊', name:'التقارير',
+    desc:'بناء التقارير ولوحات المؤشرات وتصديرها.',
+    scopes:{ view:'dept', edit:'self' },
+    pages:[
+      { id:'gallery', icon:'🗂', name:'مكتبة التقارير', desc:'استعراض التقارير المتاحة وتصنيفاتها.',
+        ops: opsWith('view','export') },
+      { id:'builder', icon:'🛠', name:'منشئ التقارير',  desc:'بناء تقارير مخصّصة بحسب المعايير.',
+        ops: opsWith('view','add','edit') },
+      { id:'dash',    icon:'📈', name:'لوحات المؤشرات', desc:'مؤشرات الأداء ولوحات المتابعة.',
+        ops: opsWith('view','archive') }
+    ]
+  }
+];
+
+/* ============ 2) أدوات ============ */
+const $ = s => document.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const pageGranted   = p => OP_KEYS.filter(k => p.ops[k]).length;
+const moduleGranted = m => m.pages.reduce((s,p) => s + pageGranted(p), 0);
+const modulePossible= m => m.pages.length * OP_KEYS.length;
+const pageFull      = p => pageGranted(p) === OP_KEYS.length;
+const pct = (g,t) => t ? Math.round(g/t*100) : 0;
+const lv  = (g,t) => g === 0 ? 'zero' : g === t ? 'high' : (g/t) >= .6 ? 'high' : (g/t) >= .3 ? 'mid' : 'low';
+
+/* ============ 3) الحالة ============ */
+const state = {
+  modules: clone(INITIAL),
+  selectedModuleId: INITIAL[0].id,
+  selectedPageId: INITIAL[0].pages[0].id,
+  draft: null,
+  searchModules: '',
+  searchPages: ''
+};
+const curModule = () => state.modules.find(m => m.id === state.selectedModuleId);
+const curPage   = () => { const m = curModule(); return m && m.pages.find(p => p.id === state.selectedPageId); };
+const curDraftPage = () => state.draft && state.draft.pages.find(p => p.id === state.selectedPageId);
+const isDirty   = () => JSON.stringify(state.draft) !== JSON.stringify(curModule());
+
+/* ============ 4) DOM ============ */
+const moduleList = $('#moduleList');
+const pageList   = $('#pageList');
+const opsPanel   = $('#opsPanel');
+const opsActions = $('#opsActions');
+
+/* ============ 5) Toast ============ */
+let toastTimer;
+function toast(msg, kind){
+  const el = $('#toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (kind === 'warn' ? ' warn' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 2400);
+}
+
+/* ============ 6) Dialog ============ */
+let dialogResolve = null;
+function openDialog(o){
+  return new Promise(r => {
+    $('#dlgTitle').textContent = o.title || '';
+    $('#dlgText').textContent  = o.text || '';
+    $('#dlgText').hidden       = !o.text;
+    $('#dlgInput').hidden      = !o.input;
+    $('#dlgInput').value       = o.inputValue || '';
+    $('#dlgOk').textContent    = o.okText || 'تأكيد';
+    $('#dlgOk').className      = 'btn ' + (o.danger ? 'danger' : 'primary');
+    $('#dlgCancel').textContent= o.cancelText || 'إلغاء';
+    $('#overlay').hidden = false;
+    dialogResolve = r;
+    setTimeout(() => (o.input ? $('#dlgInput') : $('#dlgOk')).focus(), 40);
+  });
+}
+function closeDialog(v){
+  $('#overlay').hidden = true;
+  const r = dialogResolve; dialogResolve = null;
+  if (r) r(v);
+}
+$('#dlgOk').onclick     = () => closeDialog($('#dlgInput').hidden ? true : ($('#dlgInput').value.trim() || null));
+$('#dlgCancel').onclick = () => closeDialog(null);
+$('#overlay').onclick   = e => { if (e.target.id === 'overlay') closeDialog(null); };
+
+/* ============ 7) الرسم ============ */
+function render(){ renderModules(); renderPages(); renderOps(); renderStats(); }
+
+function renderModules(){
+  const q = state.searchModules.trim();
+  const items = state.modules.filter(m => !q || m.name.includes(q) || m.desc.includes(q));
+  $('#cModules').textContent = items.length;
+
+  if (!items.length){
+    moduleList.innerHTML = '<div class="empty"><span class="ico">🔍</span>لا توجد وحدات مطابقة</div>';
+    return;
+  }
+
+  moduleList.innerHTML = items.map(m => {
+    const g = moduleGranted(m), t = modulePossible(m);
+    const active = m.id === state.selectedModuleId;
+    const dirty  = active && isDirty();
+    return `
+      <div class="item ${active?'active':''}" data-mid="${m.id}" role="button" tabindex="0">
+        <div class="top">
+          <span class="nm">${esc(m.icon)} ${esc(m.name)}</span>
+          ${dirty ? '<span class="dot" title="غير محفوظ"></span>' : ''}
+        </div>
+        <span class="meta">${m.pages.length} صفحات · ${g}/${t} عملية</span>
+        <div class="bar"><span class="lv-${lv(g,t)}" style="width:${pct(g,t)}%"></span></div>
+      </div>`;
+  }).join('');
+}
+
+function renderPages(){
+  const m = curModule();
+  if (!m){
+    $('#cPages').textContent = '—';
+    pageList.innerHTML = '<div class="empty"><span class="ico">📦</span>اختر وحدة أولاً</div>';
+    return;
+  }
+  const q = state.searchPages.trim();
+  const items = m.pages.filter(p => !q || p.name.includes(q) || p.desc.includes(q));
+  $('#cPages').textContent = items.length;
+
+  if (!items.length){
+    pageList.innerHTML = '<div class="empty"><span class="ico">🔍</span>لا توجد صفحات مطابقة</div>';
+    return;
+  }
+
+  // نعتمد على الـdraft لعرض القيم الحية
+  const draft = state.draft;
+  pageList.innerHTML = items.map(p => {
+    const dp = draft.pages.find(x => x.id === p.id) || p;
+    const g = pageGranted(dp), t = OP_KEYS.length;
+    const active = p.id === state.selectedPageId;
+    return `
+      <div class="item ${active?'active':''}" data-pid="${p.id}" role="button" tabindex="0">
+        <div class="top">
+          <span class="nm">${esc(p.icon)} ${esc(p.name)}</span>
+          <span class="badge sm">${g}/${t}</span>
+        </div>
+        <span class="meta">${esc(dp.desc.slice(0, 46))}${dp.desc.length>46?'…':''}</span>
+        <div class="bar"><span class="lv-${lv(g,t)}" style="width:${pct(g,t)}%"></span></div>
+      </div>`;
+  }).join('');
+}
+
+function renderOps(){
+  const m = curModule();
+  const d = state.draft;
+  const p = curDraftPage();
+
+  if (!m || !d){
+    $('#cOps').textContent = '—';
+    opsPanel.innerHTML = '<div class="empty"><span class="ico">⚙️</span><b>لم يتم اختيار وحدة</b>اختر وحدة من العمود الأيمن للبدء.</div>';
+    opsActions.innerHTML = '';
+    return;
+  }
+
+  const g = moduleGranted(d), t = modulePossible(d);
+  const dirty = isDirty();
+
+  $('#cOps').textContent = p ? `${pageGranted(p)}/${OP_KEYS.length}` : `${d.pages.length} صفحات`;
+
+  const scopesHtml = [
+    { key:'view', label:'نطاق العرض',  icon:'👁' },
+    { key:'edit', label:'نطاق التعديل', icon:'✏️' }
+  ].map(f => `
+    <label class="field">
+      <span class="muted">${f.icon} ${f.label}</span>
+      <select class="select" data-scope="${f.key}">
+        ${SCOPE_OPTIONS.map(([v,l]) =>
+          `<option value="${v}" ${d.scopes[f.key]===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+    </label>`).join('');
+
+  const moduleBlock = `
+    <div class="detail-head">
+      <div>
+        <h2 style="margin-bottom:4px">${esc(d.icon)} ${esc(d.name)}</h2>
+        <div class="muted">${esc(d.desc)}</div>
+        <div class="meta">
+          <span class="badge">📄 ${d.pages.length} صفحات</span>
+          <span class="badge ${g===t?'ok':''}">${g} / ${t} عملية مفعّلة</span>
+        </div>
+      </div>
+      <div>
+        <span class="badge ${dirty?'warn':'ok'}">${dirty?'غير محفوظ':'محفوظ'}</span>
+      </div>
+    </div>
+
+    <div class="section first">نطاق البيانات للوحدة</div>
+    <div class="scopes">${scopesHtml}</div>
+  `;
+
+  if (!p){
+    opsPanel.innerHTML = moduleBlock + `
+      <div class="section">عمليات الصفحة</div>
+      <div class="empty"><span class="ico">👈</span><b>لم يتم اختيار صفحة</b>اختر صفحة من العمود الأوسط لعرض عملياتها.</div>
+    `;
+  } else {
+    const allOn = pageGranted(p) === OP_KEYS.length;
+    const opsHtml = OPERATIONS.map(op => `
+      <label class="op ${p.ops[op.key]?'on':''}">
+        <input type="checkbox" data-op="${op.key}" ${p.ops[op.key]?'checked':''}>
+        <span>${op.icon} ${op.label}</span>
+      </label>`).join('');
+
+    opsPanel.innerHTML = moduleBlock + `
+      <div class="crumbs" style="margin-top:6px">
+        <span class="link" data-crumb="module">${esc(d.icon)} ${esc(d.name)}</span>
+        <span class="sep">›</span>
+        <span>${esc(p.icon)} ${esc(p.name)}</span>
+      </div>
+
+      <div class="section first" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span>⚙️ عمليات الصفحة</span>
+        <label class="mini">
+          <input type="checkbox" data-page-all ${allOn?'checked':''}>
+          كل عمليات الصفحة
+        </label>
+      </div>
+
+      <p class="muted" style="margin:0 0 12px;font-size:12.5px;line-height:1.6">${esc(p.desc)}</p>
+
+      <div class="grid">${opsHtml}</div>
+    `;
+  }
+
+  /* أزرار الحفظ/الإلغاء */
+  opsActions.innerHTML = `
+    <button class="btn primary" data-act="save" ${dirty?'':'disabled'}>💾 حفظ الوحدة</button>
+    <button class="btn" data-act="cancel" ${dirty?'':'disabled'}>إلغاء التغييرات</button>
+    <span style="flex:1"></span>
+    <button class="btn" data-act="all">تفعيل كل العمليات</button>
+    <button class="btn" data-act="none">تعطيل كل العمليات</button>
+    <button class="btn danger" data-act="delete">🗑 حذف الوحدة</button>
+  `;
+}
+
+function renderStats(){
+  const total   = state.modules.length;
+  const pages   = state.modules.reduce((s,m) => s + m.pages.length, 0);
+  const granted = state.modules.reduce((s,m) => s + moduleGranted(m), 0);
+  const possible= state.modules.reduce((s,m) => s + modulePossible(m), 0);
+
+  $('#stModules').textContent  = total;
+  $('#stPages').textContent    = pages;
+  $('#stGranted').textContent  = granted;
+  $('#stCoverage').textContent = (possible ? Math.round(granted/possible*100) : 0) + '%';
+
+  const dirty = isDirty();
+  const gb = $('#globalState');
+  gb.textContent = dirty ? 'لديك تغييرات غير محفوظة' : 'كل التغييرات محفوظة';
+  gb.className = 'badge ' + (dirty ? 'warn' : 'ok');
+}
+
+/* ============ 8) الأفعال ============ */
+function selectModule(id){
+  state.selectedModuleId = id;
+  state.draft = clone(curModule());
+  state.searchPages = '';
+  $('#searchPages').value = '';
+  // اختر أول صفحة تلقائياً
+  const m = curModule();
+  state.selectedPageId = m.pages[0] ? m.pages[0].id : null;
+  render();
+}
+
+function selectPage(id){
+  state.selectedPageId = id;
+  renderPages(); renderOps(); renderStats();
+}
+
+async function requestSelectModule(id){
+  if (id === state.selectedModuleId) return;
+  if (isDirty()){
+    const ok = await openDialog({
+      title:'تغييرات غير محفوظة',
+      text:'لديك تعديلات لم تُحفظ. هل تريد تجاهلها والانتقال؟',
+      okText:'تجاهل والانتقال', danger:true
+    });
+    if (!ok) return;
+  }
+  selectModule(id);
+}
+
+function saveDraft(){
+  if (!isDirty()) return;
+  Object.assign(curModule(), clone(state.draft));
+  render();
+  toast('تم حفظ الوحدة ✓');
+}
+
+function cancelDraft(){
+  if (!isDirty()) return;
+  state.draft = clone(curModule());
+  render();
+  toast('تم إلغاء التغييرات', 'warn');
+}
+
+async function addModule(){
+  if (isDirty()){
+    const ok = await openDialog({
+      title:'تغييرات غير محفوظة',
+      text:'سيتم تجاهل تعديلات الوحدة الحالية قبل إضافة وحدة جديدة.',
+      okText:'متابعة', danger:true
+    });
+    if (!ok) return;
+  }
+  const name = await openDialog({
+    title:'وحدة جديدة', text:'أدخل اسم الوحدة الجديدة.',
+    input:true, inputValue:'وحدة جديدة', okText:'إضافة'
+  });
+  if (!name) return;
+
+  const id = 'm' + Date.now();
+  state.modules.push({
+    id, icon:'🧩', name,
+    desc:'وحدة مخصّصة — أضف صفحاتها وعملياتها.',
+    scopes:{ view:'self', edit:'self' },
+    pages:[
+      { id:'main', icon:'📄', name:'الصفحة الرئيسية',
+        desc:'الصفحة الأولى للوحدة.', ops: opsWith('view') }
+    ]
+  });
+  state.searchModules = ''; $('#searchModules').value = '';
+  selectModule(id);
+  toast('تمت إضافة الوحدة');
+}
+
+async function deleteCurrent(){
+  if (state.modules.length === 1){
+    toast('يجب الإبقاء على وحدة واحدة على الأقل', 'warn'); return;
+  }
+  const m = curModule();
+  const ok = await openDialog({
+    title:'حذف الوحدة',
+    text:`سيتم حذف «${m.name}» بجميع صفحاتها.`,
+    okText:'حذف', danger:true
+  });
+  if (!ok) return;
+  state.modules = state.modules.filter(x => x.id !== m.id);
+  selectModule(state.modules[0].id);
+  toast('تم حذف الوحدة', 'warn');
+}
+
+async function resetAll(){
+  const ok = await openDialog({
+    title:'استعادة الافتراضي',
+    text:'سيتم إرجاع جميع الوحدات والصفحات والعمليات إلى الحالة الأصلية.',
+    okText:'استعادة', danger:true
+  });
+  if (!ok) return;
+  state.modules = clone(INITIAL);
+  state.searchModules = ''; $('#searchModules').value = '';
+  selectModule(INITIAL[0].id);
+  toast('تمت استعادة الإعدادات الافتراضية');
+}
+
+/* ============ 9) الأحداث ============ */
+moduleList.addEventListener('click', e => {
+  const item = e.target.closest('[data-mid]');
+  if (item) requestSelectModule(item.dataset.mid);
+});
+pageList.addEventListener('click', e => {
+  const item = e.target.closest('[data-pid]');
+  if (item) selectPage(item.dataset.pid);
+});
+
+opsPanel.addEventListener('change', e => {
+  const t = e.target;
+  const p = curDraftPage();
+  if (!p) return;
+  if (t.matches('[data-op]')){
+    p.ops[t.dataset.op] = t.checked;
+    renderPages(); renderOps(); renderStats();
+  } else if (t.matches('[data-page-all]')){
+    OP_KEYS.forEach(k => p.ops[k] = t.checked);
+    renderPages(); renderOps(); renderStats();
+  } else if (t.matches('[data-scope]')){
+    state.draft.scopes[t.dataset.scope] = t.value;
+    renderStats();
+  }
+});
+
+opsPanel.addEventListener('click', e => {
+  const crumb = e.target.closest('[data-crumb="module"]');
+  if (crumb){ /* لا شيء — نفس الوحدة */ }
+});
+
+opsActions.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === 'save')        saveDraft();
+  else if (act === 'cancel') cancelDraft();
+  else if (act === 'delete') deleteCurrent();
+  else if (act === 'all'){
+    state.draft.pages.forEach(p => OP_KEYS.forEach(k => p.ops[k] = true));
+    render();
+  }
+  else if (act === 'none'){
+    state.draft.pages.forEach(p => OP_KEYS.forEach(k => p.ops[k] = false));
+    render();
+  }
+});
+
+$('#searchModules').addEventListener('input', e => {
+  state.searchModules = e.target.value; renderModules();
+});
+$('#searchPages').addEventListener('input', e => {
+  state.searchPages = e.target.value; renderPages();
+});
+$('#addModule').addEventListener('click', addModule);
+$('#resetAll').addEventListener('click', resetAll);
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
+    e.preventDefault();
+    if (!$('#overlay').hidden) closeDialog(null);
+    saveDraft();
+  }
+  if (e.key === 'Escape' && !$('#overlay').hidden) closeDialog(null);
+});
+
+/* ============ 10) التشغيل ============ */
+state.draft = clone(curModule());
+render();
+</script>
+</body>
+</html>
