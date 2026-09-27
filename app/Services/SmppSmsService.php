@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 class SmppSmsService
 {
+    private ?string $authenticationFailureReason = null;
+
     /**
      * Normalize phone number by stripping whitespace and non-numeric/plus characters.
      */
@@ -25,6 +27,11 @@ class SmppSmsService
      */
     private function loginUrl(): string
     {
+        $originalUrl = (string) config('services.smpp_sms.login_url');
+        if ($originalUrl !== '') {
+            return $originalUrl;
+        }
+
         $explicit = (string) config('sms.login_url');
         if ($explicit !== '') {
             return $explicit;
@@ -38,12 +45,17 @@ class SmppSmsService
      */
     private function sendUrl(): string
     {
+        $originalUrl = (string) config('services.smpp_sms.send_url');
+        if ($originalUrl !== '') {
+            return $originalUrl;
+        }
+
         $explicit = (string) config('sms.send_url');
         if ($explicit !== '') {
             return $explicit;
         }
 
-        return rtrim((string) config('sms.api_url'), '/').'/send';
+        return rtrim((string) config('sms.api_url'), '/').'/send-sms';
     }
 
     /**
@@ -51,6 +63,8 @@ class SmppSmsService
      */
     public function login(): ?string
     {
+        $this->authenticationFailureReason = null;
+
         $cacheKey = 'smpp_sms_token';
         $cachedToken = Cache::get($cacheKey);
 
@@ -61,6 +75,7 @@ class SmppSmsService
         $loginUrl = $this->loginUrl();
 
         if (empty($loginUrl)) {
+            $this->authenticationFailureReason = 'SMPP login URL is not configured';
             Log::error('SMPP login URL is not configured.');
 
             return null;
@@ -72,20 +87,31 @@ class SmppSmsService
                 'timeout' => (int) config('sms.timeout', 15),
                 'connect_timeout' => (int) config('sms.connect_timeout', 5),
             ])->acceptJson()->post($loginUrl, [
-                'email' => (string) config('sms.email'),
-                'password' => (string) config('sms.password'),
+                'email' => $this->email(),
+                'password' => $this->password(),
             ]);
 
             if ($response->failed()) {
-                Log::error('SMPP login failed.', ['status' => $response->status(), 'error' => $response->json()]);
+                $payload = $response->json();
+                $payload = is_array($payload) ? $payload : ['message' => $response->body()];
+                $this->authenticationFailureReason = $this->extractProviderReason(
+                    $payload,
+                    'SMPP authentication failed (HTTP '.$response->status().')'
+                );
+
+                Log::error('SMPP login failed.', [
+                    'status' => $response->status(),
+                    'error' => $payload,
+                ]);
 
                 return null;
             }
 
             $data = $response->json() ?? [];
-            $token = $data['token'] ?? null;
+            $token = $data['token'] ?? $data['access_token'] ?? null;
 
             if (empty($token)) {
+                $this->authenticationFailureReason = 'SMPP login response does not contain a token';
                 Log::warning('SMPP login succeeded but token is missing from response.');
 
                 return null;
@@ -96,10 +122,12 @@ class SmppSmsService
 
             return $token;
         } catch (ConnectionException $e) {
+            $this->authenticationFailureReason = 'SMS authentication service is unreachable: '.$e->getMessage();
             Log::error('SMPP login timed out or unreachable.', ['error' => $e->getMessage()]);
 
             return null;
         } catch (\Throwable $e) {
+            $this->authenticationFailureReason = 'SMS authentication failed: '.$e->getMessage();
             Log::error('SMPP login unexpected error.', ['error' => $e->getMessage()]);
 
             return null;
@@ -121,7 +149,16 @@ class SmppSmsService
         $token = $this->login();
 
         if (empty($token)) {
-            return $this->logSms($userId, $cleanPhone, $message, 'failed', null, 'Token not found or authentication failed', $eventName, $senderId);
+            return $this->logSms(
+                $userId,
+                $cleanPhone,
+                $message,
+                'failed',
+                null,
+                $this->authenticationFailureReason ?? 'SMS authentication failed (token not found)',
+                $eventName,
+                $senderId
+            );
         }
 
         $sendUrl = $this->sendUrl();
@@ -338,6 +375,16 @@ class SmppSmsService
     private function isRetryableFailure(array $result): bool
     {
         return ! empty($result['retryable']);
+    }
+
+    private function email(): string
+    {
+        return (string) (config('services.smpp_sms.email') ?: config('sms.email'));
+    }
+
+    private function password(): string
+    {
+        return (string) (config('services.smpp_sms.password') ?: config('sms.password'));
     }
 
     private function extractProviderReason(array $payload, string $fallback): string

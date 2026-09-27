@@ -10,6 +10,7 @@ use App\Services\ProjectApprovalService;
 use App\Services\SmppSmsService;
 use App\Services\SmsEventManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -29,13 +30,15 @@ class SmsServiceTest extends TestCase
             'sms.timeout' => 5,
             'sms.retries' => 0,
         ]);
+
+        Cache::forget('smpp_sms_token');
     }
 
     public function test_successful_sms_send_creates_db_log(): void
     {
         Http::fake([
             'http://10.172.172.2/api/login' => Http::response(['token' => 'dummy-jwt-token', 'expires_in' => 3600], 200),
-            'http://10.172.172.2/api/send' => Http::response(['status' => 'success', 'message_id' => '12345'], 200),
+            'http://10.172.172.2/api/send-sms' => Http::response(['status' => 'success', 'message_id' => '12345'], 200),
         ]);
 
         $user = User::factory()->create();
@@ -66,8 +69,8 @@ class SmsServiceTest extends TestCase
     public function test_send_sms_sync_backward_compatibility(): void
     {
         Http::fake([
-            'http://10.172.172.2/api/login' => Http::response(['token' => 'dummy-jwt-token'], 200),
-            'http://10.172.172.2/api/send' => Http::response(['ok' => true], 200),
+            'http://10.172.172.2/api/login' => Http::response(['dummy' => 'value', 'access_token' => 'dummy-jwt-token'], 200),
+            'http://10.172.172.2/api/send-sms' => Http::response(['ok' => true], 200),
         ]);
 
         $user = User::factory()->create();
@@ -121,7 +124,7 @@ class SmsServiceTest extends TestCase
     {
         Http::fake([
             'http://10.172.172.2/api/login' => Http::response(['token' => 'dummy-token'], 200),
-            'http://10.172.172.2/api/send' => Http::response(['status' => 'success'], 200),
+            'http://10.172.172.2/api/send-sms' => Http::response(['status' => 'success'], 200),
         ]);
 
         $user = User::factory()->create([

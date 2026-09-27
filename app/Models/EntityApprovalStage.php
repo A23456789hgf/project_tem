@@ -31,6 +31,10 @@ class EntityApprovalStage extends Model
     protected $fillable = [
         'entity_id',
         'stage',
+        'stage_key',
+        'stage_name_ar',
+        'stage_name_en',
+        'available_actions',
         'is_active',
         'stage_order',
         'responsible_user_id',
@@ -41,6 +45,7 @@ class EntityApprovalStage extends Model
     protected $casts = [
         'stage_order' => 'integer',
         'is_active' => 'boolean',
+        'available_actions' => 'array',
     ];
 
     // ----------------------------------------------------------------

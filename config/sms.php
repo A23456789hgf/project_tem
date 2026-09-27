@@ -22,7 +22,7 @@ return [
     |--------------------------------------------------------------------------
     | مثال: api_url = http://10.172.172.2/api
     |       login_url تلقائياً = http://10.172.172.2/api/login
-    |       send_url  تلقائياً = http://10.172.172.2/api/send
+    |       send_url  تلقائياً = http://10.172.172.2/api/send-sms
     */
 
     'login_url' => env('SMPP_LOGIN_URL'),

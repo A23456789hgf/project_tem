@@ -73,7 +73,10 @@ class ResponsibilityResolver
 
         // 2. Configured Stage Responsible User
         $stageConfig = EntityApprovalStage::where('entity_id', $resolvedEntity->id)
-            ->where('stage', $resolvedType->value)
+            ->where(function($q) use ($resolvedType) {
+                $q->where('stage_key', $resolvedType)
+                  ->orWhere('stage', $resolvedType);
+            })
             ->where('is_active', true)
             ->with('responsibleUser')
             ->first();
@@ -85,7 +88,7 @@ class ResponsibilityResolver
                 null,
                 ResponsibilityResolution::NoResponsibleUser,
                 'stage_not_configured',
-                "Stage [{$resolvedType->value}] is not enabled for entity [{$resolvedEntity->id}]."
+                "Stage [{$resolvedType}] is not enabled for entity [{$resolvedEntity->id}]."
             );
         }
 
@@ -97,7 +100,7 @@ class ResponsibilityResolver
                 null,
                 ResponsibilityResolution::NoResponsibleUser,
                 'entity_stage_config',
-                "Stage [{$resolvedType->value}] is enabled for entity [{$resolvedEntity->id}] but no responsible user is configured."
+                "Stage [{$resolvedType}] is enabled for entity [{$resolvedEntity->id}] but no responsible user is configured."
             );
         }
 
@@ -111,16 +114,16 @@ class ResponsibilityResolver
     private function normalizeResponsibilityType(
         EntityResponsibilityType|string|null $responsibilityType,
         ?ProjectApproval $approvalStep
-    ): ?EntityResponsibilityType {
+    ): ?string {
         if ($responsibilityType instanceof EntityResponsibilityType) {
-            return $responsibilityType;
+            return $responsibilityType->value;
         }
 
         if (is_string($responsibilityType) && $responsibilityType !== '') {
-            return EntityResponsibilityType::tryFrom($responsibilityType);
+            return $responsibilityType;
         }
 
-        return EntityResponsibilityType::fromApprovalPhase($approvalStep?->phase);
+        return $approvalStep?->stage_key ?? $approvalStep?->phase;
     }
 
     private function normalizeEntity(InternalEntity|int|null $entity, ?ProjectApproval $approvalStep): ?InternalEntity
@@ -143,7 +146,7 @@ class ResponsibilityResolver
      */
     private function resolveFromSnapshot(
         ?ProjectApproval $approvalStep,
-        EntityResponsibilityType $type
+        string $type
     ): ?User {
         if (! $approvalStep) {
             return null;
@@ -154,10 +157,8 @@ class ResponsibilityResolver
         // Fallback for legacy snapshot records
         if (! $userId && $type) {
             $userId = match ($type) {
-                EntityResponsibilityType::TechnicalReview => $approvalStep->technical_reviewer_id
-                    ?? $approvalStep->technical_review_user_id ?? null,
-                EntityResponsibilityType::FinancialReview => $approvalStep->financial_reviewer_id
-                    ?? $approvalStep->financial_review_user_id ?? null,
+                'technical_review' => $approvalStep->technical_reviewer_id ?? $approvalStep->technical_review_user_id ?? null,
+                'financial_review' => $approvalStep->financial_reviewer_id ?? $approvalStep->financial_review_user_id ?? null,
                 default => null,
             };
         }
@@ -224,9 +225,10 @@ class ResponsibilityResolver
 
         $errors = [];
         foreach ($stages as $stage) {
-            $resolution = $this->resolveResponsibleUser($entity, EntityResponsibilityType::from($stage->stage));
+            $stageKey = $stage->stage_key ?? $stage->stage;
+            $resolution = $this->resolveResponsibleUser($entity, $stageKey);
             if (! $resolution->isResolved()) {
-                $errors[] = "الجهة: {$entity->name} | المرحلة: ".EntityResponsibilityType::from($stage->stage)->label()
+                $errors[] = "الجهة: {$entity->name} | المرحلة: " . ($stage->stage_name ?? $stageKey)
                     ." | المشكلة: {$resolution->reason}";
             }
         }
