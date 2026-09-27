@@ -153,6 +153,7 @@
             
             {{-- Action Choice Selector --}}
             <div class="d-flex flex-column gap-2 mb-4" id="actionChoiceList">
+                @if($activeStep->hasAction('approve'))
                 <div class="action-choice-btn active-approve" onclick="selectApprovalAction('approve')">
                     <i class="fas fa-check-circle fs-5 text-success"></i>
                     <div>
@@ -160,7 +161,9 @@
                         <small class="text-muted">الموافقة على المرحلة ونقل المشروع للخطوة التالية</small>
                     </div>
                 </div>
+                @endif
 
+                @if($activeStep->hasAction('return'))
                 <div class="action-choice-btn" onclick="selectApprovalAction('completion')">
                     <i class="fas fa-undo fs-5 text-warning"></i>
                     <div>
@@ -168,7 +171,9 @@
                         <small class="text-muted">إرجاع المشروع للخطوة السابقة أو للجهة المنشئة</small>
                     </div>
                 </div>
+                @endif
 
+                @if($activeStep->hasAction('consultation'))
                 <div class="action-choice-btn" onclick="selectApprovalAction('consultation')">
                     <i class="fas fa-comments fs-5 text-primary"></i>
                     <div>
@@ -176,7 +181,9 @@
                         <small class="text-muted">إرسال استفسار فني/إداري لجهة أخرى دون تغيير الدور</small>
                     </div>
                 </div>
+                @endif
 
+                @if($activeStep->hasAction('reject'))
                 <div class="action-choice-btn" onclick="selectApprovalAction('reject')">
                     <i class="fas fa-times-circle fs-5 text-danger"></i>
                     <div>
@@ -184,6 +191,7 @@
                         <small class="text-muted">رفض المشروع نهائياً وإيقاف مسار الاعتماد</small>
                     </div>
                 </div>
+                @endif
             </div>
 
             {{-- Form 1: Approve --}}

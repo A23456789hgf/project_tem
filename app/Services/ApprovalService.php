@@ -244,10 +244,13 @@ class ApprovalService
         $assignedId = $step->assigned_user_id;
         
         if (!$assignedId) {
-            if ($step->phase === 'technical_review') {
+            $stageIdentifier = $step->stage_key ?? $step->phase;
+            if ($stageIdentifier === 'technical_review') {
                 $assignedId = $step->technical_reviewer_id ?? $step->technical_review_user_id;
-            } elseif ($step->phase === 'financial_review') {
+            } elseif ($stageIdentifier === 'financial_review') {
                 $assignedId = $step->financial_reviewer_id ?? $step->financial_review_user_id;
+            } else {
+                $assignedId = $step->technical_reviewer_id ?? clone $step->financial_reviewer_id ?? null;
             }
         }
 
@@ -293,6 +296,10 @@ class ApprovalService
                 throw new UnauthorizedWorkflowActionException('ليس لديك الصلاحية لاعتماد هذه المرحلة.');
             }
 
+            if (! $activeStep->hasAction('approve')) {
+                throw new UnauthorizedWorkflowActionException('إجراء الاعتماد غير متاح في هذه المرحلة.');
+            }
+
             $timestamp = Carbon::now();
             $fromStageName = $activeStep->getResolvedStageName();
             $fromStageOrder = $activeStep->step_order;
@@ -310,8 +317,8 @@ class ApprovalService
                 'assigned_user_id' => null,
                 'technical_reviewer_id' => null,
                 'financial_reviewer_id' => null,
-                'financial_review_status' => ($activeStep->phase === 'financial_review') ? 'approved' : $activeStep->financial_review_status,
-                'technical_review_status' => ($activeStep->phase === 'technical_review') ? 'approved' : $activeStep->technical_review_status,
+                'financial_review_status' => (($activeStep->stage_key ?? $activeStep->phase) === 'financial_review') ? 'approved' : $activeStep->financial_review_status,
+                'technical_review_status' => (($activeStep->stage_key ?? $activeStep->phase) === 'technical_review') ? 'approved' : $activeStep->technical_review_status,
             ]);
 
             // 2. Find next step in chain
@@ -424,6 +431,10 @@ class ApprovalService
                 throw new UnauthorizedWorkflowActionException('ليس لديك الصلاحية لرفض المشروع في هذه المرحلة.');
             }
 
+            if (! $activeStep->hasAction('reject')) {
+                throw new UnauthorizedWorkflowActionException('إجراء الرفض غير متاح في هذه المرحلة.');
+            }
+
             $fromStageName = $activeStep->getResolvedStageName();
             $timestamp = Carbon::now();
 
@@ -509,6 +520,10 @@ class ApprovalService
 
             if (! $this->canUserActOnStep($user, $activeStep)) {
                 throw new UnauthorizedWorkflowActionException('ليس لديك الصلاحية لطلب استكمال في هذه المرحلة.');
+            }
+
+            if (! $activeStep->hasAction('return')) {
+                throw new UnauthorizedWorkflowActionException('إجراء طلب الاستكمال غير متاح في هذه المرحلة.');
             }
 
             $timestamp = Carbon::now();

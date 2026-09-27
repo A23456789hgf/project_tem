@@ -258,24 +258,29 @@ class ProjectApproval extends Model
         return "{$entityName} - {$phaseLabel}";
     }
 
-    public function isFinancialReview(): bool
+    public function hasAction(string $action): bool
     {
-        return $this->status === 'financial_review' || $this->phase === 'financial_review';
+        if (empty($this->available_actions)) {
+            // Legacy fallback
+            $legacyActions = ['approve', 'return', 'reject'];
+            if ($this->phase === 'financial_review' || $this->phase === 'technical_review') {
+                $legacyActions[] = $this->phase;
+            }
+            return in_array($action, $legacyActions);
+        }
+
+        $actions = is_string($this->available_actions) ? json_decode($this->available_actions, true) : $this->available_actions;
+        return is_array($actions) && in_array($action, $actions);
     }
 
-    public function isFinancialReviewer(): bool
+    public function isAssignedTo(int $userId): bool
     {
-        return $this->reviewer_type === 'financial' || $this->phase === 'financial_review';
-    }
+        if ($this->assigned_user_id !== null) {
+            return $this->assigned_user_id === $userId;
+        }
 
-    public function isTechnicalReviewer(): bool
-    {
-        return $this->reviewer_type === 'technical' || $this->phase === 'technical_review';
-    }
-
-    public function isGeneralReviewer(): bool
-    {
-        return $this->reviewer_type === 'general' || $this->reviewer_type === null;
+        // Legacy fallback
+        return $this->financial_reviewer_id === $userId || $this->technical_reviewer_id === $userId;
     }
 
     public function scopeFinancialReview($query)

@@ -88,28 +88,28 @@ class ApprovalCenterController extends Controller
 
                         if ($user) {
                             $sub->where(function ($assignQ) use ($user) {
-                                $assignQ->where(function ($tq) use ($user) {
-                                    $tq->where('phase', 'technical_review')
-                                        ->where(function ($q) use ($user) {
+                                // 1. Dynamic assigned user
+                                $assignQ->where('assigned_user_id', $user->id)
+                                    // 2. Dynamic unassigned fallback
+                                    ->orWhereNull('assigned_user_id')
+                                    // 3. Legacy technical reviewer
+                                    ->orWhere(function ($tq) use ($user) {
+                                        $tq->where(function ($q) {
+                                            $q->where('phase', 'technical_review')->orWhere('stage_key', 'technical_review');
+                                        })->where(function ($q) use ($user) {
                                             $q->where('technical_reviewer_id', $user->id)
-                                                ->orWhereNull('technical_reviewer_id');
+                                              ->orWhereNull('technical_reviewer_id');
                                         });
-                                })->orWhere(function ($fq) use ($user) {
-                                    $fq->where('phase', 'financial_review')
-                                        ->where(function ($q) use ($user) {
-                                            $q->where('financial_reviewer_id', $user->id)
-                                                ->orWhereNull('financial_reviewer_id');
-                                        });
-                                })->orWhere(function ($oq) use ($user) {
-                                    $oq->where(function ($q) {
-                                        $q->whereNotIn('phase', ['technical_review', 'financial_review'])
-                                            ->orWhereNull('phase');
                                     })
-                                        ->where(function ($q) use ($user) {
-                                            $q->where('assigned_user_id', $user->id)
-                                                ->orWhereNull('assigned_user_id');
+                                    // 4. Legacy financial reviewer
+                                    ->orWhere(function ($fq) use ($user) {
+                                        $fq->where(function ($q) {
+                                            $q->where('phase', 'financial_review')->orWhere('stage_key', 'financial_review');
+                                        })->where(function ($q) use ($user) {
+                                            $q->where('financial_reviewer_id', $user->id)
+                                              ->orWhereNull('financial_reviewer_id');
                                         });
-                                });
+                                    });
                             });
                         } else {
                             $sub->whereRaw('1 = 0');
