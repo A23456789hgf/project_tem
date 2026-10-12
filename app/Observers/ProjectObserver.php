@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Jobs\SendDataToErpNextJob;
 use App\Models\Project;
 use App\Services\FrappeAPIService;
 use Illuminate\Support\Facades\Log;
@@ -75,30 +76,67 @@ class ProjectObserver
                 'trace' => $e->getTraceAsString(),
             ]);
         }
+
+        // Stage 1: Push project to ERPNext upon creation in Laravel (Status: Open)
+        if (empty($project->erpnext_project_id)) {
+            Log::info("ProjectObserver: Project created (ID: {$project->id}). Dispatching initial ERPNext project creation job.");
+            try {
+                SendDataToErpNextJob::dispatch(Project::class, $project->id, 'create');
+            } catch (\Throwable $e) {
+                Log::error("ProjectObserver Exception during project creation sync dispatch: {$e->getMessage()}");
+            }
+        }
     }
 
-    /**
-     * Handle the Project "updated" event.
-     */
     public function updated(Project $project): void
     {
-        // Validation rules for status change:
-        // 1. Status field was modified in this update
-        // 2. Previous status was NOT in_execution
-        // 3. New status IS in_execution
-        if (
-            $project->wasChanged('status') &&
-            $project->getOriginal('status') !== 'in_execution' &&
-            $project->status === 'in_execution'
-        ) {
-            Log::info("ProjectObserver: Status changed to in_execution for Project ID {$project->id}. Triggering ERPNext sync after DB commit.");
+        // 1. Inbound Sync Loop Prevention
+        if ($project->isErpnextInbound) {
+            return;
+        }
 
-            try {
-                $this->frappeService->syncProjectToERPNext($project);
-            } catch (\Throwable $e) {
-                Log::error("ProjectObserver Exception during ERPNext sync for Project ID {$project->id}: {$e->getMessage()}", [
-                    'trace' => $e->getTraceAsString(),
-                ]);
+        // 2. Unlinked project status update or transition to execution -> Initial Push
+        if (empty($project->erpnext_project_id)) {
+            if ($project->wasChanged('status')) {
+                Log::info("ProjectObserver: Status changed for unlinked Project ID {$project->id}. Dispatching ERPNext sync job.");
+                try {
+                    SendDataToErpNextJob::dispatch(Project::class, $project->id, 'sync');
+                } catch (\Throwable $e) {
+                    Log::error("ProjectObserver Exception during initial sync dispatch: {$e->getMessage()}");
+                }
+            }
+
+            return;
+        }
+
+        // 3. Subsequent Updates for Already-Linked Projects
+        if (! empty($project->erpnext_project_id)) {
+            $syncedFields = [
+                'project_name',
+                'start_date_gregorian',
+                'end_date_gregorian',
+                'status',
+                'priority',
+                'form_number',
+                'creator_entity_id',
+                'internal_entity_id',
+            ];
+            $needsSync = false;
+
+            foreach ($syncedFields as $field) {
+                if ($project->wasChanged($field)) {
+                    $needsSync = true;
+                    break;
+                }
+            }
+
+            if ($needsSync) {
+                Log::info("ProjectObserver: Linked Project ID {$project->id} updated. Dispatching ERPNext sync update job.");
+                try {
+                    SendDataToErpNextJob::dispatch(Project::class, $project->id, 'sync');
+                } catch (\Throwable $e) {
+                    Log::error("ProjectObserver Exception during ERPNext update dispatch: {$e->getMessage()}");
+                }
             }
         }
     }

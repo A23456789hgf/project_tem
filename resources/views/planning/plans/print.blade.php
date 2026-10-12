@@ -5,11 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الخطة التشغيلية | {{ $plan->plan_number }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <x-letterhead-styles :letterhead="$letterhead ?? null" />
 
     <style>
         :root {
-            --primary: #0C5B47;
+            --primary: {{ $letterhead?->primary_color ?? '#0C5B47' }};
             --primary-light: #e6eeec;
             --border-dark: #222;
             --text-dark: #1a1a1a;
@@ -282,46 +284,20 @@
 <body>
 
     <div class="print-container">
-        <div class="header-section">
-            <div class="header-right" style="
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* محاذاة عمودية */
-    align-items: center;    /* محاذاة أفقية */
-    text-align: center;     /* لتوسيط النصوص داخل الأعمدة */
-    height: 150px;          /* مثال: يمكن تغييره حسب الحاجة */
-">
-                الجمهورية اليمنية<br>
-                وزارة الزراعة والثروة السمكية والموارد المائية<br>
-                {{ $plan->submittingEntity->name ?? '-' }}
-            </div>
-            <div class="header-center">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo" class="logo"><br>
-                <h3>مصفوفة الخطة العامة لمشاريع العام 1447</h 3>
+        <x-letterhead-selector :currentLetterhead="$letterhead ?? null" />
 
-            </div>
-
-            <div class="header-left" style="
-    display: flex;
-    flex-direction: column;   /* ترتيب العناصر عمودياً */
-    justify-content: center;  /* محاذاة عمودية */
-    align-items: center;      /* محاذاة أفقية */
-    text-align: center;       /* توسيط النصوص داخل الأعمدة */
-    height: 140px;            /* ارتفاع مناسب */
-">
-                <img src="{{ $qrCodeData }}" alt="Verification QR" class="qr-code-img"
-                    style="max-width: 60px; height: auto;">
-
-                <span style="font-size: 8pt; margin-top: 5px; font-weight: 600;"> {{ $plan->plan_number }} </span>
-
-
-            </div>
-        </div>
-
+        <x-letterhead-header 
+            :letterhead="$letterhead ?? null"
+            :documentNumber="$plan->plan_number"
+            :documentDate="now()->format('Y-m-d')"
+            :qrCodeData="$qrCodeData ?? null"
+            customTitle="مصفوفة الخطة العامة لمشاريع العام 1447"
+        />
+        
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">الجهة المقدمة</span>
-                <span class="info-value">{{ $plan->submittingEntity->name }}</span>
+                <span class="info-value">{{ $plan->submitting_organization_name }}</span>
             </div>
             {{-- <div class="info-item">
                 <span class="info-label">الأولوية الوطنية</span>
@@ -554,10 +530,7 @@
             </div>
         </div>
 
-        <div
-            style="margin-top: 40px; text-align: center; font-size: 8pt; color: #777; border-top: 1px solid #eee; padding-top: 10px;">
-            هذه الوثيقة صادرة عن النظام الإلكتروني لإدارة الخطط - تاريخ الاستخراج: {{ now()->format('Y-m-d H:i') }}
-        </div>
+        <x-letterhead-footer :letterhead="$letterhead ?? null" documentName="مصفوفة الخطة العامة لمشاريع العام 1447" />
     </div>
 
     <div class="floating-actions no-print">
@@ -568,3 +541,4 @@
 </body>
 
 </html>
+

@@ -52,18 +52,23 @@ class ProjectNumberGenerator
 
     /**
      * Generate final project number after approval
-     * New Format: PROYYYY#### (e.g. PRO14470017)
-     * PRO = Project identifier
-     * YYYY = Hijri Year
-     * #### = Sequential number (4 digits)
+     * Format 1 (With Year): PROYYYY#### (e.g. PRO14470017)
+     * Format 2 (Without Year): PRO#### (e.g. PRO0001)
      */
     public static function generateProjectNumber(?string $year = null): string
     {
-        $year = $year ?: self::getHijriYear();
+        if ($year !== null && ! preg_match('/^14[0-9]{2}$/', $year) && ! preg_match('/^1500$/', $year)) {
+            $year = null;
+        }
+
+        $prefix = $year ? "PRO{$year}" : 'PRO';
+        $expectedLength = strlen($prefix) + 4;
 
         $lastProject = Project::withoutGlobalScopes()
-            ->where('form_number', 'like', "PRO{$year}%")
+            ->where('form_number', 'like', "{$prefix}%")
+            ->whereRaw('LENGTH(form_number) = ?', [$expectedLength])
             ->orderByRaw('CAST(SUBSTR(form_number, -4) AS UNSIGNED) DESC')
+            ->lockForUpdate() // concurrency protection
             ->first();
 
         $nextNumber = 1;
@@ -72,7 +77,7 @@ class ProjectNumberGenerator
             $nextNumber = $lastNumber + 1;
         }
 
-        return sprintf('PRO%s%04d', $year, $nextNumber);
+        return sprintf('%s%04d', $prefix, $nextNumber);
     }
 
     /**
@@ -98,9 +103,9 @@ class ProjectNumberGenerator
             return self::generateProjectNumber($year);
         } catch (\Exception $e) {
             \Log::error('Failed to generate project number: '.$e->getMessage());
-            $year = $year ?: self::getHijriYear();
+            $prefix = $year ? "PRO{$year}" : 'PRO';
 
-            return sprintf('PRO%s%04d', $year, 1);
+            return sprintf('%s%04d', $prefix, 1);
         }
     }
 }

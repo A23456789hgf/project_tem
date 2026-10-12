@@ -3,10 +3,19 @@
 namespace App\Policies;
 
 use App\Models\Project;
+use App\Models\ProjectApproval;
 use App\Models\User;
+use App\Services\OrganizationResolver;
 
 class ProjectPolicy
 {
+    private OrganizationResolver $organizationResolver;
+
+    public function __construct(?OrganizationResolver $organizationResolver = null)
+    {
+        $this->organizationResolver = $organizationResolver ?? new OrganizationResolver;
+    }
+
     /**
      * Determine whether the user can view any models.
      */
@@ -209,8 +218,8 @@ class ProjectPolicy
 
         if ($project->getOriginType() === 'external') {
             // External project: creator or member of the same authority.
-            $originAuthorityId = $project->getOriginAuthorityId();
-            $belongsToOriginAuthority = ($originAuthorityId && $user->authority_id === $originAuthorityId);
+            $originAuthorityId = $this->organizationResolver->resolveProject($project)['id'];
+            $belongsToOriginAuthority = $this->organizationResolver->userBelongsTo($user, OrganizationResolver::EXTERNAL, $originAuthorityId);
 
             if (! $isCreator && ! $belongsToOriginAuthority) {
                 return false;
@@ -256,10 +265,7 @@ class ProjectPolicy
             }
 
             if (! $user->isAdmin()) {
-                $userEntityId = (int) $user->entity_id;
-                $stepEntityId = (int) $activeStep->entity_id;
-
-                if ($stepEntityId && $userEntityId !== $stepEntityId) {
+                if (! $this->matchesApprovalStep($user, $activeStep)) {
                     return false;
                 }
             }
@@ -297,10 +303,7 @@ class ProjectPolicy
             }
 
             if (! $user->isAdmin()) {
-                $userEntityId = (int) $user->entity_id;
-                $stepEntityId = (int) $activeStep->entity_id;
-
-                if ($stepEntityId && $userEntityId !== $stepEntityId) {
+                if (! $this->matchesApprovalStep($user, $activeStep)) {
                     return false;
                 }
             }
@@ -339,10 +342,7 @@ class ProjectPolicy
             }
 
             if (! $user->isAdmin()) {
-                $userEntityId = (int) $user->entity_id;
-                $stepEntityId = (int) $activeStep->entity_id;
-
-                if ($stepEntityId && $userEntityId !== $stepEntityId) {
+                if (! $this->matchesApprovalStep($user, $activeStep)) {
                     return false;
                 }
             }
@@ -397,8 +397,8 @@ class ProjectPolicy
         $isCreator = ($project->created_by_user_id === $user->id);
 
         if ($project->getOriginType() === 'external') {
-            $originAuthorityId = $project->getOriginAuthorityId();
-            $belongsToOriginAuthority = ($originAuthorityId && $user->authority_id === $originAuthorityId);
+            $originAuthorityId = $this->organizationResolver->resolveProject($project)['id'];
+            $belongsToOriginAuthority = $this->organizationResolver->userBelongsTo($user, OrganizationResolver::EXTERNAL, $originAuthorityId);
 
             if (! $isCreator && ! $belongsToOriginAuthority) {
                 return false;
@@ -570,7 +570,7 @@ class ProjectPolicy
         if ($project->created_by_user_id !== $user->id) {
             if ($project->getOriginType() === 'external') {
                 $originAuthorityId = $project->getOriginAuthorityId();
-                if ($originAuthorityId && $user->authority_id !== $originAuthorityId) {
+                if (! $this->organizationResolver->userBelongsTo($user, OrganizationResolver::EXTERNAL, $originAuthorityId)) {
                     return false;
                 }
             } else {
@@ -650,5 +650,26 @@ class ProjectPolicy
         // تحقق من الصلاحية الأساسية فقط دون التحقق من نطاق السجل
         // لأن المستخدم يرى المشروع بالفعل في قائمته (ضمن نطاقه)
         return $user->checkDatabasePermission('projects.edit-entity');
+    }
+
+    private function matchesApprovalStep(User $user, ProjectApproval $approval): bool
+    {
+        if ($approval->authority_id) {
+            return $this->organizationResolver->userBelongsTo(
+                $user,
+                OrganizationResolver::EXTERNAL,
+                (int) $approval->authority_id,
+            );
+        }
+
+        if ($approval->entity_id) {
+            return $this->organizationResolver->userBelongsTo(
+                $user,
+                OrganizationResolver::INTERNAL,
+                (int) $approval->entity_id,
+            );
+        }
+
+        return false;
     }
 }

@@ -23,7 +23,7 @@ class ApprovalChainBuilderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->builder = new ApprovalChainBuilder;
+        $this->builder = app(ApprovalChainBuilder::class);
     }
 
     public function test_it_throws_exception_if_no_ministry_root_exists_for_external_route()

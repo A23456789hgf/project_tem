@@ -180,6 +180,7 @@
                                                value="{{ $activity->weight ?? 0 }}">
                                     </div>
                                 </div>
+                                @include('projects.review.partials.item-notes', ['model' => $activity])
 
                                 @if($activity->procedures->count() > 0)
                                     <div class="ms-md-3">
@@ -217,15 +218,19 @@
                                                                value="{{ $procedure->end_date ? \Carbon\Carbon::parse($procedure->end_date)->format('Y-m-d') : '' }}">
                                                     </div>
                                                 </div>
+                                                @include('projects.review.partials.item-notes', ['model' => $procedure])
 
                                                 {{-- Read-Only Costs Display --}}
                                                 @if($procedure->costs->count() > 0)
                                                     <div class="mt-2 pt-2 border-top">
                                                         <span class="text-muted small me-2"><i class="fas fa-lock me-1 text-secondary"></i>التكاليف المالية (للعرض فقط):</span>
                                                         @foreach($procedure->costs as $cost)
-                                                            <span class="badge bg-secondary-subtle text-secondary border me-1">
-                                                                {{ $cost->financialItem->name ?? 'بند' }}: {{ number_format($cost->total_cost ?? $cost->total, 2) }} ريال
-                                                            </span>
+                                                            <div class="mb-2">
+                                                                <span class="badge bg-secondary-subtle text-secondary border me-1">
+                                                                    {{ $cost->financialItem->name ?? 'بند' }}: {{ number_format($cost->total_cost ?? $cost->total, 2) }} ريال
+                                                                </span>
+                                                                @include('projects.review.partials.item-notes', ['model' => $cost])
+                                                            </div>
                                                         @endforeach
                                                     </div>
                                                 @endif
@@ -274,6 +279,7 @@
                                                value="{{ $activity->weight ?? 0 }}">
                                     </div>
                                 </div>
+                                @include('projects.review.partials.item-notes', ['model' => $activity])
 
                                 @if($activity->actions->count() > 0)
                                     <div class="ms-md-3">
@@ -320,15 +326,19 @@
                                                         @endforeach
                                                     </div>
                                                 @endif
+                                                @include('projects.review.partials.item-notes', ['model' => $action])
 
                                                 {{-- Read-Only Costs Display --}}
                                                 @if($action->costs->count() > 0)
                                                     <div class="mt-2 pt-2 border-top">
                                                         <span class="text-muted small me-2"><i class="fas fa-lock me-1 text-secondary"></i>التكاليف المالية (للعرض فقط):</span>
                                                         @foreach($action->costs as $cost)
-                                                            <span class="badge bg-secondary-subtle text-secondary border me-1">
-                                                                {{ $cost->financialItem->name ?? 'بند' }}: {{ number_format($cost->total_cost ?? $cost->total, 2) }} ريال
-                                                            </span>
+                                                            <div class="mb-2">
+                                                                <span class="badge bg-secondary-subtle text-secondary border me-1">
+                                                                    {{ $cost->financialItem->name ?? 'بند' }}: {{ number_format($cost->total_cost ?? $cost->total, 2) }} ريال
+                                                                </span>
+                                                                @include('projects.review.partials.item-notes', ['model' => $cost])
+                                                            </div>
                                                         @endforeach
                                                     </div>
                                                 @endif

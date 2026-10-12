@@ -398,7 +398,8 @@
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     })
                     .then(r => r.json())
-                    .then(users => {
+                    .then(payload => {
+                        const users = Array.isArray(payload) ? payload : (payload.users || []);
                         entityUsersSelect.innerHTML = '';
                         if (users && users.length > 0) {
                             users.forEach(user => {

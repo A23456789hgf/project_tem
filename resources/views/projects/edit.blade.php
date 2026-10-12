@@ -538,6 +538,7 @@
                     <div id="beneficiary-entities-section" style="{{ (isset($project) && $project->project_type === 'old') ? '' : 'display: none;' }}">
                         @include('projects.partials.tables.beneficiary-entities')
                     </div>
+                    @include('projects.partials.tables.entity-selector-script')
                     @include('projects.partials.tables.project_entities')
                 </div>
             </section>
@@ -1566,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Helper function to validate entity table
-            const validateEntityTable = (tableId, tableName, selectSelector) => {
+            const validateEntityTable = (tableId, tableName) => {
                 const tbody = document.querySelector(`#${tableId} tbody`);
                 const rows = tbody ? tbody.querySelectorAll('tr:not(.project-empty-row)') : [];
                 if (rows.length === 0) {
@@ -1580,7 +1581,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 let hasEmptySelect = false;
                 rows.forEach(row => {
-                    const sel = row.querySelector(selectSelector) || row.querySelector('select');
+                    const sel = row.querySelector('select.authority-select');
                     if (!sel || !sel.value || sel.value === "" || sel.value === "-- اختر --") {
                         hasEmptySelect = true;
                         if (sel) {
@@ -1620,24 +1621,24 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             // 2. Supervising Authorities
-            if (!validateEntityTable('supervisingAuthoritiesTable', 'الجهات الإشرافية', 'select.authority-select, select[name*="[entity_id]"], select[name*="[authority_id]"]')) {
+            if (!validateEntityTable('supervisingAuthoritiesTable', 'الجهات الإشرافية')) {
                 isValid = false;
             }
 
             // 3. Implementing Entities
-            if (!validateEntityTable('implementingEntitiesTable', 'الجهات المنفذة', 'select.entity-select, select[name*="[entity_id]"], select[name*="[authority_id]"]')) {
+            if (!validateEntityTable('implementingEntitiesTable', 'الجهات المنفذة')) {
                 isValid = false;
             }
 
             // 4. Participating Entities
-            if (!validateEntityTable('participatingEntitiesTable', 'الجهات المشاركة', 'select.entity-select, select[name*="[entity_id]"], select[name*="[authority_id]"]')) {
+            if (!validateEntityTable('participatingEntitiesTable', 'الجهات المشاركة')) {
                 isValid = false;
             }
 
             // 5. Beneficiary Entities
             const benSec = document.getElementById('beneficiary-entities-section');
             if (benSec && benSec.style.display !== 'none') {
-                if (!validateEntityTable('beneficiaryEntitiesTable', 'الجهات المستفيدة', 'select.entity-select, select[name*="[entity_id]"], select[name*="[authority_id]"]')) {
+                if (!validateEntityTable('beneficiaryEntitiesTable', 'الجهات المستفيدة')) {
                     isValid = false;
                 }
             }

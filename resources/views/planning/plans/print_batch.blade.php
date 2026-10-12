@@ -182,7 +182,7 @@
             <div class="header-right">
                 الجمهورية اليمنية<br>
           وزارة الزراعة والثروة السمكية والموارد المائية<br>
-               {{ $plan->submittingEntity->name}}
+               {{ $plan->submitting_organization_name }}
             </div>
 
             <div class="header-center">
@@ -244,7 +244,7 @@
                                     @if ($loop->parent->first && $loop->first)
                                         <td rowspan="{{ $actionCount > 0 ? $actionCount : 1 }}" class="merged-cell" style="text-align:center; vertical-align:middle;">{{ $count++ }}</td>
                                         <td rowspan="{{ $actionCount > 0 ? $actionCount : 1 }}" class="merged-cell" style="text-align:center; vertical-align:middle;">{{ $plan->plan_number }}</td>
-                                        <td rowspan="{{ $actionCount > 0 ? $actionCount : 1 }}" class="merged-cell" style="text-align:center; vertical-align:middle;">{{ $plan->submittingEntity->name }}</td>
+                                        <td rowspan="{{ $actionCount > 0 ? $actionCount : 1 }}" class="merged-cell" style="text-align:center; vertical-align:middle;">{{ $plan->submitting_organization_name }}</td>
                                         <td rowspan="{{ $actionCount > 0 ? $actionCount : 1 }}" class="merged-cell" style="text-align:center; vertical-align:middle;">
                                             <div style="font-weight:bold;">{{ $project->name }}</div>
                                             @if($project->goals && $project->goals->count() > 0)

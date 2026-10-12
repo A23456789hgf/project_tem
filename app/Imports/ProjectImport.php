@@ -5,12 +5,13 @@ namespace App\Imports;
 use App\Exceptions\MissingDropdownValuesException;
 use App\Services\ProjectImportService;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Concerns\Import;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Imports\HeadingRowFormatter;
 
-class ProjectImport implements WithHeadingRow, WithMultipleSheets
+class ProjectImport implements Import, WithHeadingRow, WithMultipleSheets
 {
     use Importable;
 

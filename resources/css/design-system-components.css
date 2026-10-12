@@ -1,0 +1,652 @@
+/* ==========================================================================
+   SOVEREIGN DESIGN SYSTEM COMPONENTS
+   Overrides for Blade Components & Plugins to match React Visuals
+   ========================================================================== */
+
+/* 1. Buttons (.ds-btn, .btn) */
+.sovereign-layout .btn,
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.sovereign-layout .btn:active,
+.ds-btn:active {
+  transform: translateY(0);
+}
+
+.sovereign-layout .btn:hover,
+.ds-btn-hover-effect:hover {
+  transform: translateY(-0.5px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Primary variant */
+.sovereign-layout .btn-primary,
+.ds-btn-primary {
+  background: var(--theme-gold) !important;
+  color: var(--theme-primary-dark) !important;
+  border: 1px solid rgba(7, 19, 32, 0.1) !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.sovereign-layout .btn-primary:hover,
+.ds-btn-primary:hover {
+  background: var(--theme-gold-light) !important;
+  transform: translateY(-0.5px);
+}
+
+/* Secondary variant */
+.sovereign-layout .btn-secondary,
+.ds-btn-secondary {
+  background-color: var(--theme-surface-subtle) !important;
+  color: var(--theme-text) !important;
+  border: 1px solid var(--theme-card-border) !important;
+}
+
+.sovereign-layout .btn-secondary:hover,
+.ds-btn-secondary:hover {
+  background-color: var(--theme-card-border) !important;
+}
+
+/* Success variant */
+.sovereign-layout .btn-success {
+  background-color: #10b981 !important;
+  color: #ffffff !important;
+  border: 1px solid #059669 !important;
+}
+.sovereign-layout .btn-success:hover {
+  background-color: #059669 !important;
+}
+
+/* Danger variant */
+.sovereign-layout .btn-danger {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+}
+.sovereign-layout .btn-danger:hover {
+  background-color: #dc2626 !important;
+}
+
+/* Warning variant */
+.sovereign-layout .btn-warning {
+  background-color: #f59e0b !important;
+  color: #ffffff !important;
+  border: 1px solid #d97706 !important;
+}
+.sovereign-layout .btn-warning:hover {
+  background-color: #d97706 !important;
+}
+
+/* Info variant */
+.sovereign-layout .btn-info {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  border: 1px solid #2563eb !important;
+}
+.sovereign-layout .btn-info:hover {
+  background-color: #2563eb !important;
+}
+
+/* Outline variants */
+.sovereign-layout .btn-outline-primary {
+  background-color: transparent !important;
+  color: var(--theme-gold) !important;
+  border: 1px solid var(--theme-gold) !important;
+}
+.sovereign-layout .btn-outline-primary:hover {
+  background-color: var(--theme-gold) !important;
+  color: var(--theme-primary-dark) !important;
+}
+
+/* Sizes */
+.ds-btn-sm { padding: 0.375rem 0.75rem; font-size: var(--text-xs); }
+.ds-btn-md { padding: 0.5rem 1rem; font-size: var(--text-sm); }
+.ds-btn-lg { padding: 0.625rem 1.25rem; font-size: var(--text-base); }
+
+
+/* 2. Cards (.ds-card, .card) */
+.sovereign-layout .card,
+.ds-card {
+  background-color: var(--theme-card-bg) !important;
+  border: 1px solid var(--theme-card-border) !important;
+  border-radius: 1rem !important; /* 16px radius */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+  color: var(--theme-text) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sovereign-layout .card-hover:hover,
+.ds-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.06) !important;
+}
+
+.dark .sovereign-layout .card-hover:hover,
+.dark .ds-card-hover:hover {
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important; /* Gold glow border on hover in dark mode */
+}
+
+.sovereign-layout .card-header,
+.ds-card-header {
+  padding: 1.25rem 1.5rem !important;
+  background-color: transparent !important;
+  border-bottom: 1px solid var(--theme-card-border) !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sovereign-layout .card-title,
+.ds-card-title {
+  font-weight: 700 !important;
+  font-size: var(--text-lg) !important;
+  margin: 0 !important;
+  color: var(--theme-text) !important;
+}
+
+.sovereign-layout .card-body,
+.ds-card-body {
+  padding: 1.5rem !important;
+  flex-grow: 1;
+}
+
+.sovereign-layout .card-footer {
+  padding: 1rem 1.5rem !important;
+  background-color: transparent !important;
+  border-top: 1px solid var(--theme-card-border) !important;
+}
+
+/* 3. Inputs (.ds-input, .form-control, .form-select) */
+.sovereign-layout .form-control,
+.sovereign-layout .form-select,
+.ds-input, .ds-select {
+  background-color: var(--theme-input-bg) !important;
+  border: 1px solid var(--theme-input-border) !important;
+  border-radius: 0.75rem !important; /* 12px corners */
+  padding: 0.5rem 0.875rem !important;
+  font-size: var(--text-sm) !important;
+  color: var(--theme-input-text) !important;
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease !important;
+}
+
+.sovereign-layout .form-control:focus,
+.sovereign-layout .form-select:focus,
+.ds-input:focus, .ds-select:focus {
+  outline: none !important;
+  border-color: var(--theme-gold) !important;
+  box-shadow: 0 0 0 3px var(--theme-gold-glow) !important;
+}
+
+.ds-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
+  font-size: var(--text-sm);
+  color: var(--theme-text);
+}
+
+
+/* 4. Tables (.ds-table, .table) */
+.sovereign-layout .table-responsive,
+.ds-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--theme-table-border);
+}
+
+.sovereign-layout .table,
+.ds-table {
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  background-color: var(--theme-card-bg) !important;
+  border: none !important;
+}
+
+/* Remove default Bootstrap striped table borders that clash */
+.sovereign-layout .table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: var(--theme-surface-subtle) !important;
+  color: var(--theme-text) !important;
+  box-shadow: inset 0 0 0 9999px transparent !important;
+}
+
+.sovereign-layout .table th,
+.ds-table th {
+  background-color: var(--theme-table-header-bg) !important;
+  color: var(--theme-table-header-text) !important;
+  font-weight: 700 !important;
+  text-align: right !important;
+  border-bottom: 2px solid var(--theme-gold) !important;
+  padding: 0.875rem 1rem !important;
+  white-space: nowrap;
+}
+
+.sovereign-layout .table td,
+.ds-table td {
+  padding: 0.875rem 1rem !important;
+  border-bottom: 1px solid var(--theme-table-border) !important;
+  border-top: none !important;
+  background-color: transparent !important;
+  color: var(--theme-text) !important;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.sovereign-layout .table-hover tbody tr:hover,
+.ds-table tbody tr:hover td {
+  background-color: var(--theme-table-row-hover) !important;
+}
+
+
+/* 5. Select2 Overrides (Matches React SearchableSelect) */
+/* We keep the structural overrides from app.css but enforce Theme Colors */
+.select2-container--bootstrap-5 .select2-selection {
+  background-color: var(--theme-input-bg) !important;
+  border: 1px solid var(--theme-input-border) !important;
+  border-radius: 0.75rem !important;
+  color: var(--theme-input-text) !important;
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+  border-color: var(--theme-gold) !important;
+  box-shadow: 0 0 0 3px var(--theme-gold-glow) !important;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+  background-color: var(--theme-card-bg) !important;
+  border: 1px solid var(--theme-card-border) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+}
+
+.select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field {
+  background-color: var(--theme-input-bg) !important;
+  border-color: var(--theme-input-border) !important;
+  color: var(--theme-input-text) !important;
+  border-radius: 0.5rem !important;
+}
+
+.select2-container--bootstrap-5 .select2-search--dropdown .select2-search__field:focus {
+  border-color: var(--theme-gold) !important;
+  box-shadow: 0 0 0 2px var(--theme-gold-glow) !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+  color: var(--theme-text) !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+  background-color: var(--theme-sidebar-active) !important;
+  color: var(--theme-gold) !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+  color: var(--theme-input-text) !important;
+}
+
+
+/* 6. Modals (Bootstrap Overrides to match React) */
+.modal-content {
+  background-color: var(--theme-card-bg) !important;
+  border: 1px solid var(--theme-gold-border) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25) !important;
+  color: var(--theme-text) !important;
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--theme-card-border) !important;
+}
+
+.modal-footer {
+  border-top: 1px solid var(--theme-card-border) !important;
+}
+
+.modal-backdrop.show {
+  opacity: 0.8 !important;
+  background-color: rgba(7, 19, 32, 0.9) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+
+/* 7. Badges (Alerts & Indicators) */
+.sovereign-layout .badge,
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+}
+
+.sovereign-layout .badge.bg-success,
+.ds-badge-emerald { background-color: rgba(16, 185, 129, 0.08) !important; border: 1px solid rgba(16, 185, 129, 0.25) !important; color: #10b981 !important; }
+
+.sovereign-layout .badge.bg-warning,
+.ds-badge-amber { background-color: rgba(245, 158, 11, 0.08) !important; border: 1px solid rgba(245, 158, 11, 0.25) !important; color: #f59e0b !important; }
+
+.sovereign-layout .badge.bg-info,
+.ds-badge-blue { background-color: rgba(59, 130, 246, 0.08) !important; border: 1px solid rgba(59, 130, 246, 0.25) !important; color: #3b82f6 !important; }
+
+.sovereign-layout .badge.bg-danger,
+.ds-badge-rose { background-color: rgba(239, 68, 68, 0.08) !important; border: 1px solid rgba(239, 68, 68, 0.25) !important; color: #ef4444 !important; }
+
+/* Alerts (.alert) */
+.sovereign-layout .alert {
+  border-radius: 1rem !important;
+  padding: 1rem 1.25rem !important;
+  border: 1px solid transparent !important;
+  font-weight: 600 !important;
+  font-size: var(--text-sm) !important;
+}
+.sovereign-layout .alert-success {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  color: #10b981 !important;
+}
+.sovereign-layout .alert-danger {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: #ef4444 !important;
+}
+.sovereign-layout .alert-warning {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+  color: #f59e0b !important;
+}
+.sovereign-layout .alert-info {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  color: #3b82f6 !important;
+}
+
+/* Pagination (.pagination) */
+.sovereign-layout .pagination {
+  margin-bottom: 0 !important;
+}
+.sovereign-layout .page-item .page-link {
+  background-color: var(--theme-card-bg) !important;
+  border: 1px solid var(--theme-card-border) !important;
+  color: var(--theme-text) !important;
+  font-weight: 600 !important;
+  border-radius: 0.5rem !important;
+  margin: 0 0.15rem !important;
+  padding: 0.375rem 0.75rem !important;
+}
+.sovereign-layout .page-item.active .page-link {
+  background-color: var(--theme-gold) !important;
+  border-color: var(--theme-gold) !important;
+  color: var(--theme-primary-dark) !important;
+}
+.sovereign-layout .page-item.disabled .page-link {
+  background-color: var(--theme-surface-subtle) !important;
+  color: var(--theme-text-muted) !important;
+  border-color: var(--theme-card-border) !important;
+  opacity: 0.6 !important;
+}
+
+/* ==========================================================================
+   8. SOVEREIGN LAYOUT OVERRIDES (Sidebar & Topbar)
+   ========================================================================== */
+
+.sovereign-layout {
+    --header-height: 60px;
+}
+
+/* Navbar (Topbar) */
+.sovereign-layout .navbar {
+    background: var(--theme-header-bg) !important;
+    border-bottom: 1px solid var(--theme-header-border) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    height: var(--header-height) !important;
+}
+
+.sovereign-layout .navbar-brand {
+    font-weight: 800 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: -0.025em;
+}
+
+.sovereign-layout .navbar-brand .brand-text {
+    text-shadow: none !important;
+}
+
+.sovereign-layout .menu-toggle {
+    color: var(--theme-gold) !important;
+}
+
+.sovereign-layout .menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sidebar Container */
+.sovereign-layout .sidebar-container {
+    background: var(--theme-sidebar-bg) !important;
+    border-left: 1px solid var(--theme-sidebar-border) !important;
+    top: var(--header-height) !important;
+    height: calc(100vh - var(--header-height)) !important;
+}
+
+.sovereign-layout .sidebar-header {
+    background: var(--theme-sidebar-bg) !important;
+    border-bottom: 1px solid var(--theme-sidebar-border) !important;
+}
+
+.sovereign-layout .sidebar-header h5 {
+    color: var(--theme-gold) !important;
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+}
+
+/* Sidebar Links */
+.sovereign-layout .sidebar-container .nav-link {
+    color: var(--theme-text-muted) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.625rem 1rem !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    margin: 0.25rem 1rem !important;
+}
+
+.sovereign-layout .sidebar-container .nav-link:hover {
+    background: var(--theme-sidebar-hover) !important;
+    color: #ffffff !important;
+}
+
+.sovereign-layout .sidebar-container .nav-link.active {
+    background: var(--theme-sidebar-active) !important;
+    color: #ffffff !important;
+    box-shadow: inset -3px 0 0 0 var(--theme-gold) !important;
+}
+
+.sovereign-layout .sidebar-container .nav-link.active::before {
+    display: none !important;
+}
+
+.sovereign-layout .sidebar-container .nav-link i, 
+.sovereign-layout .sidebar-container .nav-link svg {
+    color: var(--theme-text-muted) !important;
+    opacity: 1 !important;
+}
+
+.sovereign-layout .sidebar-container .nav-link.active i,
+.sovereign-layout .sidebar-container .nav-link.active svg {
+    color: var(--theme-gold) !important;
+}
+
+.sovereign-layout .sidebar-container .collapse .nav-link {
+    font-size: 0.8125rem !important;
+    padding: 0.5rem 1rem 0.5rem 2.5rem !important;
+    margin: 0.125rem 1rem !important;
+}
+
+.sovereign-layout .sidebar-container .collapse .nav-link::before {
+    display: none !important;
+}
+
+/* Notifications and Profile Dropdowns */
+.sovereign-layout .dropdown-menu,
+.sovereign-layout .notification-dropdown {
+    background-color: var(--theme-card-bg) !important;
+    border: 1px solid var(--theme-card-border) !important;
+    color: var(--theme-text) !important;
+}
+.sovereign-layout .dropdown-item,
+.sovereign-layout .notification-item {
+    color: var(--theme-text) !important;
+}
+.sovereign-layout .dropdown-item:hover,
+.sovereign-layout .notification-item:hover {
+    background-color: var(--theme-table-row-hover) !important;
+    color: var(--theme-text) !important;
+}
+.sovereign-layout .notification-header,
+.sovereign-layout .panel-header {
+    background: var(--theme-surface-subtle) !important;
+    border-bottom: 1px solid var(--theme-card-border) !important;
+}
+.sovereign-layout .notification-header h6,
+.sovereign-layout .panel-header .header-title {
+    color: var(--theme-text) !important;
+}
+.sovereign-layout .notification-footer,
+.sovereign-layout .panel-footer {
+    border-top: 1px solid var(--theme-card-border) !important;
+    background: var(--theme-surface-subtle) !important;
+}
+.sovereign-layout .notification-footer a,
+.sovereign-layout .panel-footer a {
+    color: var(--theme-gold) !important;
+}
+.sovereign-layout .navbar-profile-avatar,
+.sovereign-layout .notification-trigger {
+    background-color: var(--theme-surface-subtle) !important;
+    border: 1px solid var(--theme-card-border) !important;
+}
+.sovereign-layout .navbar-profile-avatar svg {
+    fill: var(--theme-text) !important;
+}
+
+/* Mobile Sidebar Behavior */
+.sovereign-layout .sidebar-overlay {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.sovereign-layout .main-content {
+    background-color: var(--theme-bg) !important;
+}
+
+/* ==========================================================================
+   9. FORMS & CHECKBOXES
+   ========================================================================== */
+.sovereign-layout .form-check-input {
+  background-color: var(--theme-input-bg) !important;
+  border: 1px solid var(--theme-input-border) !important;
+}
+.sovereign-layout .form-check-input:checked {
+  background-color: var(--theme-gold) !important;
+  border-color: var(--theme-gold) !important;
+}
+.sovereign-layout .form-check-input:focus {
+  box-shadow: 0 0 0 2px var(--theme-gold-glow) !important;
+  border-color: var(--theme-gold) !important;
+}
+.sovereign-layout .form-check-label {
+  color: var(--theme-text) !important;
+}
+
+/* ==========================================================================
+   10. DATATABLES OVERRIDES
+   ========================================================================== */
+.sovereign-layout .dataTables_wrapper .dataTables_length select,
+.sovereign-layout .dataTables_wrapper .dataTables_filter input {
+  background-color: var(--theme-input-bg) !important;
+  border: 1px solid var(--theme-input-border) !important;
+  color: var(--theme-input-text) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.25rem 0.5rem !important;
+}
+.sovereign-layout .dataTables_wrapper .dataTables_info,
+.sovereign-layout .dataTables_wrapper .dataTables_paginate {
+  color: var(--theme-text-muted) !important;
+  padding-top: 1rem !important;
+}
+
+/* ==========================================================================
+   11. SWEETALERT & NOTIFICATIONS
+   ========================================================================== */
+.swal2-popup {
+  background-color: var(--theme-card-bg) !important;
+  color: var(--theme-text) !important;
+  border-radius: 1rem !important;
+  border: 1px solid var(--theme-card-border) !important;
+}
+.swal2-title {
+  color: var(--theme-text) !important;
+}
+.swal2-html-container {
+  color: var(--theme-text-muted) !important;
+}
+.swal2-confirm {
+  background-color: var(--theme-gold) !important;
+  color: var(--theme-primary-dark) !important;
+  border-radius: 0.5rem !important;
+  font-weight: 700 !important;
+}
+.swal2-cancel {
+  background-color: var(--theme-surface-subtle) !important;
+  color: var(--theme-text) !important;
+  border-radius: 0.5rem !important;
+}
+
+/* ==========================================================================
+   12. EMPTY & LOADING STATES
+   ========================================================================== */
+.sovereign-layout .empty-state-container {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background-color: transparent !important;
+  border: 1px dashed var(--theme-card-border) !important;
+  border-radius: 1rem;
+}
+.sovereign-layout .empty-state-icon {
+  color: var(--theme-text-muted);
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+.sovereign-layout .empty-state-title {
+  color: var(--theme-text);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  margin-bottom: 0.5rem;
+}
+.sovereign-layout .empty-state-description {
+  color: var(--theme-text-muted);
+  font-size: var(--text-sm);
+}
+
+.sovereign-layout .spinner-border {
+  border-color: var(--theme-gold);
+  border-right-color: transparent;
+}

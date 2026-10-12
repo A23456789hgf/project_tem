@@ -11,6 +11,7 @@ use App\Models\Action;
 use App\Models\Authority;
 use App\Models\Domain;
 use App\Models\FinancialItem;
+use App\Models\FundingSource;
 use App\Models\InternalEntity;
 use App\Models\Program;
 use App\Models\Project;
@@ -18,9 +19,13 @@ use App\Models\ProjectDocument;
 use App\Models\Subdomain;
 use App\Models\SyncLog;
 use App\Models\Unit;
+use App\Services\DocumentLetterheadService;
+use App\Services\ErpNextReportService;
 use App\Services\FrappeAPIService;
 use App\Services\NotificationService;
+use App\Services\ProjectFinancialWorkflowService;
 use App\Traits\ProjectPivotExportTrait;
+use Carbon\Carbon;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Http\JsonResponse;
@@ -312,76 +317,19 @@ class ProjectController extends Controller
             }
 
             if ($step === 1 && ! $project) {
-                // ===================================================================
-                // ERPNext Verification (Pre-check before creating the project)
-                // ===================================================================
-                $user = auth()->user();
-                $entity = $user->entity;
-
-                // ERPNext validation only applies to internal entity users.
-                // External authority users (organization_type === 'external') do not have
-                // an associated InternalEntity, so this block is intentionally skipped for them.
-                if ($entity) {
-                    $frappeService = app(FrappeAPIService::class);
-
-                    try {
-                        // 1. Verify/Create in ERPNext
-                        $ensureResult = $frappeService->resolveAndEnsureEntityInErpNext($entity->name);
-
-                        if (! $ensureResult['erpnext_found'] && ! $ensureResult['erpnext_created']) {
-                            \Log::error('ERPNext Verification Failed: Could not find or create entity.', ['entity' => $entity->name, 'result' => $ensureResult]);
-                            throw ValidationException::withMessages([
-                                'erpnext' => ['فشل التحقق من الجهة أو إنشاؤها في نظام ERPNext. لا يمكن إنشاء المشروع.'],
-                            ]);
-                        }
-
-                        // 2. Resolve Parent Company for Departments
-                        $companyName = $entity->name;
-                        if ($entity->entity_type === 'Department') {
-                            $companyName = $frappeService->findParentCompanyName($entity);
-                            if (! $companyName) {
-                                \Log::error('ERPNext Verification Failed: Could not resolve parent Company for Department.', ['department' => $entity->name]);
-                                throw ValidationException::withMessages([
-                                    'erpnext' => ['فشل تحديد الشركة الأب (Company) المرتبطة بهذه الإدارة. تأكد من الهيكل التنظيمي للجهة.'],
-                                ]);
-                            }
-                        }
-
-                        // 3. Fetch Financial Items
-                        $items = $frappeService->getExpenseClaimTypes($companyName);
-
-                        if ($items === false || is_null($items)) {
-                            \Log::error('ERPNext Verification Failed: API error while fetching financial items.', ['company' => $companyName]);
-                            throw ValidationException::withMessages([
-                                'erpnext' => ['فشل الاتصال بنظام ERPNext لجلب البنود المالية للجهة (Expense Claim Types). تأكد من صحة الاتصال.'],
-                            ]);
-                        }
-
-                        if (empty($items)) {
-                            \Log::info('ERPNext Verification: Fetched items successfully, but count is 0.', ['company' => $companyName]);
-                            // We do NOT block saving if count is 0, just log it.
-                        } else {
-                            \Log::info('ERPNext Verification: Successfully fetched items.', ['company' => $companyName, 'count' => count($items)]);
-                        }
-
-                    } catch (ValidationException $e) {
-                        throw $e; // Re-throw validation exceptions
-                    } catch (\Exception $e) {
-                        \Log::error('ERPNext Verification Exception: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
-                        // If it's a 401 or network error from FrappeService, it will likely be caught here or return false above.
-                        throw ValidationException::withMessages([
-                            'erpnext' => ['حدث خطأ أثناء التخاطب مع نظام ERPNext: '.$e->getMessage()],
-                        ]);
-                    }
-                }
-
-                // STEP 1: CREATE new project (only if no ID exists and ERPNext passed)
+                // STEP 1: CREATE new project locally in database
                 $project = $this->createProjectFromStep1($validated);
                 session(['current_project_id' => $project->id]);
             } else {
                 // UPDATE existing project (Step 1 correction OR Steps 2-7)
                 if (! $project) {
                     throw new \Exception('No project ID found. Please start from step 1.');
+                }
+
+                // Protect approval workflow states from accidental status downgrade
+                $isWorkflowState = $project->isPendingApproval() || $project->isInExecution() || $project->isRolledBackForReview();
+                if ($isWorkflowState) {
+                    unset($validated['status']);
                 }
 
                 if ($step === 1) {
@@ -407,9 +355,15 @@ class ProjectController extends Controller
             $project->refresh();
             $isComplete = $project->isDraftComplete();
 
-            $targetStatus = $project->status === 'rolled_back_for_review'
-                ? 'rolled_back_for_review'
-                : ($isComplete ? 'completed_draft' : 'draft');
+            if ($project->status === 'rolled_back_for_review') {
+                $targetStatus = 'rolled_back_for_review';
+            } elseif ($project->isPendingApproval()) {
+                $targetStatus = $project->status;
+            } elseif ($project->isInExecution()) {
+                $targetStatus = $project->status;
+            } else {
+                $targetStatus = $isComplete ? 'completed_draft' : 'draft';
+            }
 
             $project->update([
                 'is_data_completed' => $isComplete,
@@ -751,6 +705,90 @@ class ProjectController extends Controller
     }
 
     /**
+     * Get project expenses from ERPNext
+     *
+     * @return JsonResponse
+     */
+    public function expenses(Project $project, Request $request, ErpNextReportService $erpReportService, FrappeAPIService $frappeService)
+    {
+        $this->projectService->authorizeProjectAccess($project);
+
+        if ($project->project_type !== 'old') {
+            return response()->json(['success' => false, 'error' => 'هذا المشروع ليس مشروعاً قديماً.']);
+        }
+
+        if (! $project->erpnext_project_id) {
+            return response()->json(['success' => false, 'error' => 'لا يوجد ربط مالي مع ERPNext لهذا المشروع.', 'no_erpnext' => true]);
+        }
+
+        $erpNextProjectName = $project->erpnext_project_id;
+
+        // Find Company
+        $company = null;
+        $projResponse = $frappeService->httpGet('Project/'.urlencode($erpNextProjectName));
+        if (isset($projResponse['success']) && $projResponse['success'] && isset($projResponse['data']['company'])) {
+            $company = $projResponse['data']['company'];
+        } else {
+            Log::error('Company Mapping Error', [
+                'laravel_project_id' => $project->id,
+                'erpnext_project' => $erpNextProjectName,
+                'response' => $projResponse,
+            ]);
+
+            return response()->json(['success' => false, 'error' => 'تعذر تحديد الجهة المالية للمشروع.']);
+        }
+
+        // Find Expense Accounts
+        $accountsMap = $erpReportService->getAccountsMap();
+        $expenseAccounts = [];
+        foreach ($accountsMap as $accName => $accData) {
+            if (($accData['root_type'] === 'Expense' || str_contains(strtolower($accData['account_type']), 'expense') || str_contains(strtolower($accData['account_type']), 'cost of goods sold')) && empty($accData['is_group'])) {
+                $expenseAccounts[] = $accName;
+            }
+        }
+
+        // Date Range
+        $fromDate = $project->start_date_gregorian ? Carbon::parse($project->start_date_gregorian)->format('Y-m-d') : '2000-01-01';
+        $toDate = now()->format('Y-m-d');
+
+        // Apply filters from request
+        $filters = [
+            'company' => $company,
+            'from_date' => $request->input('from_date', $fromDate),
+            'to_date' => $request->input('to_date', $toDate),
+        ];
+
+        $summaryResponse = $erpReportService->getProjectFinancialSummary($erpNextProjectName, $filters);
+        $expenseTypesResponse = $erpReportService->getProjectExpenseTypeSummary($erpNextProjectName, $filters);
+        $glTransactionsResponse = $erpReportService->getProjectGlTransactions($erpNextProjectName, $filters);
+
+        if (! $summaryResponse['success']) {
+            return response()->json(['success' => false, 'error' => $summaryResponse['error'] ?? 'تعذر الاتصال بالنظام المالي ERPNext. حاول مرة أخرى.']);
+        }
+
+        $approvedTotal = (float) ($project->cost?->total_cost ?? 0);
+        $actualSpent = (float) ($summaryResponse['actual_spent'] ?? 0);
+        $remainingAmount = $approvedTotal - $actualSpent;
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'approved_total' => $approvedTotal,
+                'actual_spent' => $actualSpent,
+                'remaining_amount' => $remainingAmount,
+                'income' => $summaryResponse['income'] ?? 0,
+                'profit' => $summaryResponse['profit'] ?? 0,
+                'currency' => $summaryResponse['currency'] ?? 'YER',
+                'transactions_count' => count($glTransactionsResponse['transactions'] ?? []),
+                'expense_types_count' => count($expenseTypesResponse['expense_types'] ?? []),
+            ],
+            'expense_types' => $expenseTypesResponse['expense_types'] ?? [],
+            'transactions' => $glTransactionsResponse['transactions'] ?? [],
+            'synced_at' => now()->toDateTimeString(),
+        ]);
+    }
+
+    /**
      * Print financial status of the specified project
      *
      * @return View
@@ -759,8 +797,10 @@ class ProjectController extends Controller
     {
         $this->projectService->authorizeProjectAccess($project);
         $financialStatus = $this->projectService->calculateProjectFinancialStatus($project);
+        $letterheadData = app(DocumentLetterheadService::class)->resolveFor($project);
+        $letterhead = $letterheadData->letterhead;
 
-        return view('projects.reports.print_project_financial', compact('project', 'financialStatus'));
+        return view('projects.reports.print_project_financial', compact('project', 'financialStatus', 'letterhead', 'letterheadData'));
     }
 
     /**
@@ -1078,12 +1118,16 @@ class ProjectController extends Controller
             'financings.financingForm',
             'financings.subFinancingForm',
             'supervisingAuthorities.authority',
+            'supervisingAuthorities.internalEntity',
             'supervisingAuthorities.parent',
             'implementingEntities.authority',
+            'implementingEntities.internalEntity',
             'implementingEntities.parent',
             'participatingEntities.authority',
+            'participatingEntities.internalEntity',
             'participatingEntities.parent',
             'beneficiaryEntities.authority',
+            'beneficiaryEntities.internalEntity',
             'beneficiaryEntities.parent',
             'beneficiaryGroups',
             'preliminaryActivities.procedures.costs.financialItem',
@@ -1119,12 +1163,16 @@ class ProjectController extends Controller
         $totalFinancing = $project->financings()->sum('financing_amount');
         $totalProjectCost = $project->cost->total_cost ?? $totalFinancing;
 
-        // تحويل الشعار إلى Base64
-        $logoPath = public_path('images/logo.png');
-        $logoBase64 = '';
-        if (file_exists($logoPath)) {
-            $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
+        // حل الترويسة الرسمية للجهة المصدرة للمشروع
+        $letterheadData = app(DocumentLetterheadService::class)->resolveFor($project);
+        $letterhead = $letterheadData->letterhead;
+        $logoBase64 = $letterheadData->logoBase64 ?? '';
+        if (empty($logoBase64)) {
+            $logoPath = public_path('images/logo.png');
+            if (file_exists($logoPath)) {
+                $logoData = file_get_contents($logoPath);
+                $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
+            }
         }
 
         // Prepare Preliminary Activities Data
@@ -1137,6 +1185,8 @@ class ProjectController extends Controller
 
         return view('projects.print', [
             'project' => $project,
+            'letterhead' => $letterhead,
+            'letterheadData' => $letterheadData,
             'qrCodeBase64' => $qrCodeImage,
             'logoBase64' => $logoBase64,
             'qrCodeUrl' => $qrCodeUrl,
@@ -1154,6 +1204,21 @@ class ProjectController extends Controller
     public function execution(Project $project)
     {
         $this->projectService->authorizeProjectAccess($project);
+
+        if (auth()->user()->hasPermission('execution.view', $project)) {
+            abort_unless(auth()->user()->hasPermission('projects.execute', $project), 403);
+        }
+
+        $executionWorkflowMessage = app(ProjectFinancialWorkflowService::class)
+            ->executionBlockReason($project);
+
+        $project->loadMissing(['cost', 'disbursementPlan.details', 'financings.fundingSource']);
+        $project->loadMissing(['projectExecutions.action', 'preliminaryProcedureExecutions.procedure']);
+        $currentInstallment = $project->active_disbursed_installment;
+        $currentInstallmentSpent = $currentInstallment
+            ? $project->spentFromInstallment($currentInstallment)
+            : 0.0;
+        $fundingSources = FundingSource::query()->where('is_active', true)->orderBy('name')->get();
 
         // للمشاريع القديمة: توجيه المستخدم لرفع وتسجيل الإنجازات عبر achievements
         if ($project->project_type === 'old') {
@@ -1207,7 +1272,13 @@ class ProjectController extends Controller
             ]);
         }
 
-        return view('projects.execution', compact('project'));
+        return view('projects.execution', compact(
+            'project',
+            'executionWorkflowMessage',
+            'currentInstallment',
+            'currentInstallmentSpent',
+            'fundingSources'
+        ));
     }
 
     public function schedule(Project $project)

@@ -57,6 +57,8 @@ class PermissionsSeeder extends Seeder
 
     public function run()
     {
+        $this->call(DisbursementWorkflowPermissionsSeeder::class);
+
         // 1. Migrate renamed permissions to keep existing role assignments
         $migrations = [
             'projects.show' => 'projects.view-details',

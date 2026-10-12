@@ -9,6 +9,7 @@ use App\Traits\HasDomainScope;
 use App\Traits\HasModelVisibility;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class InternalEntity extends Model
@@ -47,6 +48,7 @@ class InternalEntity extends Model
     // ============================================
     // العلاقات
     // ============================================
+
     public function parent()
     {
         return $this->belongsTo(InternalEntity::class, 'parent_id');
@@ -78,12 +80,73 @@ class InternalEntity extends Model
      */
     public function approvalStages()
     {
-        return $this->hasMany(EntityApprovalStage::class, 'entity_id')->orderBy('stage_order');
+        return $this->hasMany(EntityApprovalStage::class, 'entity_id')
+            ->orderBy('stage_order');
+    }
+
+    public function users()
+    {
+        return $this->hasMany(User::class, 'entity_id');
+    }
+
+    public function responsibilities()
+    {
+        return $this->hasMany(EntityResponsibility::class, 'internal_entity_id');
+    }
+
+    public function sentCorrespondences()
+    {
+        return $this->hasMany(Correspondence::class, 'sender_entity_id');
+    }
+
+    public function receivedCorrespondences()
+    {
+        return $this->hasMany(Correspondence::class, 'recipient_entity_id');
+    }
+
+    public function memoirs()
+    {
+        return $this->hasMany(Memoir::class, 'entity_id');
+    }
+
+    // ============================================
+    // الحصول على الأب بأمان (بدون Lazy Loading)
+    // ============================================
+
+    /**
+     * يرجع الأب بدون ما يرمي LazyLoadingViolationException.
+     * - إذا العلاقة محمّلة مسبقاً (eager loaded) -> يستعملها.
+     * - وإلا -> يعمل استعلام مباشر بدون Global Scopes.
+     */
+    public function getParentModel(): ?self
+    {
+        if ($this->relationLoaded('parent')) {
+            return $this->getRelation('parent');
+        }
+
+        if (! $this->parent_id) {
+            return null;
+        }
+
+        return static::withoutGlobalScopes()
+            ->whereKey($this->parent_id)
+            ->first();
     }
 
     /**
-     * Get all children (descendants) of this entity recursively
-     * Uses DB directly to avoid lazy loading issues
+     * Scope لتحميل الأب مع أي استعلام.
+     */
+    public function scopeWithParent($query)
+    {
+        return $query->with('parent');
+    }
+
+    // ============================================
+    // Children / Descendants
+    // ============================================
+
+    /**
+     * Get all children (descendants) of this entity recursively.
      */
     public function getAllChildren()
     {
@@ -104,8 +167,7 @@ class InternalEntity extends Model
     }
 
     /**
-     * Get all descendant IDs for a given parent ID recursively
-     * Uses DB directly to avoid lazy loading issues
+     * Get all descendant IDs for a given parent ID recursively.
      */
     public static function getAllDescendantIds($parentId): array
     {
@@ -152,7 +214,8 @@ class InternalEntity extends Model
     }
 
     /**
-     * جلب جميع معرفات الأباء بشكل متكرر — يستخدم DB مباشرة لتجاوز DomainScope
+     * جلب جميع معرفات الآباء بشكل متكرر — يستخدم DB مباشرة لتجاوز DomainScope
+     * يُرجع من الأب المباشر إلى الجذر: [parent, grandparent, root]
      */
     public static function getAllParentIds(int $entityId): array
     {
@@ -228,34 +291,10 @@ class InternalEntity extends Model
             ->toArray();
     }
 
-    public function users()
-    {
-        return $this->hasMany(User::class, 'entity_id');
-    }
-
-    public function responsibilities()
-    {
-        return $this->hasMany(EntityResponsibility::class, 'internal_entity_id');
-    }
-
-    public function sentCorrespondences()
-    {
-        return $this->hasMany(Correspondence::class, 'sender_entity_id');
-    }
-
-    public function receivedCorrespondences()
-    {
-        return $this->hasMany(Correspondence::class, 'recipient_entity_id');
-    }
-
-    public function memoirs()
-    {
-        return $this->hasMany(Memoir::class, 'entity_id');
-    }
-
     // ============================================
     // Scopes
     // ============================================
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -294,15 +333,33 @@ class InternalEntity extends Model
     // ============================================
     // Methods: Hierarchy & Approval
     // ============================================
-    public function getHierarchyPath()
-    {
-        $path = [];
-        $entity = $this;
 
-        while ($entity) {
-            array_unshift($path, $entity->name);
-            $entity = $entity->parent;
+    /**
+     * المسار الكامل: الجذر > ... > الأب > الابنة
+     * يستعمل استعلام واحد بدل Lazy Loading.
+     */
+    public function getHierarchyPath(): string
+    {
+        // إن كان الأب محمّلاً مسبقاً، نستفيد منه
+        $parentIds = static::getAllParentIds($this->id);
+
+        if (empty($parentIds)) {
+            return (string) $this->name;
         }
+
+        $names = static::withoutGlobalScopes()
+            ->whereIn('id', $parentIds)
+            ->pluck('name', 'id');
+
+        $path = [];
+        // من الجذر نزولاً للأب المباشر
+        foreach (array_reverse($parentIds) as $id) {
+            if (isset($names[$id])) {
+                $path[] = $names[$id];
+            }
+        }
+
+        $path[] = $this->name;
 
         return implode(' > ', $path);
     }
@@ -312,27 +369,33 @@ class InternalEntity extends Model
         return $this->getHierarchyPath();
     }
 
-    public function getApprovalChainToRoot()
+    /**
+     * سلسلة الاعتماد من الابنة حتى الجذر (الابنة أولاً).
+     */
+    public function getApprovalChainToRoot(): Collection
     {
         $chain = collect([$this]);
         $current = $this;
 
-        while ($current->parent) {
-            $current = $current->parent;
-            $chain->push($current);
+        while ($parent = $current->getParentModel()) {
+            $chain->push($parent);
+            $current = $parent;
         }
 
         return $chain;
     }
 
-    public function getParentChain()
+    /**
+     * كل الآباء من الأب المباشر حتى الجذر.
+     */
+    public function getParentChain(): Collection
     {
         $parents = collect();
-        $current = $this->parent;
+        $current = $this->getParentModel();
 
         while ($current) {
             $parents->push($current);
-            $current = $current->parent;
+            $current = $current->getParentModel();
         }
 
         return $parents;
@@ -345,15 +408,7 @@ class InternalEntity extends Model
 
     public function getHierarchyLevel(): int
     {
-        $level = 0;
-        $current = $this;
-
-        while ($current->parent) {
-            $level++;
-            $current = $current->parent;
-        }
-
-        return $level;
+        return count(static::getAllParentIds($this->id));
     }
 
     /**
@@ -363,9 +418,13 @@ class InternalEntity extends Model
     {
         if (empty($this->entity_code)) {
             $words = explode(' ', trim($this->name));
-            $code = count($words) >= 2 ? substr($words[0], 0, 1).substr($words[1], 0, 1) : substr($this->name, 0, 2);
+            $code = count($words) >= 2
+                ? substr($words[0], 0, 1).substr($words[1], 0, 1)
+                : substr($this->name, 0, 2);
+
             $code = strtoupper(preg_replace('/[^A-Z0-9]/', 'X', $code));
             $code = str_pad($code, 2, 'X');
+
             $this->entity_code = $code;
             $this->save();
         }
@@ -375,12 +434,14 @@ class InternalEntity extends Model
 
     public function setEntityCode(string $code): void
     {
-        $this->entity_code = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $code), 0, 2));
+        $this->entity_code = strtoupper(
+            substr(preg_replace('/[^A-Za-z0-9]/', '', $code), 0, 2)
+        );
         $this->save();
     }
 
     /**
-     * Find governorate-level ancestor
+     * Find governorate-level ancestor (بدون Lazy Loading).
      */
     private function findGovernorateAncestor(InternalEntity $entity): ?InternalEntity
     {
@@ -389,8 +450,9 @@ class InternalEntity extends Model
         }
 
         $current = $entity;
-        while ($current->parent && ! is_null($current->parent->parent_id)) {
-            $current = $current->parent;
+
+        while (($parent = $current->getParentModel()) && ! is_null($parent->parent_id)) {
+            $current = $parent;
         }
 
         return $current->parent_id ? $current : $entity;

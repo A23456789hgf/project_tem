@@ -85,25 +85,6 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="role_id" class="form-label fw-bold">
-                                <i class="fas fa-user-tag me-1"></i> الدور *
-                            </label>
-                            <select class="form-select form-select-lg @error('role_id') is-invalid @enderror"
-                                    id="role_id" name="role_id" required
-                                    style="border: 2px solid #e0e0e0; border-radius: 8px; padding: 12px 15px;">
-                                <option value="">اختر الدور</option>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->id }}" {{ old('role_id') == $role->id ? 'selected' : '' }}>
-                                        {{ $role->description ?: $role->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('role_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="phone" class="form-label fw-bold">

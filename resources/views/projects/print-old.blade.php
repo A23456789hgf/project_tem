@@ -403,7 +403,7 @@
                 </tr>
                 <tr>
                     <th>أولوية المشروع</th>
-                    <td>{{ $project->priority->name ?? 'غير محدد' }}</td>
+                    <td>{{ is_object($project->priority) ? ($project->priority->name ?? 'غير محدد') : ($project->priority ?? 'غير محدد') }}</td>
                 </tr>
                 <tr>
                     <th>هل المشروع جزء من خطة معتمدة؟</th>

@@ -95,20 +95,32 @@
     <!-- Content Wrapper -->
     <div style="width: 100%; height: 100%; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2cm 0; box-sizing: border-box;">
 
+        @php
+            $pdfLetterhead = $letterhead ?? null;
+            $rightSettings = $pdfLetterhead ? $pdfLetterhead->getHeaderRightSettings() : [];
+            $headerRightLines = !empty($rightSettings['text'])
+                ? explode("\n", trim($rightSettings['text']))
+                : ['الجمهورية اليمنية', 'وزارة الزراعة والثروة السمكية والموارد المائية'];
+            $pdfLogoSrc = !empty($logoBase64) ? $logoBase64 : ($pdfLetterhead ? $pdfLetterhead->getLogoBase64() : '');
+            if (empty($pdfLogoSrc)) {
+                $defaultLogoPath = public_path('images/logo.png');
+                $pdfLogoSrc = file_exists($defaultLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($defaultLogoPath)) : '';
+            }
+        @endphp
+
         <!-- Header -->
         <div style="margin-bottom: 2cm;">
-            <h2 style="margin: 0; font-size: 18pt; font-weight: bold;">الجمهورية اليمنية</h2>
-            <h3 style="margin: 5px 0 15px 0; font-size: 16pt; font-weight: bold;">اللجنة الزراعية والسمكية العليا</h3>
+            @foreach($headerRightLines as $hLine)
+                @if(trim($hLine))
+                    <h2 style="margin: 0; font-size: 16pt; font-weight: bold; line-height: 1.4;">{{ trim($hLine) }}</h2>
+                @endif
+            @endforeach
 
             <!-- Logo -->
-            @php
-                $logoPath = public_path('images/logo.png');
-                $logoSrc = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
-            @endphp
-            @if($logoSrc)
-                <img src="{{ $logoSrc }}" style="width: 130px; height: auto; display: block; margin: 0 auto 15px auto;">
+            @if($pdfLogoSrc)
+                <img src="{{ $pdfLogoSrc }}" style="width: 120px; height: auto; display: block; margin: 15px auto;">
             @else
-                <div style="width: 130px; height: 130px; border: 1px dashed #000; line-height: 130px; margin: 0 auto 15px auto;">الشعار</div>
+                <div style="width: 120px; height: 120px; border: 1px dashed #000; line-height: 120px; margin: 15px auto;">الشعار</div>
             @endif
         </div>
 
@@ -153,25 +165,23 @@
 
     <!-- Define Header (Previously using table, now defining as htmlpageheader for consistency) -->
     <htmlpageheader name="myHeader">
-        <table class="header-table" style="border-bottom: 2px solid #000; margin-bottom: 0;">
+        <table class="header-table" style="border-bottom: 2px solid {{ $pdfLetterhead ? ($pdfLetterhead->getTypographySettings()['primary_color'] ?? '#000') : '#000' }}; margin-bottom: 0;">
             <tr>
-                <td width="30%" style="text-align: right; border: none;">
-                    <strong>الجمهورية اليمنية</strong><br>
-                    اللجنة الزراعية والسمكية العليا<br>
-                    الإدارة العامة للمشاريع
+                <td width="35%" style="text-align: right; border: none; font-size: 10pt; line-height: 1.4;">
+                    @foreach($headerRightLines as $hLine)
+                        @if(trim($hLine))
+                            <div><strong>{{ trim($hLine) }}</strong></div>
+                        @endif
+                    @endforeach
                 </td>
-                <td width="40%" style="border: none; text-align: center;">
-                    @php
-                        $logoPath = public_path('images/logo.png');
-                        $logoSrc = file_exists($logoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath)) : '';
-                    @endphp
-                    @if($logoSrc)
-                        <img src="{{ $logoSrc }}" width="70" height="auto">
+                <td width="30%" style="border: none; text-align: center;">
+                    @if($pdfLogoSrc)
+                        <img src="{{ $pdfLogoSrc }}" width="65" height="auto">
                     @endif
                 </td>
-                <td width="30%" style="text-align: left; border: none;">
+                <td width="35%" style="text-align: left; border: none; font-size: 10pt; line-height: 1.4;">
                     التاريخ: {{ now()->format('Y/m/d') }}<br>
-                    رقم المشروع: {{ $project->form_number ?? '-' }}
+                    رقم المشروع: <span dir="ltr">{{ $project->form_number ?? '-' }}</span>
                 </td>
             </tr>
         </table>

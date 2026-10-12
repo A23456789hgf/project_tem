@@ -13,7 +13,7 @@ class TaskMemoPolicy
      */
     public function create(User $user, Task $task): bool
     {
-        return $user->hasPermission('task.memo.create', $task->project);
+        return $user->hasPermission('task.memo.create', $task);
     }
 
     /**
@@ -21,7 +21,7 @@ class TaskMemoPolicy
      */
     public function sign(User $user, TaskMemo $memo): bool
     {
-        return $user->hasPermission('task.memo.sign', $memo->task->project);
+        return $user->hasPermission('task.memo.sign', $memo->task);
     }
 
     /**
@@ -29,6 +29,6 @@ class TaskMemoPolicy
      */
     public function delete(User $user, TaskMemo $memo): bool
     {
-        return $user->hasPermission('task.memo.delete', $memo->task->project);
+        return $user->hasPermission('task.memo.delete', $memo->task);
     }
 }

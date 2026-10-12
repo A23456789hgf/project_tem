@@ -19,7 +19,7 @@ class ErpNextReportService
 
     public function __construct()
     {
-        $this->baseUrl = config('external.erpnext.base_url');
+        $this->baseUrl = rtrim((string) config('external.erpnext.base_url', config('services.frappe.url')), '/');
         $this->apiKey = config('external.erpnext.user');
         $this->apiSecret = config('external.erpnext.pass');
         $this->timeout = config('external.erpnext.timeout', 30);
@@ -305,7 +305,7 @@ class ErpNextReportService
                 ])
                 ->get($this->baseUrl.'/api/resource/Account', [
                     'limit_page_length' => 5000,
-                    'fields' => '["name","account_number","root_type","account_type"]',
+                    'fields' => '["name","account_number","root_type","account_type","is_group"]',
                 ]);
 
             if ($response->successful()) {
@@ -318,6 +318,7 @@ class ErpNextReportService
                             'account_number' => $acc['account_number'] ?? '',
                             'root_type' => $acc['root_type'] ?? '',
                             'account_type' => $acc['account_type'] ?? '',
+                            'is_group' => $acc['is_group'] ?? 0,
                         ];
                     }
                 }
@@ -577,6 +578,304 @@ class ErpNextReportService
             ];
         } catch (\Exception $e) {
             Log::error('ERPNext Get GL Report Exception', ['error' => $e->getMessage()]);
+
+            return [
+                'success' => false,
+                'error' => 'حدث خطأ داخلي أثناء معالجة التقرير: '.$e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get Fiscal Years for a date range
+     */
+    public function getFiscalYearsForDateRange(?string $fromDate, ?string $toDate): array
+    {
+        $fromDate = $fromDate ?? '2000-01-01';
+        $toDate = $toDate ?? now()->format('Y-m-d');
+
+        $cacheKey = 'erpnext_fiscal_years';
+        $fiscalYears = Cache::remember($cacheKey, now()->addDay(), function () {
+            try {
+                $response = Http::timeout($this->timeout)
+                    ->withHeaders([
+                        'Authorization' => 'token '.$this->apiKey.':'.$this->apiSecret,
+                        'Accept' => 'application/json',
+                    ])
+                    ->get($this->baseUrl.'/api/resource/Fiscal Year', [
+                        'fields' => '["name","year_start_date","year_end_date"]',
+                        'limit_page_length' => 100,
+                        'order_by' => 'year_start_date asc',
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json()['data'] ?? [];
+                }
+            } catch (\Exception $e) {
+                Log::error('ERPNext fetch Fiscal Years Exception', ['error' => $e->getMessage()]);
+            }
+
+            return [];
+        });
+
+        $fromFy = null;
+        $toFy = null;
+
+        foreach ($fiscalYears as $fy) {
+            if (! $fromFy && $fy['year_end_date'] >= $fromDate) {
+                $fromFy = $fy['name'];
+            }
+            if ($fy['year_start_date'] <= $toDate) {
+                $toFy = $fy['name'];
+            }
+        }
+
+        if (! $fromFy && count($fiscalYears) > 0) {
+            $fromFy = $fiscalYears[0]['name'];
+        }
+        if (! $toFy && count($fiscalYears) > 0) {
+            $toFy = end($fiscalYears)['name'];
+        }
+
+        return [$fromFy, $toFy];
+    }
+
+    /**
+     * Get Project Financial Summary (Income, Expense, Profit)
+     */
+    public function getProjectFinancialSummary(string $erpNextProjectId, array $filters = []): array
+    {
+        $fromDate = $filters['from_date'] ?? '2000-01-01';
+        $toDate = $filters['to_date'] ?? now()->format('Y-m-d');
+
+        [$fromFy, $toFy] = $this->getFiscalYearsForDateRange($fromDate, $toDate);
+
+        $apiFilters = [
+            'company' => $filters['company'] ?? null,
+            'filter_based_on' => 'Fiscal Year',
+            'period_start_date' => $fromDate,
+            'period_end_date' => $toDate,
+            'from_fiscal_year' => $fromFy,
+            'to_fiscal_year' => $toFy,
+            'periodicity' => 'Yearly',
+            'project' => [$erpNextProjectId],
+            'show_account_details' => 'Summary',
+            'selected_view' => 'Report',
+            'include_default_book_entries' => 1,
+            'accumulated_values' => 1,
+        ];
+
+        try {
+            $response = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'Authorization' => 'token '.$this->apiKey.':'.$this->apiSecret,
+                    'Accept' => 'application/json',
+                ])
+                ->get($this->baseUrl.'/api/method/get_pl_summary', [
+                    'filters' => json_encode($apiFilters),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $reportSummary = $data['message']['report_summary'] ?? [];
+
+                $actualSpent = 0;
+                $income = 0;
+                $profit = 0;
+                $currency = 'YER';
+
+                foreach ($reportSummary as $item) {
+                    $label = strtolower($item['label'] ?? '');
+                    if (str_contains($label, 'expense') || str_contains($label, 'مصاريف') || str_contains($label, 'مصروف')) {
+                        $actualSpent = (float) ($item['value'] ?? 0);
+                    } elseif (str_contains($label, 'income') || str_contains($label, 'دخل') || str_contains($label, 'إيراد')) {
+                        $income = (float) ($item['value'] ?? 0);
+                    } elseif (str_contains($label, 'profit') || str_contains($label, 'ربح')) {
+                        $profit = (float) ($item['value'] ?? 0);
+                    }
+                    if (isset($item['currency'])) {
+                        $currency = $item['currency'];
+                    }
+                }
+
+                return [
+                    'success' => true,
+                    'actual_spent' => abs($actualSpent), // sometimes expense is returned positive or negative depending on config, usually positive
+                    'income' => $income,
+                    'profit' => $profit,
+                    'currency' => $currency,
+                ];
+            }
+
+            return ['success' => false, 'error' => 'تعذر جلب الملخص المالي.'];
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get Project Expense Type Summary
+     */
+    public function getProjectExpenseTypeSummary(string $erpNextProjectId, array $filters = []): array
+    {
+        $fromDate = $filters['from_date'] ?? '2000-01-01';
+        $toDate = $filters['to_date'] ?? now()->format('Y-m-d');
+
+        [$fromFy, $toFy] = $this->getFiscalYearsForDateRange($fromDate, $toDate);
+
+        $apiFilters = [
+            'company' => $filters['company'] ?? null,
+            'filter_based_on' => 'Fiscal Year',
+            'period_start_date' => $fromDate,
+            'period_end_date' => $toDate,
+            'from_fiscal_year' => $fromFy,
+            'to_fiscal_year' => $toFy,
+            'periodicity' => 'Yearly',
+            'project' => [$erpNextProjectId],
+            'show_account_details' => 'Summary',
+            'selected_view' => 'Report',
+            'include_default_book_entries' => 1,
+            'accumulated_values' => 1,
+        ];
+
+        try {
+            $response = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'Authorization' => 'token '.$this->apiKey.':'.$this->apiSecret,
+                    'Accept' => 'application/json',
+                ])
+                ->get($this->baseUrl.'/api/method/get_pl_expense_type_summary', [
+                    'filters' => json_encode($apiFilters),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $rows = $data['message']['result'] ?? [];
+
+                $validTypes = [];
+                foreach ($rows as $row) {
+                    $isGroup = $row['is_group'] ?? 0;
+                    if ($isGroup) {
+                        continue;
+                    }
+
+                    $expenseType = trim($row['claim_expense_type'] ?? '');
+                    if (! $expenseType) {
+                        continue;
+                    }
+
+                    $normalizedType = preg_replace('/\s+/', ' ', $expenseType);
+                    if (strtolower($normalizedType) === 'no expense type found') {
+                        continue;
+                    }
+
+                    // Some rows might be total summary like 'إجمالي نفقة (مدين)' which usually don't have claim_expense_type anyway, but just in case
+                    $accountStr = trim($row['account'] ?? '');
+                    if (in_array($accountStr, ['Opening', 'Total', 'Closing', 'Closing (Opening + Total)']) || str_starts_with($accountStr, "'") || str_starts_with($accountStr, '"')) {
+                        continue;
+                    }
+
+                    $total = (float) ($row['total'] ?? 0);
+                    $validTypes[] = [
+                        'claim_expense_type' => $normalizedType,
+                        'account' => $row['account_name'] ?? $row['acc_name'] ?? $row['account'] ?? '',
+                        'total' => $total,
+                    ];
+                }
+
+                return [
+                    'success' => true,
+                    'expense_types' => $validTypes,
+                ];
+            }
+
+            return ['success' => false, 'error' => 'تعذر جلب ملخص البنود.'];
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get detailed GL transactions for a project
+     */
+    public function getProjectGlTransactions(string $erpNextProjectId, array $filters = []): array
+    {
+        try {
+            $apiFilters = [
+                'company' => $filters['company'] ?? null,
+                'from_date' => $filters['from_date'] ?? '2000-01-01',
+                'to_date' => $filters['to_date'] ?? now()->format('Y-m-d'),
+            ];
+
+            $response = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'Authorization' => 'token '.$this->apiKey.':'.$this->apiSecret,
+                    'Accept' => 'application/json',
+                ])
+                ->get($this->baseUrl.'/api/method/get_gl_report', [
+                    'filters' => json_encode($apiFilters),
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $responseData = $data['message'] ?? $data;
+                $rows = $responseData['result'] ?? [];
+
+                $validTransactions = [];
+
+                foreach ($rows as $row) {
+                    // Check if it is a transaction row
+                    if (! isset($row['gl_entry']) && ! isset($row['voucher_no'])) {
+                        $accountStr = trim($row['account'] ?? '');
+                        if (in_array($accountStr, ['Opening', 'Total', 'Closing', 'Closing (Opening + Total)']) || str_starts_with($accountStr, "'") || str_starts_with($accountStr, '"')) {
+                            continue;
+                        }
+                    }
+
+                    // Check if project matches
+                    if (($row['project'] ?? '') !== $erpNextProjectId) {
+                        continue;
+                    }
+
+                    $validTransactions[] = $row;
+                }
+
+                return [
+                    'success' => true,
+                    'transactions' => $validTransactions,
+                ];
+            }
+
+            $status = $response->status();
+            $errorData = $response->json();
+            $errorMessage = 'حدث خطأ أثناء جلب تقرير get_gl_report.';
+
+            if (is_array($errorData) && isset($errorData['_server_messages'])) {
+                try {
+                    $messages = json_decode($errorData['_server_messages'], true);
+                    if (is_array($messages) && count($messages) > 0) {
+                        $firstMsg = json_decode($messages[0], true);
+                        if (is_array($firstMsg) && isset($firstMsg['message'])) {
+                            $errorMessage = strip_tags($firstMsg['message']);
+                        }
+                    }
+                } catch (\Exception $ex) {
+                }
+            }
+
+            Log::error("ERPNext get_gl_report Error [{$status}]", [
+                'filters' => $apiFilters,
+                'response' => $response->body(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $errorMessage,
+                'status_code' => $status,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('ERPNext get_gl_report Exception', ['error' => $e->getMessage()]);
 
             return [
                 'success' => false,

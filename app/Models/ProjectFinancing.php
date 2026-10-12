@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Project\Services\ProjectService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class ProjectFinancing extends Model
 {
@@ -55,14 +57,14 @@ class ProjectFinancing extends Model
     protected static function booted()
     {
         static::saving(function (ProjectFinancing $financing) {
-            // 🔹 حساب نسبة التمويل فقط
+            // 🔹 حساب نسبة التمويل فقط وتقييدها بين 0 و 100% لتفادي تجاوز سعة الحقل
             $totalCost = optional(optional($financing->project)->cost)->total_cost ?? 0;
-            $financing->financing_percentage = $totalCost > 0
-                ? round(($financing->financing_amount / $totalCost) * 100, 2)
-                : 0;
-
-            // 🔹 تم إزالة التحقق من العلاقة بين الجهة ومصدر التمويل
-            // يمكن لأي جهة أن تكون مع أي مصدر تمويل
+            if ($totalCost > 0) {
+                $percentage = ($financing->financing_amount / $totalCost) * 100;
+                $financing->financing_percentage = max(0.00, min(100.00, round((float) $percentage, 2)));
+            } else {
+                $financing->financing_percentage = 0.00;
+            }
         });
 
         // Record transaction on create
@@ -88,6 +90,39 @@ class ProjectFinancing extends Model
         // Record transaction on delete
         static::deleted(function (ProjectFinancing $financing) {
             static::recordTransaction($financing, 'delete', $financing->toArray(), null, -$financing->financing_amount);
+        });
+
+        // مزامنة مشروع التمكين تلقائياً عند حفظ أو تعديل أو حذف أي تمويل
+        static::saved(function (ProjectFinancing $financing) {
+            if ($financing->project_id) {
+                $project = $financing->project ?: Project::find($financing->project_id);
+                if ($project) {
+                    try {
+                        app(ProjectService::class)->syncProjectToEmpowermentDepartment($project);
+                    } catch (\Exception $e) {
+                        Log::error('Failed auto-syncing empowerment on ProjectFinancing saved', [
+                            'project_id' => $project->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+        });
+
+        static::deleted(function (ProjectFinancing $financing) {
+            if ($financing->project_id) {
+                $project = $financing->project ?: Project::find($financing->project_id);
+                if ($project) {
+                    try {
+                        app(ProjectService::class)->syncProjectToEmpowermentDepartment($project);
+                    } catch (\Exception $e) {
+                        Log::error('Failed auto-syncing empowerment on ProjectFinancing deleted', [
+                            'project_id' => $project->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
         });
     }
 

@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>وثيقة المشروع | اعتماد رسمي</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    @php
+        $letterhead = $letterhead ?? null;
+        $primaryColor = $letterhead ? ($letterhead->getTypographySettings()['primary_color'] ?? '#2c5f2d') : '#2c5f2d';
+        $secondaryColor = $letterhead ? ($letterhead->getTypographySettings()['secondary_color'] ?? '#97bc62') : '#97bc62';
+        $resolvedLogoUrl = !empty($logoBase64) ? $logoBase64 : ($letterhead ? $letterhead->getLogoUrl() : asset('images/logo.png'));
+        $rightSettings = $letterhead ? $letterhead->getHeaderRightSettings() : [];
+        $headerRightText = !empty($rightSettings['text']) ? $rightSettings['text'] : "الجمهورية اليمنية\nوزارة الزراعة والثروة السمكية والموارد المائية";
+    @endphp
+    @if($letterhead)
+        <x-letterhead-styles :letterhead="$letterhead" />
+    @endif
     <style>
         * {
             margin: 0;
@@ -14,8 +25,8 @@
         }
 
         :root {
-            --main-color: #2c5f2d;
-            --sec-color: #97bc62;
+            --main-color: {{ $primaryColor }};
+            --sec-color: {{ $secondaryColor }};
             --dark-text: #1f2937;
             --light-text: #6b7280;
         }
@@ -557,17 +568,24 @@
 <body>
 
     <!-- لوحة التحكم في الطباعة -->
-
+    @if($letterhead)
+        <div class="no-print" style="max-width: 210mm; margin: 15px auto 5px; padding: 0 10px;">
+            <x-letterhead-selector :currentLetterhead="$letterhead" />
+        </div>
+    @endif
 
     <!-- ========== الصفحة 1: الغلاف ========== -->
     <div class="page">
         <div class="cover-header-bg"></div>
         <div class="cover-content">
-            <div class="gov-title">الجمهورية اليمنية</div>
-            <div class="gov-title">وزارة الزراعة والثروة السمكية والموارد المائية</div>
+            @foreach(explode("\n", trim($headerRightText)) as $titleLine)
+                @if(trim($titleLine))
+                    <div class="gov-title">{{ trim($titleLine) }}</div>
+                @endif
+            @endforeach
             <div class="logo-container">
                 <div class="logo-wrapper">
-                    <img src="{{ asset('images/logo.png') }}" alt="الشعار الرسمي">
+                    <img src="{{ $resolvedLogoUrl }}" alt="الشعار الرسمي">
                 </div>
             </div>
             <span class="doc-badge">وثيقة اعتماد مشروع</span>
@@ -1019,7 +1037,7 @@
                     <tr>
                         <td style="text-align:center;">{{ $entity->authority_type == 'internal' ? 'داخلية' : 'خارجية' }}
                         </td>
-                        <td>{{ $entity->authority->agency_name ?? ($entity->internalEntity->name ?? '-') }}</td>
+                        <td>{{ $entity->authority?->agency_name ?? ($entity->relationLoaded('internalEntity') ? ($entity->internalEntity?->name ?? '-') : '-') }}</td>
                         <td style="text-align:center;">-</td>
                     </tr>
                 @empty
@@ -1046,7 +1064,7 @@
                     <tr>
                         <td style="text-align:center;">{{ $entity->authority_type == 'internal' ? 'داخلية' : 'خارجية' }}
                         </td>
-                        <td>{{ $entity->authority->agency_name ?? ($entity->internalEntity->name ?? '-') }}</td>
+                        <td>{{ $entity->authority?->agency_name ?? ($entity->relationLoaded('internalEntity') ? ($entity->internalEntity?->name ?? '-') : '-') }}</td>
                         <td style="text-align:center;">-</td>
                     </tr>
                 @empty

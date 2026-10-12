@@ -998,6 +998,15 @@
 
                     {{-- Priority --}}
                     <div class="col-md-2">
+                        <label class="form-label fw-bold text-muted" style="font-size: 0.75rem;">تقارير الإنجاز</label>
+                        <select name="report_status" class="form-select" onchange="this.form.submit()">
+                            <option value="">كل حالات التقارير</option>
+                            <option value="overdue" @selected(request('report_status') === 'overdue')>تقارير مفقودة ومتأخرة</option>
+                        </select>
+                    </div>
+
+                    {{-- Priority --}}
+                    <div class="col-md-2">
                         <label class="form-label fw-bold text-muted" style="font-size: 0.75rem;">
                             <i class="fas fa-exclamation-triangle me-1"></i>الأولوية
                         </label>
@@ -1226,6 +1235,9 @@
                                                 <i class="far fa-times-circle"></i>ملغاة
                                             </span>
                                         @endif
+                                        @if($task->isStandaloneGeneralTask() && $task->due_date && $task->due_date->lt(now()->startOfDay()) && (($task->required_report_count ?? 0) > ($task->submitted_report_count ?? 0)))
+                                            <span class="badge bg-danger d-block mt-1">متأخرة — تقرير الإنجاز مفقود</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="priority-badge priority-{{ $task->priority }}">
@@ -1324,6 +1336,10 @@
                                     </td>
                                     <td>
                                         <div class="d-flex justify-content-center gap-1">
+                                            <a href="{{ $task->project_id ? route('projects.tasks.show', [$task->project_id, $task->id]) : route('tasks.show', $task->id) }}"
+                                                class="table-action-btn btn-view" title="عرض تفاصيل المهمة" aria-label="عرض تفاصيل المهمة">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
                                             @can('update', $task)
                                                 <button type="button" class="table-action-btn btn-edit" title="تعديل"
                                                     onclick="editTaskModal({{ json_encode($task) }})">
@@ -1475,12 +1491,14 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">إسناد إلى مستخدم</label>
+                                @can('task.assign')
                                 <select name="assigned_to[]" multiple id="edit-assigned_to" class="form-select">
                                     <option value="">اختر مستخدماً (اختياري)</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}">{{ $user->name }}</option>
                                     @endforeach
                                 </select>
+                                @endcan
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">تاريخ الاستحقاق</label>

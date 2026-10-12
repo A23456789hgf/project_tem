@@ -10,6 +10,7 @@ use App\Models\ProjectReferral;
 use App\Models\User;
 use App\Notifications\ProjectReferralNotification;
 use App\Services\ApprovalService;
+use App\Services\OrganizationResolver;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +24,7 @@ class ProjectReferralController extends Controller
 {
     protected $projectService;
 
-    public function __construct(ProjectService $projectService)
+    public function __construct(ProjectService $projectService, private OrganizationResolver $organizationResolver)
     {
         $this->projectService = $projectService;
     }
@@ -33,6 +34,13 @@ class ProjectReferralController extends Controller
      */
     public function createReferral(Request $request, Project $project): JsonResponse
     {
+        if ($this->organizationResolver->type($request->user()) === OrganizationResolver::EXTERNAL) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الإحالات إلى الجهات الداخلية غير متاحة للمستخدم الخارجي. يرجى إسناد الطلب عبر مسار الموافقات.',
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'drop' => 'required|string',
             'stage_id' => 'nullable|integer|exists:stages,id',

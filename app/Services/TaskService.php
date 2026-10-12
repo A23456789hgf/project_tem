@@ -51,12 +51,25 @@ class TaskService
                 ->get();
             $usersToNotify = $usersToNotify->merge($entityUsers);
         }
+        if ($task->assigned_authority_id) {
+            $authorityUsers = User::active()
+                ->where('organization_type', OrganizationResolver::EXTERNAL)
+                ->where('authority_id', $task->assigned_authority_id)
+                ->get();
+            $usersToNotify = $usersToNotify->merge($authorityUsers);
+        }
+        if ($task->assigned_user_id) {
+            $assignedUser = User::active()->find($task->assigned_user_id);
+            if ($assignedUser) {
+                $usersToNotify->push($assignedUser);
+            }
+        }
         // 3. Notify department if no direct user is assigned
         if ($usersToNotify->isEmpty() && $task->project_entities_id) {
             // Determine assignable users in the creator's administrative scope
             $creator = User::find($task->created_by ?? auth()->id());
-            if ($creator && $creator->entity_id) {
-                $entityIds = InternalEntity::getAllChildrenIds($creator->entity_id);
+            if ($creator) {
+                $entityIds = $creator->getFilteredEntityIds();
                 $deptUsers = User::active()
                     ->whereIn('entity_id', $entityIds)
                     ->get();

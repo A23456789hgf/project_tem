@@ -701,8 +701,8 @@ class RoleController extends Controller
     {
         return [
             'dashboard' => ['dashboard', 'home'],
-            'projects' => ['projects', 'projects-implementation', 'project-requests', 'project-drafts', 'project-files', 'project-risks', 'project-outputs', 'project-activity', 'project-documents', 'project-drafts-enhanced', 'executive-activities', 'execution', 'execution-log', 'schedule', 'quality', 'erp-integration'],
-            'tasks' => ['tasks'],
+            'projects' => ['projects', 'projects-implementation', 'project-requests', 'project_requests', 'disbursements', 'project-drafts', 'project-files', 'project-risks', 'project-outputs', 'project-activity', 'project-documents', 'project-drafts-enhanced', 'executive-activities', 'execution', 'execution-log', 'schedule', 'quality', 'erp-integration'],
+            'tasks' => ['tasks', 'task_reports'],
             'requests-descend' => ['requests_descend', 'requests-descend'],
             'correspondence' => ['correspondence', 'referrals', 'project-referrals', 'memoirs', 'messaging', 'department-reports'],
             'planning' => ['planning', 'plans', 'reviews'],
@@ -738,6 +738,10 @@ class RoleController extends Controller
             if (str_contains($slug, 'view-own') || str_contains($slug, 'view-all') || str_contains($slug, 'view-parallel') || str_contains($slug, 'view-user')) {
                 $type = 'scopes';
             }
+            // Treat UI buttons as action permissions so they remain editable in the matrix.
+            elseif (in_array($permission->type, ['button', 'icon'], true)) {
+                $type = 'actions';
+            }
             // Check for sidebar permissions
             elseif (str_contains($slug, 'sidebar')) {
                 $type = 'sidebars';
@@ -763,7 +767,7 @@ class RoleController extends Controller
     private function getPermissionMatrixData(): array
     {
         return Cache::remember('roles.permission_matrix_v4', now()->addHours(24), function (): array {
-            $allPermissions = Permission::select('id', 'name', 'module', 'slug')
+            $allPermissions = Permission::select('id', 'name', 'module', 'slug', 'type')
                 ->orderBy('module')
                 ->orderBy('slug')
                 ->get();
@@ -785,6 +789,7 @@ class RoleController extends Controller
                 'modulePermsMap' => $modulePermsMap,
                 'uniqueExtraSlugKeys' => [],
                 'mainModulePerms' => $this->getMainModulePermissions($categorized),
+                'subModulesMap' => $this->getSubModulesMap(),
             ];
         });
     }
@@ -894,6 +899,7 @@ class RoleController extends Controller
             'projects' => 'إدارة المشاريع',
             'projects-implementation' => 'مشاريع التنفيذ',
             'project-requests' => 'طلبات المشاريع',
+            'project_requests' => 'Unified Project Requests',
             'project-drafts' => 'مسودات المشاريع',
             'project-files' => 'ملفات المشروع',
             'project-risks' => 'مخاطر المشروع',
@@ -907,6 +913,8 @@ class RoleController extends Controller
             'execution-log' => 'سجل عمليات التنفيذ',
             'schedule' => 'الجدول الزمني',
             'quality' => 'إدارة الجودة',
+            'task' => 'إدارة المهام',
+            'task' => 'Task Management',
             'reports' => 'التقارير: لوحة التحكم الموحدة',
             'reports-implementation' => 'التقارير: ملخص التنفيذ الميداني',
             'reports-quality' => 'التقارير: مقاييس الجودة',
@@ -973,6 +981,8 @@ class RoleController extends Controller
             'notifications' => 'مركز الإشعارات',
             'procedure-budget-justifications' => 'تبريرات ميزانية الإجراءات',
             'plans' => 'خطط العمل والمشاريع',
+            'disbursements' => 'خطط ودفعات الصرف والإخلاء',
+            'project-requests' => 'طلبات المشاريع',
         ];
     }
 }

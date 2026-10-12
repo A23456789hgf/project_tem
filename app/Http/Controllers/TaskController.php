@@ -17,19 +17,26 @@ use App\Models\ProjectFinancing;
 use App\Models\ProjectImplementingEntity;
 use App\Models\ProjectSupervisingAuthority;
 use App\Models\Task;
+use App\Models\TaskAchievementReport;
 use App\Models\TaskAttachment;
 use App\Models\User;
 use App\Models\ValueChain;
 use App\Models\ValueChainFinancing;
 use App\Models\ValueChainParticipatingEntity;
+use App\Notifications\TaskNotification;
 use App\Scopes\DomainScope;
+use App\Services\DocumentLetterheadService;
+use App\Services\OrganizationResolver;
 use App\Services\ScopesDataByEntity;
+use App\Services\TaskAssigneeScopeService;
 use App\Services\TaskService;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
@@ -37,8 +44,11 @@ class TaskController extends Controller
 
     protected $taskService;
 
-    public function __construct(TaskService $taskService)
-    {
+    public function __construct(
+        TaskService $taskService,
+        private OrganizationResolver $organizationResolver,
+        private TaskAssigneeScopeService $taskAssigneeScopeService,
+    ) {
         $this->taskService = $taskService;
     }
 
@@ -86,20 +96,36 @@ class TaskController extends Controller
      */
     public function getEntityUsers($entityId, ?Request $request = null)
     {
-        $users = User::query()
-            ->where('status', 'Active')
-            ->where(function ($q) use ($entityId) {
-                $q->where('entity_id', $entityId)
-                    ->orWhere('administrative_scope_id', $entityId)
-                    ->orWhere('authority_id', $entityId);
-            })
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        $viewer = auth()->user();
+        abort_unless($this->taskAssigneeScopeService->canAssignUsers($viewer), 403);
+
+        $type = $request?->string('organization_type')->toString() ?: OrganizationResolver::INTERNAL;
+        if (str_starts_with((string) $entityId, 'ext_')) {
+            $type = OrganizationResolver::EXTERNAL;
+            $entityId = substr((string) $entityId, 4);
+        }
+        $users = $this->taskAssigneeScopeService->assignableUsers($viewer)
+            ->filter(fn (User $user): bool => $type === OrganizationResolver::EXTERNAL
+                ? (int) $user->authority_id === (int) $entityId
+                : (int) $user->entity_id === (int) $entityId)
+            ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name])
+            ->values();
 
         return response()->json([
             'success' => true,
             'users' => $users,
         ]);
+    }
+
+    /** Return active users visible to the current user for task assignment. */
+    public function getUsersByScope(): JsonResponse
+    {
+        $viewer = auth()->user();
+        abort_unless($this->taskAssigneeScopeService->canAssignUsers($viewer), 403);
+
+        return response()->json($this->taskAssigneeScopeService->assignableUsers($viewer)
+            ->map(fn (User $user): array => ['id' => $user->id, 'name' => $user->name])
+            ->values());
     }
 
     /**
@@ -264,6 +290,7 @@ class TaskController extends Controller
 
         $query = $project->tasks()->with([
             'assignees',
+            'achievementReports',
             'createdBy',
             'projectEntity',
             'executiveAction.executions',
@@ -317,7 +344,7 @@ class TaskController extends Controller
         }
 
         $tasks = $query->latest()->paginate(request('per_page', 15))->withQueryString();
-        $users = $this->assignableUsers();
+        $users = $this->assignableUsers($project);
         $projectEntities = $project->projectEntities;
         $executiveActions = $project->executiveActivityActions()
             ->orderBy('action')
@@ -403,6 +430,18 @@ class TaskController extends Controller
             }
         }
 
+        $eligibleStandalone = static fn ($tasks) => $tasks->whereNull('project_id')->whereNull('value_chain_id')
+            ->whereNull('assigned_entity_id')->whereNull('assigned_authority_id')->whereNull('assigned_user_id')
+            ->where('is_within_activities', false)->whereNull('activity_id')->whereNull('procedure_id')
+            ->whereNull('executive_activity_action_id');
+        if ($request->input('report_status') === 'overdue') {
+            $eligibleStandalone($query);
+            $query->whereNotNull('due_date')->whereDate('due_date', '<', now()->toDateString())
+                ->whereHas('assignees')->whereHas('assignees', function ($assignees): void {
+                    $assignees->whereDoesntHave('taskAchievementReports', fn ($reports) => $reports->whereColumn('task_achievement_reports.task_id', 'tasks.id')->where('status', 'submitted'));
+                });
+        }
+
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('title', 'like', '%'.$request->search.'%')
@@ -436,7 +475,10 @@ class TaskController extends Controller
             }
         }
 
-        $tasks = $query->latest()->paginate(request('per_page', 15))->withQueryString();
+        $tasks = $query->withCount(['assignees as required_report_count'])
+            ->addSelect(['submitted_report_count' => TaskAchievementReport::selectRaw('count(*)')->whereColumn('task_id', 'tasks.id')->where('status', 'submitted')])
+            ->with(['achievementReports' => fn ($reports) => $reports->select('id', 'task_id', 'user_id', 'status', 'overall_completion_percentage', 'submitted_at')])
+            ->latest()->paginate(request('per_page', 15))->withQueryString();
         $taskProjects = Project::orderBy('project_name')->get(['id', 'project_name']);
         $users = collect($this->assignableUsers());
         $projectEntities = ProjectEntity::orderBy('entity_name')->get(['id', 'entity_name']);
@@ -522,6 +564,8 @@ class TaskController extends Controller
      */
     public function storeGlobal(Request $request)
     {
+        $this->prepareTaskAssignmentRequest($request);
+
         $validated = $request->validate([
             'task_scope' => 'required|in:project,value_chain,project_value_chain,general',
             'project_id' => 'nullable|required_if:task_scope,project|required_if:task_scope,project_value_chain|exists:projects,id',
@@ -535,7 +579,9 @@ class TaskController extends Controller
             'assignment_type' => 'required|in:user,entity',
             'assigned_to' => ['nullable', 'array', 'required_if:assignment_type,user'],
             'assigned_to.*' => ['exists:users,id'],
-            'assigned_entity_id' => ['nullable', 'exists:internal_entities,id', 'required_if:assignment_type,entity'],
+            'assigned_organization_type' => ['nullable', 'required_if:assignment_type,entity', 'in:internal,external'],
+            'assigned_entity_id' => ['nullable', 'required_if:assigned_organization_type,internal', 'exists:internal_entities,id'],
+            'assigned_authority_id' => ['nullable', 'required_if:assigned_organization_type,external', 'exists:authorities,id'],
             'due_date' => 'nullable|date',
             'is_within_activities' => 'nullable|boolean',
             'activity_type' => 'nullable|in:preliminary,executive',
@@ -579,7 +625,11 @@ class TaskController extends Controller
             $validated['executive_activity_action_id'] = $this->resolveExecutiveActionId($validated, $project);
         }
 
+        $this->authorizeTaskAssignment($request, $project);
+        $this->validateAssignableUsers($request, $validated, $project);
+
         $validated['created_by'] = auth()->id();
+        $this->normalizeTaskAssignment($validated, $request);
 
         DB::transaction(function () use ($validated, &$task, $request) {
             $task = Task::create($validated);
@@ -592,6 +642,8 @@ class TaskController extends Controller
         });
 
         if ($task) {
+            $this->initializeAchievementReportRequirements($task);
+            $this->notifyAchievementReportAssignees($task);
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
                     $fileData = $this->taskService->storeAttachment($file);
@@ -629,7 +681,7 @@ class TaskController extends Controller
         $this->authorize('create', [Task::class, $project]);
 
         $valueChains = ValueChain::orderBy('name')->get(['id', 'name']);
-        $users = $this->assignableUsers();
+        $users = $this->assignableUsers($project);
         $projectEntities = $project->projectEntities;
         $executiveActions = $project->executiveActivityActions()
             ->orderBy('action')
@@ -644,6 +696,8 @@ class TaskController extends Controller
     public function store(Request $request, Project $project)
     {
         $this->authorize('create', [Task::class, $project]);
+        $this->prepareTaskAssignmentRequest($request);
+        $this->authorizeTaskAssignment($request, $project);
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -655,7 +709,9 @@ class TaskController extends Controller
             'assignment_type' => 'required|in:user,entity',
             'assigned_to' => ['nullable', 'array', 'required_if:assignment_type,user'],
             'assigned_to.*' => ['exists:users,id'],
-            'assigned_entity_id' => ['nullable', 'exists:internal_entities,id', 'required_if:assignment_type,entity'],
+            'assigned_organization_type' => ['nullable', 'required_if:assignment_type,entity', 'in:internal,external'],
+            'assigned_entity_id' => ['nullable', 'required_if:assigned_organization_type,internal', 'exists:internal_entities,id'],
+            'assigned_authority_id' => ['nullable', 'required_if:assigned_organization_type,external', 'exists:authorities,id'],
             'due_date' => 'nullable|date',
             'project_entities_id' => 'nullable|exists:project_entities,id',
             'executive_activity_action_id' => 'nullable|exists:executive_activity_actions,id',
@@ -668,8 +724,11 @@ class TaskController extends Controller
             'value_chain_id' => 'nullable|exists:value_chains,id',
         ]);
 
+        $this->validateAssignableUsers($request, $validated, $project);
+
         $validated['project_id'] = $project->id;
         $validated['created_by'] = auth()->id();
+        $this->normalizeTaskAssignment($validated, $request);
         $validated['is_within_activities'] = $request->boolean('is_within_activities');
         if ($request->hasAny(['executive_activity_action_id', 'activity_type', 'procedure_id'])) {
             $validated['executive_activity_action_id'] = $this->resolveExecutiveActionId($validated, $project);
@@ -720,7 +779,7 @@ class TaskController extends Controller
         $this->authorize('update', $task);
 
         $valueChains = ValueChain::orderBy('name')->get(['id', 'name']);
-        $users = $this->assignableUsers();
+        $users = $this->assignableUsers($task);
         $projectEntities = $project->projectEntities;
         $executiveActions = $project->executiveActivityActions()
             ->orderBy('action')
@@ -737,7 +796,7 @@ class TaskController extends Controller
         $this->authorize('update', $task);
 
         $valueChains = ValueChain::orderBy('name')->get(['id', 'name']);
-        $users = $this->assignableUsers();
+        $users = $this->assignableUsers($task);
         $projectEntities = ProjectEntity::orderBy('entity_name')->get(['id', 'entity_name']);
 
         return view('projects.tasks.edit_global', compact('task', 'valueChains', 'users', 'projectEntities'));
@@ -790,7 +849,11 @@ class TaskController extends Controller
             'activities.causer',
         ]);
 
-        $users = $this->assignableUsers();
+        if ($task->isStandaloneGeneralTask() && auth()->user()->hasPermission('task_reports.view')) {
+            $task->load(['achievementReports.user', 'achievementReports.items']);
+        }
+
+        $users = $this->assignableUsers($task);
         $projectEntities = $project->id ? $project->projectEntities : collect();
         $executiveActions = $project->id ? $project->executiveActivityActions()
             ->orderBy('action')
@@ -845,7 +908,10 @@ class TaskController extends Controller
             'documentNotes',
         ]);
 
-        return view('projects.tasks.print', compact('project', 'task'));
+        $letterheadData = app(DocumentLetterheadService::class)->resolveForDocument($task);
+        $letterhead = $letterheadData->letterhead;
+
+        return view('projects.tasks.print', compact('project', 'task', 'letterhead', 'letterheadData'));
     }
 
     /**
@@ -869,7 +935,10 @@ class TaskController extends Controller
             'documentNotes',
         ]);
 
-        return view('projects.tasks.print_general', compact('task'));
+        $letterheadData = app(DocumentLetterheadService::class)->resolveForDocument($task);
+        $letterhead = $letterheadData->letterhead;
+
+        return view('projects.tasks.print_general', compact('task', 'letterhead', 'letterheadData'));
     }
 
     /**
@@ -898,6 +967,9 @@ class TaskController extends Controller
             'value_chain_id' => 'nullable|exists:value_chains,id',
         ]);
 
+        $this->authorizeTaskAssignment($request, $task);
+        $this->validateAssignableUsers($request, $validated, $task);
+
         $validated['is_within_activities'] = $request->boolean('is_within_activities');
         if ($request->hasAny(['executive_activity_action_id', 'activity_type', 'procedure_id'])) {
             $validated['executive_activity_action_id'] = $this->resolveExecutiveActionId($validated, $project);
@@ -914,6 +986,9 @@ class TaskController extends Controller
             $newAssignees = [];
             if ($request->has('assigned_to')) {
                 $newAssignees = array_map('intval', $request->assigned_to ?? []);
+                $allowedIds = $this->taskAssigneeScopeService->assignableUserIds(auth()->user(), $task);
+                $historicIds = array_diff($oldAssignees, $allowedIds);
+                $newAssignees = array_values(array_unique(array_merge($newAssignees, $historicIds)));
                 $task->assignees()->sync($newAssignees);
             }
 
@@ -1182,6 +1257,9 @@ class TaskController extends Controller
             'procedure_id' => 'nullable|integer',
         ]);
 
+        $this->authorizeTaskAssignment($request, $task);
+        $this->validateAssignableUsers($request, $validated, $task);
+
         $validated['is_within_activities'] = $request->boolean('is_within_activities');
         if ($request->hasAny(['executive_activity_action_id', 'activity_type', 'procedure_id'])) {
             $validated['executive_activity_action_id'] = $this->resolveExecutiveActionId($validated, null);
@@ -1192,6 +1270,7 @@ class TaskController extends Controller
         $this->syncCompletionTimestamp($validated, $task);
 
         $assignmentChanged = false;
+        $oldDeadline = $task->due_date?->toDateString();
         DB::transaction(function () use ($validated, $task, $request, &$assignmentChanged) {
             $oldAssignees = $task->assignees()->pluck('users.id')->map(fn ($id) => (int) $id)->toArray();
 
@@ -1201,7 +1280,11 @@ class TaskController extends Controller
             $newAssignees = [];
             if ($request->has('assigned_to')) {
                 $newAssignees = array_map('intval', $request->assigned_to ?? []);
+                $allowedIds = $this->taskAssigneeScopeService->assignableUserIds(auth()->user(), $task);
+                $historicIds = array_diff($oldAssignees, $allowedIds);
+                $newAssignees = array_values(array_unique(array_merge($newAssignees, $historicIds)));
                 $task->assignees()->sync($newAssignees);
+                $this->initializeAchievementReportRequirements($task);
             }
 
             // Check if assignees actually changed
@@ -1216,48 +1299,101 @@ class TaskController extends Controller
         if ($assignmentChanged || isset($changes['project_entities_id'])) {
             $this->assignTaskAndNotify($task, 'updated', "تم تعديل إسناد المهمة: {$task->title}");
         }
+        if ($task->due_date?->toDateString() !== $oldDeadline) {
+            $this->initializeAchievementReportRequirements($task);
+        }
 
         session()->flash('success', 'تم تعديل المهمة بنجاح.');
 
         return back();
     }
 
+    private function initializeAchievementReportRequirements(Task $task): void
+    {
+        if (! $task->isStandaloneGeneralTask()) {
+            return;
+        }
+        foreach ($task->assignees()->get() as $assignee) {
+            TaskAchievementReport::firstOrCreate(
+                ['task_id' => $task->id, 'user_id' => $assignee->id],
+                [
+                    'status' => 'draft',
+                    'task_title_snapshot' => $task->title,
+                    'task_description_snapshot' => $task->description,
+                    'task_start_date_snapshot' => $task->start_date,
+                    'task_due_date_snapshot' => $task->due_date,
+                    'task_status_snapshot' => $task->status,
+                    'planned_duration_days_snapshot' => $task->start_date && $task->due_date && $task->due_date->greaterThanOrEqualTo($task->start_date)
+                        ? $task->start_date->diffInDays($task->due_date) + 1
+                        : null,
+                ]
+            );
+        }
+    }
+
+    private function notifyAchievementReportAssignees(Task $task): void
+    {
+        if (! $task->isStandaloneGeneralTask()) {
+            return;
+        }
+        foreach ($task->assignees as $assignee) {
+            $assignee->notify(new TaskNotification(
+                $task,
+                'achievement_report_required',
+                'task_assignment',
+                "مطلوب تقرير إنجاز فردي للمهمة: {$task->title}",
+                route('tasks.achievement-reports.edit', [$task, $task->achievementReports()->where('user_id', $assignee->id)->firstOrFail()]),
+                'fas fa-clipboard-check'
+            ));
+        }
+    }
+
     /**
      * الحصول على قائمة المستخدمين القابلين للإسناد
      */
-    private function assignableUsers()
+    private function assignableUsers(Project|Task|null $record = null): Collection
     {
-        $user = auth()->user();
-
-        if ($user && $user->isAdmin()) {
-            return User::query()->active()->orderBy('name')->get();
-        }
-
-        $entityIds = $this->getUserScopeEntityIds();
-
-        if (empty($entityIds) && $user && $user->entity_id) {
-            $entityIds = [$user->entity_id];
-        }
-
-        if (empty($entityIds)) {
-            return collect();
-        }
-
-        return User::query()
-            ->active()
-            ->whereIn('entity_id', $entityIds)
-            ->orderBy('name')
-            ->get();
+        return $this->taskAssigneeScopeService->assignableUsers(auth()->user(), $record);
     }
 
-    private function assignableUserIds(): array
+    private function assignableUserIds(Project|Task|null $record = null): array
     {
-        return $this->assignableUsers()->pluck('id')->all();
+        return $this->taskAssigneeScopeService->assignableUserIds(auth()->user(), $record);
     }
 
     private function assignableEntityIds(): array
     {
         return $this->getUserScopeEntityIds();
+    }
+
+    private function authorizeTaskAssignment(Request $request, Project|Task|null $record = null): void
+    {
+        $hasSelectedUsers = collect($request->input('assigned_to', []))->isNotEmpty();
+        $isUserAssignment = $request->input('assignment_type') === 'user';
+
+        if ($hasSelectedUsers || $isUserAssignment || $request->has('assigned_to')) {
+            abort_unless($this->taskAssigneeScopeService->canAssignUsers(auth()->user(), $record), 403);
+        }
+    }
+
+    /** @param array<string, mixed> $validated */
+    private function validateAssignableUsers(Request $request, array $validated, Project|Task|null $record = null): void
+    {
+        $selectedIds = collect($validated['assigned_to'] ?? $request->input('assigned_to', []))
+            ->filter(fn ($id): bool => is_numeric($id))
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($selectedIds->isEmpty()) {
+            return;
+        }
+
+        if ($selectedIds->diff($this->assignableUserIds($record))->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'assigned_to' => 'لا يمكن إسناد المهمة إلى مستخدم خارج نطاقك الإداري أو الجغرافي أو غير نشط.',
+            ]);
+        }
     }
 
     private function resolveExecutiveActionId(array $validated, ?Project $project): ?int
@@ -1390,5 +1526,40 @@ class TaskController extends Controller
             ->map(fn ($a) => ['id' => $a->activity_name, 'name' => $a->activity_name]);
 
         return response()->json($activities->values());
+    }
+
+    private function prepareTaskAssignmentRequest(Request $request): void
+    {
+        if ($request->input('assignment_type') !== 'entity' || $request->filled('assigned_organization_type')) {
+            return;
+        }
+
+        $request->merge([
+            'assigned_organization_type' => $request->filled('assigned_authority_id')
+                ? OrganizationResolver::EXTERNAL
+                : OrganizationResolver::INTERNAL,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function normalizeTaskAssignment(array &$validated, Request $request): void
+    {
+        if (($validated['assignment_type'] ?? null) === 'user') {
+            $validated['assigned_user_id'] = collect($request->input('assigned_to', []))->first();
+            $validated['assigned_organization_type'] = null;
+            $validated['assigned_entity_id'] = null;
+            $validated['assigned_authority_id'] = null;
+
+            return;
+        }
+
+        $validated['assigned_user_id'] = null;
+        if (($validated['assigned_organization_type'] ?? null) === OrganizationResolver::EXTERNAL) {
+            $validated['assigned_entity_id'] = null;
+        } else {
+            $validated['assigned_authority_id'] = null;
+        }
     }
 }

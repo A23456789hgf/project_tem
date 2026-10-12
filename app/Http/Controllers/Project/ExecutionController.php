@@ -12,12 +12,20 @@ use App\Models\ProcedureBudgetJustification;
 use App\Models\ProcedureTechnicalJustification;
 use App\Models\Project;
 use App\Models\ProjectActivityHistory;
+use App\Models\ProjectDisbursementPlanDetail;
 use App\Models\ProjectExecution;
+use App\Models\ProjectExecutionReviewHistory;
+use App\Models\ProjectInstallmentAggregation;
+use App\Models\ProjectWorkflowRequest;
 use App\Models\User;
+use App\Services\DocumentLetterheadService;
 use App\Services\NotificationService;
+use App\Services\ProjectFinancialWorkflowService;
+use App\Services\ProjectWorkflowRequestService;
 use App\Services\ScopeFilterService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ExecutionController extends Controller
@@ -38,6 +46,15 @@ class ExecutionController extends Controller
     public function store(Request $request, Project $project)
     {
         $this->projectService->authorizeProjectAccess($project);
+
+        $workflowMessage = app(ProjectFinancialWorkflowService::class)->executionBlockReason($project);
+        if ($workflowMessage !== null) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $workflowMessage], 422);
+            }
+
+            return back()->with('error', $workflowMessage);
+        }
 
         if (! auth()->user()->hasPermission('execution.add', $project)) {
             if ($request->ajax() || $request->wantsJson()) {
@@ -75,11 +92,79 @@ class ExecutionController extends Controller
             return redirect()->back()->with('error', 'يجب تحديد النشاط أو الإجراء')->withInput();
         }
 
-        if ($actionId) {
-            return $this->storeExecutiveExecution($request, $project, $validated, $actionId);
-        }
+        return DB::transaction(function () use ($request, $project, $validated, $actionId, $procedureId) {
+            $lockedProject = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            if ($lockedProject->uses_disbursement_workflow) {
+                $workflowMessage = app(ProjectFinancialWorkflowService::class)->executionBlockReason($lockedProject);
+                if ($workflowMessage !== null) {
+                    return response()->json(['success' => false, 'message' => $workflowMessage], 422);
+                }
+            }
 
-        return $this->storePreliminaryExecution($request, $project, $validated, $procedureId);
+            if ($actionId) {
+                return $this->storeExecutiveExecution($request, $lockedProject, $validated, $actionId);
+            }
+
+            return $this->storePreliminaryExecution($request, $lockedProject, $validated, $procedureId);
+        });
+    }
+
+    public function storeFinancialJustification(Request $request, Project $project)
+    {
+        $this->projectService->authorizeProjectAccess($project);
+        abort_unless(auth()->user()->hasPermission('financial-justifications.submit', $project), 403);
+        $data = $request->validate([
+            'execution_type' => ['required', 'in:executive,preliminary'],
+            'executive_activity_action_id' => ['required_if:execution_type,executive', 'nullable', 'exists:executive_activity_actions,id'],
+            'preliminary_procedure_id' => ['required_if:execution_type,preliminary', 'nullable', 'exists:preliminary_procedures,id'],
+            'amount_spent' => ['required', 'numeric', 'min:0.01'],
+            'planned_amount' => ['nullable', 'numeric', 'min:0'],
+            'actual_amount' => ['nullable', 'numeric', 'min:0'],
+            'remaining_amount' => ['nullable', 'numeric'],
+            'status' => ['required', 'in:not_started,in_progress,delayed,stalled,completed'],
+            'completion_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'actual_start_date_gregorian' => ['nullable', 'date'],
+            'actual_start_date_hijri' => ['nullable', 'string', 'max:80'],
+            'actual_finish_date_gregorian' => ['nullable', 'date'],
+            'actual_finish_date_hijri' => ['nullable', 'string', 'max:80'],
+            'notes' => ['nullable', 'string', 'max:4000'],
+            'funding_source' => ['required', 'string', 'max:255'],
+            'justification' => ['required', 'string', 'min:10', 'max:4000'],
+        ]);
+
+        $actionId = $data['executive_activity_action_id'] ?? null;
+        $procedureId = $data['preliminary_procedure_id'] ?? null;
+        abort_if($actionId && ! ExecutiveActivityAction::where('project_id', $project->id)->whereKey($actionId)->exists(), 422, 'The selected action does not belong to this project.');
+        abort_if($procedureId && ! PreliminaryProcedure::where('project_id', $project->id)->whereKey($procedureId)->exists(), 422, 'The selected procedure does not belong to this project.');
+
+        $workflowRequest = DB::transaction(function () use ($project, $data): ProjectWorkflowRequest {
+            $lockedProject = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            $workflowService = app(ProjectFinancialWorkflowService::class);
+            $reason = $workflowService->executionBlockReason($lockedProject);
+            if ($reason !== null) {
+                abort(422, $reason);
+            }
+            $detail = $lockedProject->active_disbursed_installment;
+            if (! $detail) {
+                abort(422, 'There is no active disbursed installment.');
+            }
+            $amount = (float) $data['amount_spent'];
+            $available = (float) $lockedProject->available_for_execution;
+            if ($amount <= $available) {
+                abort(409, 'The available installment balance changed. Submit the execution through the regular form.');
+            }
+            $payload = $data + [
+                'disbursement_plan_detail_id' => $detail->id,
+                'available_amount_at_submission' => $available,
+                'shortage_amount' => round($amount - $available, 2),
+                'funding_source' => $detail->fundingSource?->name ?? $data['funding_source'],
+                'dedupe_key' => hash('sha256', $project->id.'|'.$detail->id.'|'.$data['execution_type'].'|'.($data['executive_activity_action_id'] ?? $data['preliminary_procedure_id']).'|'.$amount),
+            ];
+
+            return app(ProjectWorkflowRequestService::class)->submit($lockedProject, 'financial_justification', $payload, auth()->user());
+        });
+
+        return response()->json(['success' => true, 'message' => 'Financial justification submitted for approval.', 'request' => ['id' => $workflowRequest->id, 'number' => $workflowRequest->request_number]]);
     }
 
     /**
@@ -110,6 +195,29 @@ class ExecutionController extends Controller
             $execution->created_by_user_id = auth()->id();
 
             // 1. Validation Logic
+            if ($project->uses_disbursement_workflow) {
+                $proposedAmount = (float) ($validated['amount_spent'] ?? 0);
+                $availableBalance = $project->available_for_execution;
+
+                if ($proposedAmount > $availableBalance) {
+                    $available = number_format($availableBalance, 2);
+
+                    return response()->json([
+                        'success' => false,
+                        'code' => 'insufficient_installment_balance',
+                        'message' => "There is not enough available balance in the current installment. Available: {$available}.",
+                        'available_amount' => $availableBalance,
+                        'requested_amount' => $proposedAmount,
+                        'shortage_amount' => round($proposedAmount - $availableBalance, 2),
+                    ], 422);
+                }
+
+                $activeInstallment = $project->active_disbursed_installment;
+                $execution->disbursement_plan_detail_id = $activeInstallment->id;
+                $execution->approval_status = 'pending';
+                $execution->workflow_review_status = 'awaiting_manager_review';
+            }
+
             $currentTotals = ProjectExecution::where('project_id', $project->id)
                 ->where('executive_activity_action_id', $actionId)
                 ->selectRaw('SUM(amount_spent) as total_spent, SUM(completion_percentage) as total_completion')
@@ -129,6 +237,22 @@ class ExecutionController extends Controller
                     'success' => false,
                     'message' => 'إجمالي نسبة الإنجاز لا يمكن أن يتجاوز 100%. الإجمالي الحالي سيكون: '.number_format($totalCompletion, 1).'%',
                 ], 422);
+            }
+
+            if ($project->uses_disbursement_workflow) {
+                $freshProject = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+                $requestedAmount = (float) ($validated['amount_spent'] ?? 0);
+                $availableAmount = (float) $freshProject->available_for_execution;
+                if ($requestedAmount > $availableAmount) {
+                    return response()->json([
+                        'success' => false,
+                        'code' => 'insufficient_installment_balance',
+                        'message' => 'There is not enough available balance in the current installment.',
+                        'available_amount' => $availableAmount,
+                        'requested_amount' => $requestedAmount,
+                        'shortage_amount' => round($requestedAmount - $availableAmount, 2),
+                    ], 422);
+                }
             }
 
             // Handle Technical Documents
@@ -212,6 +336,29 @@ class ExecutionController extends Controller
             $execution->created_by_user_id = auth()->id();
 
             // 1. Validation Logic
+            if ($project->uses_disbursement_workflow) {
+                $proposedAmount = (float) ($validated['amount_spent'] ?? 0);
+                $availableBalance = $project->available_for_execution;
+
+                if ($proposedAmount > $availableBalance) {
+                    $available = number_format($availableBalance, 2);
+
+                    return response()->json([
+                        'success' => false,
+                        'code' => 'insufficient_installment_balance',
+                        'message' => "There is not enough available balance in the current installment. Available: {$available}.",
+                        'available_amount' => $availableBalance,
+                        'requested_amount' => $proposedAmount,
+                        'shortage_amount' => round($proposedAmount - $availableBalance, 2),
+                    ], 422);
+                }
+
+                $activeInstallment = $project->active_disbursed_installment;
+                $execution->disbursement_plan_detail_id = $activeInstallment->id;
+                $execution->approval_status = 'pending';
+                $execution->workflow_review_status = 'awaiting_manager_review';
+            }
+
             $currentTotals = PreliminaryProcedureExecution::where('project_id', $project->id)
                 ->where('preliminary_procedure_id', $procedureId)
                 ->selectRaw('SUM(amount_spent) as total_spent, SUM(completion_percentage) as total_completion')
@@ -230,6 +377,22 @@ class ExecutionController extends Controller
                     'success' => false,
                     'message' => 'إجمالي نسبة الإنجاز لا يمكن أن يتجاوز 100%. الإجمالي الحالي سيكون: '.number_format($totalCompletion, 1).'%',
                 ], 422);
+            }
+
+            if ($project->uses_disbursement_workflow) {
+                $freshProject = Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+                $requestedAmount = (float) ($validated['amount_spent'] ?? 0);
+                $availableAmount = (float) $freshProject->available_for_execution;
+                if ($requestedAmount > $availableAmount) {
+                    return response()->json([
+                        'success' => false,
+                        'code' => 'insufficient_installment_balance',
+                        'message' => 'There is not enough available balance in the current installment.',
+                        'available_amount' => $availableAmount,
+                        'requested_amount' => $requestedAmount,
+                        'shortage_amount' => round($requestedAmount - $availableAmount, 2),
+                    ], 422);
+                }
             }
 
             // Handle Technical Documents
@@ -905,6 +1068,10 @@ class ExecutionController extends Controller
             $execution = ProjectExecution::where('project_id', $project->id)->findOrFail($executionId);
         }
 
+        if ($execution->clearance_request_id !== null) {
+            return redirect()->back()->with('error', 'لا يمكن تعديل هذا السجل لأنه مرتبط بطلب إخلاء مالي نشط أو معتمد.');
+        }
+
         $validated = $request->validate([
             'actual_start_date_gregorian' => 'nullable|date',
             'actual_start_date_hijri' => 'nullable|string',
@@ -918,9 +1085,120 @@ class ExecutionController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        if ($project->uses_disbursement_workflow && isset($validated['amount_spent'])) {
+            $newAmountSpent = (float) $validated['amount_spent'];
+            $maxAllowedForThisRecord = (float) $project->available_for_execution + (float) $execution->amount_spent;
+
+            if ($newAmountSpent > $maxAllowedForThisRecord) {
+                return redirect()->back()->with('error', 'There is not enough available balance in the current installment to update this execution.');
+            }
+        }
+
         $execution->update($validated);
+        if ($execution->workflow_review_status === 'returned_for_modification') {
+            $execution->update(['workflow_review_status' => 'resubmitted', 'workflow_return_note' => null]);
+            ProjectExecutionReviewHistory::create([
+                'project_id' => $project->id,
+                'execution_type' => $isPreliminary ? 'preliminary' : 'executive',
+                'execution_id' => $execution->id,
+                'reviewed_by' => auth()->id(),
+                'action' => 'resubmitted',
+                'notes' => $validated['notes'] ?? null,
+            ]);
+        }
 
         return redirect()->back()->with('success', 'تم تحديث التنفيذ بنجاح');
+    }
+
+    public function managerReview(Request $request, Project $project, string $type, int $executionId)
+    {
+        $this->projectService->authorizeProjectAccess($project);
+        abort_unless(auth()->user()->hasPermission('execution.manager-review', $project), 403);
+        abort_unless(in_array($type, ['executive', 'preliminary'], true), 404);
+        $data = $request->validate([
+            'action' => ['required', 'in:approve,return'],
+            'notes' => ['required_if:action,return', 'nullable', 'string', 'min:5', 'max:4000'],
+        ]);
+        $model = $type === 'executive' ? ProjectExecution::class : PreliminaryProcedureExecution::class;
+
+        DB::transaction(function () use ($project, $type, $executionId, $data, $model): void {
+            $execution = $model::where('project_id', $project->id)->lockForUpdate()->findOrFail($executionId);
+            abort_if($execution->clearance_request_id, 409, 'This execution is already included in a clearance request.');
+            abort_unless(in_array($execution->workflow_review_status, ['awaiting_manager_review', 'resubmitted'], true), 409);
+
+            $action = $data['action'] === 'approve' ? 'manager_approved' : 'returned_for_modification';
+            $execution->update([
+                'workflow_review_status' => $action,
+                'workflow_return_note' => $data['action'] === 'return' ? $data['notes'] : null,
+                'approval_status' => $data['action'] === 'approve' ? 'approved' : 'pending',
+                'approved_by' => $data['action'] === 'approve' ? auth()->id() : null,
+                'approved_at' => $data['action'] === 'approve' ? now() : null,
+            ]);
+            ProjectExecutionReviewHistory::create([
+                'project_id' => $project->id, 'execution_type' => $type, 'execution_id' => $execution->id,
+                'reviewed_by' => auth()->id(), 'action' => $action, 'notes' => $data['notes'] ?? null,
+            ]);
+            ProjectActivityHistory::create([
+                'project_id' => $project->id, 'user_id' => auth()->id(),
+                'action_type' => 'execution_manager_'.$data['action'],
+                'notes' => $data['notes'] ?? 'Execution reviewed by entity manager.',
+                'metadata' => ['execution_type' => $type, 'execution_id' => $execution->id],
+            ]);
+        });
+
+        return back()->with('success', 'Execution review was recorded.');
+    }
+
+    public function aggregateInstallment(Project $project, ProjectDisbursementPlanDetail $detail)
+    {
+        $this->projectService->authorizeProjectAccess($project);
+        abort_unless(auth()->user()->hasPermission('execution.aggregate-clearance', $project), 403);
+        abort_unless((int) $detail->plan?->project_id === (int) $project->id && $detail->status === 'disbursed', 409);
+
+        DB::transaction(function () use ($project, $detail): void {
+            $lockedDetail = ProjectDisbursementPlanDetail::whereKey($detail->id)->lockForUpdate()->firstOrFail();
+            if ($lockedDetail->status !== 'disbursed' || $project->spentFromInstallment($lockedDetail) < (float) $lockedDetail->disbursed_amount - 0.01) {
+                abort(409, 'The installment balance must be fully used before aggregation.');
+            }
+            $executive = ProjectExecution::where('project_id', $project->id)->where('disbursement_plan_detail_id', $lockedDetail->id)->lockForUpdate()->get();
+            $preliminary = PreliminaryProcedureExecution::where('project_id', $project->id)->where('disbursement_plan_detail_id', $lockedDetail->id)->lockForUpdate()->get();
+            $all = $executive->concat($preliminary);
+            if ($all->isEmpty() || $all->contains(fn ($row) => $row->workflow_review_status !== 'manager_approved' || $row->approval_status !== 'approved' || $row->clearance_request_id !== null)) {
+                abort(409, 'Every execution record in this installment must be manager approved and not already cleared.');
+            }
+            ProjectInstallmentAggregation::updateOrCreate([
+                'project_disbursement_plan_detail_id' => $lockedDetail->id,
+            ], [
+                'status' => 'ready_for_clearance',
+                'submitted_by' => auth()->id(),
+                'payload' => [
+                    'project_execution_ids' => $executive->modelKeys(),
+                    'preliminary_execution_ids' => $preliminary->modelKeys(),
+                    'total_amount' => round((float) $all->sum('amount_spent'), 2),
+                    'record_count' => $all->count(),
+                    'aggregated_at' => now()->toIso8601String(),
+                ],
+            ]);
+        });
+
+        return back()->with('success', 'Installment execution has been aggregated for clearance.');
+    }
+
+    public function submitNextInstallment(Request $request, Project $project, ProjectDisbursementPlanDetail $detail)
+    {
+        $this->projectService->authorizeProjectAccess($project);
+        abort_unless(auth()->user()->hasPermission('disbursements.request', $project), 403);
+        abort_unless((int) $detail->plan?->project_id === (int) $project->id && $detail->status === 'planned', 409);
+        $previous = $detail->plan->details()->where('sequence_number', $detail->sequence_number - 1)->first();
+        abort_unless($previous && $previous->status === 'cleared', 409, 'The preceding installment must be cleared first.');
+        $data = $request->validate(['notes' => ['nullable', 'string', 'max:4000']]);
+        $workflowRequest = app(ProjectWorkflowRequestService::class)->submit($project, 'next_installment', [
+            'detail_id' => $detail->id,
+            'notes' => $data['notes'] ?? null,
+            'dedupe_key' => 'installment-'.$detail->id,
+        ], auth()->user());
+
+        return redirect()->route('approvals.workflow-requests.show', $workflowRequest)->with('success', 'Next installment request sent for approval.');
     }
 
     public function destroy(Project $project, $executionId)
@@ -937,6 +1215,10 @@ class ExecutionController extends Controller
             $execution = PreliminaryProcedureExecution::where('project_id', $project->id)->findOrFail($executionId);
         } else {
             $execution = ProjectExecution::where('project_id', $project->id)->findOrFail($executionId);
+        }
+
+        if ($execution->clearance_request_id !== null) {
+            return redirect()->back()->with('error', 'لا يمكن حذف هذا السجل لأنه مرتبط بطلب إخلاء مالي نشط أو معتمد.');
         }
 
         if ($execution->technical_documents) {
@@ -1056,7 +1338,10 @@ class ExecutionController extends Controller
             'executiveActivities.actions.technicalJustification',
         ]);
 
-        $html = view('projects.partials.implementation.execution-print', compact('project'))->render();
+        $letterheadData = app(DocumentLetterheadService::class)->resolveForDocument($project);
+        $letterhead = $letterheadData->letterhead;
+
+        $html = view('projects.partials.implementation.execution-print', compact('project', 'letterhead', 'letterheadData'))->render();
 
         // Ensure the execution directory exists in public storage
         $dir = storage_path('app/public/executions');
@@ -1080,6 +1365,10 @@ class ExecutionController extends Controller
 
         if ($execution->project_id !== $project->id) {
             abort(404);
+        }
+
+        if (in_array($execution->workflow_review_status, ['awaiting_manager_review', 'resubmitted'], true)) {
+            abort(409, 'This entry must be approved through the manager review workflow.');
         }
 
         if (! auth()->user()->hasPermission('execution.approve', $project)) {
@@ -1145,6 +1434,10 @@ class ExecutionController extends Controller
 
         if ($execution->project_id !== $project->id) {
             abort(404);
+        }
+
+        if (in_array($execution->workflow_review_status, ['awaiting_manager_review', 'resubmitted'], true)) {
+            abort(409, 'This entry must be approved through the manager review workflow.');
         }
 
         if (! auth()->user()->hasPermission('execution.reject', $project)) {
@@ -1217,6 +1510,10 @@ class ExecutionController extends Controller
             abort(404);
         }
 
+        if (in_array($execution->workflow_review_status, ['awaiting_manager_review', 'resubmitted'], true)) {
+            abort(409, 'This entry must be approved through the manager review workflow.');
+        }
+
         if (! auth()->user()->hasPermission('execution.approve', $project)) {
             return redirect()->back()->with('error', 'غير مصرح لك بالقيام بهذا الإجراء');
         }
@@ -1280,6 +1577,10 @@ class ExecutionController extends Controller
 
         if ($execution->project_id !== $project->id) {
             abort(404);
+        }
+
+        if (in_array($execution->workflow_review_status, ['awaiting_manager_review', 'resubmitted'], true)) {
+            abort(409, 'This entry must be approved through the manager review workflow.');
         }
 
         if (! auth()->user()->hasPermission('execution.reject', $project)) {

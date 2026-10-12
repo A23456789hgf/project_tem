@@ -235,7 +235,7 @@
                     <i class="fas fa-coins stat-icon"></i>
                     <div>
                         <div class="stat-label">إجمالي تكلفة المشروع المعتمدة</div>
-                        <div class="stat-value">{{ number_format($totalCost, 2) }} <small class="fs-6 fw-normal">ريال</small></div>
+                        <div class="stat-value"><span id="approvedTotal">{{ number_format($totalCost, 2) }}</span> <small class="fs-6 fw-normal">ريال</small></div>
                     </div>
                     @if(!empty($project->cost->hijri_year))
                     <div class="mt-3 pt-3 border-top border-light border-opacity-25 small d-flex justify-content-between">
@@ -251,11 +251,11 @@
                     <i class="fas fa-hand-holding-usd stat-icon"></i>
                     <div>
                         <div class="stat-label">المبلغ المصروف الفعلي</div>
-                        <div class="stat-value">{{ number_format($spentAmount, 2) }} <small class="fs-6 fw-normal">ريال</small></div>
+                        <div class="stat-value"><span id="actualSpent"><span class="spinner-border spinner-border-sm" role="status"></span></span> <small class="fs-6 fw-normal">ريال</small></div>
                     </div>
                     <div class="mt-3 pt-3 border-top border-light border-opacity-25 small d-flex justify-content-between align-items-center">
                         <span>نسبة الصرف من التكلفة:</span>
-                        <span class="badge bg-white text-dark fw-bold px-2 py-1">{{ $spentPerc }}%</span>
+                        <span class="badge bg-white text-dark fw-bold px-2 py-1" id="actual-spent-perc">-</span>
                     </div>
                 </div>
             </div>
@@ -265,11 +265,131 @@
                     <i class="fas fa-wallet stat-icon"></i>
                     <div>
                         <div class="stat-label">المبلغ المتبقي</div>
-                        <div class="stat-value">{{ number_format($remainingAmount, 2) }} <small class="fs-6 fw-normal">ريال</small></div>
+                        <div class="stat-value"><span id="remainingAmount"><span class="spinner-border spinner-border-sm" role="status"></span></span> <small class="fs-6 fw-normal">ريال</small></div>
                     </div>
                     <div class="mt-3 pt-3 border-top border-light border-opacity-25 small d-flex justify-content-between">
                         <span>حالة الرصيد:</span>
-                        <strong class="fw-bold">{{ $remainingAmount >= 0 ? 'متبقي متاح' : 'تجاوز في الصرف' }}</strong>
+                        <strong class="fw-bold" id="remaining-amount-status">-</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Grouped Section -->
+        <div class="old-card mb-4" id="expenses-grouped-section" style="display: none;">
+            <div class="old-card-header">
+                <h3 class="old-card-title">
+                    <i class="fas fa-layer-group"></i> العمليات المالية حسب البنود
+                </h3>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="financialSyncTime" class="small text-muted d-none d-md-inline-block"></span>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-refresh-expenses" onclick="fetchProjectExpenses(true)">
+                        <i class="fas fa-sync-alt"></i> تحديث البيانات
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div id="expenses-error" class="alert alert-danger" style="display: none;"></div>
+                <div id="expenses-loader" class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <h5>جاري تحميل بيانات المصروفات من النظام المالي...</h5>
+                    <p class="text-muted">يرجى الانتظار، قد يستغرق هذا بضع ثوانٍ</p>
+                </div>
+                <div id="expenses-grouped-content" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover text-center align-middle" id="expenses-grouped-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>البند</th>
+                                    <th>الحساب</th>
+                                    <th>إجمالي المصروف</th>
+                                    <th>تفاصيل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Table Section -->
+        <div class="old-card mb-4" id="expenses-section" style="display: none;">
+            <div class="old-card-header">
+                <h3 class="old-card-title">
+                    <i class="fas fa-file-invoice-dollar"></i> جدول مصروفات المشروع الكامل
+                </h3>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">من تاريخ</label>
+                        <input type="date" id="filter-from" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">إلى تاريخ</label>
+                        <input type="date" id="filter-to" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end gap-2">
+                        <button class="btn btn-primary btn-sm w-100" onclick="fetchProjectExpenses()">بحث</button>
+                        <button class="btn btn-secondary btn-sm w-100" onclick="resetFilters()">إعادة تعيين</button>
+                    </div>
+                </div>
+                <div id="expenses-content" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover text-center align-middle" id="expenses-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>تاريخ المستند</th>
+                                    <th>رقم المستند / القيد</th>
+                                    <th>الحساب</th>
+                                    <th>البند</th>
+                                    <th>المشروع</th>
+                                    <th>مركز التكلفة</th>
+                                    <th>مدين</th>
+                                    <th>دائن</th>
+                                    <th>الصافي</th>
+                                    <th>الملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for Expense Type Details -->
+        <div class="modal fade" id="expenseTypeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="expenseTypeModalLabel">تفاصيل البند: <span id="modal-expense-type" class="text-primary"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover text-center align-middle" id="modal-expenses-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>تاريخ المستند</th>
+                                        <th>رقم المستند</th>
+                                        <th>الحساب</th>
+                                        <th>مركز التكلفة</th>
+                                        <th>مدين</th>
+                                        <th>دائن</th>
+                                        <th>الصافي</th>
+                                        <th>الملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -323,8 +443,18 @@
                                 <div class="info-group">
                                     <span class="info-label">أولوية المشروع</span>
                                     <span class="info-value">
-                                        @if($project->priority)
-                                            <span class="badge bg-info text-dark px-3 py-2">{{ $project->priority->name }}</span>
+                                        @if(is_object($project->priority))
+                                            <span class="badge bg-info text-dark px-3 py-2">{{ $project->priority->name ?? $project->priority->priority ?? '-' }}</span>
+                                        @elseif(!empty($project->priority))
+                                            @php
+                                                $pText = match((string) $project->priority) {
+                                                    'high', 'عالية', 'عالي' => 'عالية',
+                                                    'medium', 'متوسطة', 'متوسط' => 'متوسطة',
+                                                    'low', 'منخفضة', 'منخفض' => 'منخفضة',
+                                                    default => $project->priority,
+                                                };
+                                            @endphp
+                                            <span class="badge bg-info text-dark px-3 py-2">{{ $pText }}</span>
                                         @else
                                             غير محدد
                                         @endif
@@ -639,6 +769,193 @@ document.addEventListener('DOMContentLoaded', function () {
     var tooltipEls = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipEls.map(function (el) {
         return new bootstrap.Tooltip(el);
+    });
+});
+
+const projectId = {{ $project->id }};
+const totalCost = {{ $totalCost }};
+
+let allTransactions = [];
+let financialRequestInProgress = false;
+let financialRefreshTimer = null;
+
+function resetFilters() {
+    $('#filter-from').val('');
+    $('#filter-to').val('');
+    fetchProjectExpenses(true);
+}
+
+function showExpenseDetails(expenseType) {
+    $('#modal-expense-type').text(expenseType);
+    const tbody = $('#modal-expenses-table tbody');
+    tbody.empty();
+    
+    const filtered = allTransactions.filter(t => {
+        let type = t.claim_expense_type || '';
+        type = type.trim().replace(/\s+/g, ' ');
+        return type === expenseType;
+    });
+    
+    if (filtered.length > 0) {
+        filtered.forEach(entry => {
+            const debit = parseFloat(entry.debit || 0);
+            const credit = parseFloat(entry.credit || 0);
+            const net = debit - credit;
+            
+            tbody.append(`
+                <tr>
+                    <td>${entry.posting_date || '-'}</td>
+                    <td class="fw-bold">${entry.voucher_no || entry.gl_entry || '-'}</td>
+                    <td>${entry.account || '-'}</td>
+                    <td>${entry.cost_center || '-'}</td>
+                    <td class="text-danger fw-bold">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(debit)}</td>
+                    <td class="text-success fw-bold">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(credit)}</td>
+                    <td class="fw-bold">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net)}</td>
+                    <td class="text-start">${entry.remarks || '-'}</td>
+                </tr>
+            `);
+        });
+    } else {
+        tbody.append(`<tr><td colspan="8" class="text-muted py-3">لا توجد عمليات</td></tr>`);
+    }
+    
+    new bootstrap.Modal(document.getElementById('expenseTypeModal')).show();
+}
+
+function fetchProjectExpenses(force = false) {
+    if (financialRequestInProgress) return;
+    financialRequestInProgress = true;
+
+    if (force) {
+        $('#btn-refresh-expenses').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> تحديث');
+        if ($('#expenses-content').is(':hidden')) {
+            $('#expenses-grouped-section, #expenses-section').show();
+            $('#expenses-loader').show();
+            $('#expenses-grouped-content, #expenses-content').hide();
+        }
+        $('#expenses-error').hide();
+        
+        if ($('#actualSpent').text().trim() === '') {
+            $('#actualSpent, #remainingAmount').html('<span class="spinner-border spinner-border-sm"></span>');
+            $('#actual-spent-perc, #remaining-amount-status').text('-');
+        }
+    }
+
+    const from = $('#filter-from').val();
+    const to = $('#filter-to').val();
+    
+    $.ajax({
+        url: `/projects/${projectId}/expenses`,
+        method: 'GET',
+        data: { from_date: from, to_date: to, t: new Date().getTime() },
+        success: function(response) {
+            $('#btn-refresh-expenses').prop('disabled', false).html('<i class="fas fa-sync-alt"></i> تحديث البيانات');
+            $('#expenses-loader').hide();
+            
+            if (response.success) {
+                $('#expenses-grouped-content, #expenses-content').show();
+                allTransactions = response.transactions || response.entries || [];
+                
+                const summary = response.summary || {};
+                const spentAmount = summary.actual_spent ?? 0;
+                const remainingAmount = summary.remaining_amount ?? (totalCost - spentAmount);
+                const approvedTotalAmount = summary.approved_total ?? totalCost;
+                
+                const spentPerc = (approvedTotalAmount > 0 && spentAmount > 0) ? Math.min(100, Math.round((spentAmount / approvedTotalAmount) * 100 * 10) / 10) : 0;
+                
+                $('#approvedTotal').text(new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(approvedTotalAmount));
+                $('#actualSpent').text(new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(spentAmount));
+                $('#remainingAmount').text(new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(remainingAmount));
+                $('#actual-spent-perc').text(spentPerc + '%');
+                
+                if (remainingAmount >= 0) {
+                    $('#remaining-amount-status').text('متبقي متاح').removeClass('text-danger').addClass('text-white');
+                } else {
+                    $('#remaining-amount-status').text('تجاوز التكلفة المعتمدة').removeClass('text-white').addClass('text-warning');
+                }
+                
+                if (response.synced_at) {
+                    $('#financialSyncTime').text('آخر مزامنة: ' + response.synced_at.substring(11, 19));
+                }
+                
+                const gtbody = $('#expenses-grouped-table tbody');
+                gtbody.empty();
+                if (response.expense_types && response.expense_types.length > 0) {
+                    response.expense_types.forEach(g => {
+                        gtbody.append(`
+                            <tr>
+                                <td class="fw-bold">${g.claim_expense_type}</td>
+                                <td>${g.account}</td>
+                                <td class="fw-bold">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(g.total)}</td>
+                                <td><button class="btn btn-sm btn-outline-primary" onclick="showExpenseDetails('${g.claim_expense_type}')">عرض التفاصيل</button></td>
+                            </tr>
+                        `);
+                    });
+                } else {
+                    gtbody.append(`<tr><td colspan="4" class="text-muted py-3">لا توجد بنود مصروفات</td></tr>`);
+                }
+
+                const tbody = $('#expenses-table tbody');
+                tbody.empty();
+                if (allTransactions.length > 0) {
+                    allTransactions.forEach(entry => {
+                        const debit = parseFloat(entry.debit || 0);
+                        const credit = parseFloat(entry.credit || 0);
+                        const net = debit - credit;
+                        
+                        tbody.append(`
+                            <tr>
+                                <td>${entry.posting_date || '-'}</td>
+                                <td class="fw-bold">${entry.voucher_no || entry.gl_entry || '-'}</td>
+                                <td>${entry.account || '-'}</td>
+                                <td>${entry.claim_expense_type || '-'}</td>
+                                <td>${entry.project || '-'}</td>
+                                <td>${entry.cost_center || '-'}</td>
+                                <td class="text-danger fw-bold">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(debit)}</td>
+                                <td class="text-success fw-bold">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(credit)}</td>
+                                <td class="fw-bold">${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net)}</td>
+                                <td class="text-start">${entry.remarks || '-'}</td>
+                            </tr>
+                        `);
+                    });
+                } else {
+                    tbody.append(`<tr><td colspan="10" class="text-muted py-3">لا توجد عمليات مسجلة</td></tr>`);
+                }
+            } else {
+                if (force) $('#expenses-error').text(response.error || 'حدث خطأ').show();
+            }
+        },
+        error: function() {
+            if (force) {
+                $('#btn-refresh-expenses').prop('disabled', false).html('<i class="fas fa-sync-alt"></i> تحديث البيانات');
+                $('#expenses-loader').hide();
+                $('#expenses-error').text('تعذر الاتصال بخادم ERPNext. يرجى المحاولة مرة أخرى.').show();
+                $('#actualSpent').html('<span class="text-danger fs-6">تعذر الجلب</span>');
+                $('#remainingAmount').html('<span class="text-danger fs-6">غير متاح</span>');
+            }
+        },
+        complete: function() {
+            financialRequestInProgress = false;
+        }
+    });
+}
+
+$(document).ready(function() {
+    fetchProjectExpenses(true);
+    
+    // Auto-refresh every 10 seconds
+    financialRefreshTimer = setInterval(() => {
+        // Only auto-refresh if the tab is visible
+        if (document.visibilityState === 'visible') {
+            fetchProjectExpenses(false);
+        }
+    }, 10000);
+    
+    // Fetch immediately when tab becomes visible again
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            fetchProjectExpenses(false);
+        }
     });
 });
 </script>

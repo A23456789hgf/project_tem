@@ -50,7 +50,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">الجهة المقدمة للخطة *</label>
-                            <input type="text" class="form-control bg-light" value="{{ $plan->submittingEntity->name }}"
+                            <input type="text" class="form-control bg-light" value="{{ $plan->submitting_organization_name }}"
                                 readonly>
                             <small class="text-muted">الجهة المقدمة للخطة ثابتة ولا يمكن تعديلها.</small>
                         </div>

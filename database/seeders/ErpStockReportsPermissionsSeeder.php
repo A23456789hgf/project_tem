@@ -36,6 +36,13 @@ class ErpStockReportsPermissionsSeeder extends Seeder
                 'description' => 'تصدير تقرير طلبات المواد',
             ],
             [
+                'name' => 'عرض تفاصيل طلبات المواد',
+                'slug' => 'reports.material_requests.view_details',
+                'module' => 'reports-erp-stock',
+                'type' => Permission::TYPE_BUTTON,
+                'description' => 'عرض تفاصيل طلب المواد (الاصناف)',
+            ],
+            [
                 'name' => 'عرض تقرير صرف المواد',
                 'slug' => 'reports.stock_entries.view',
                 'module' => 'reports-erp-stock',
@@ -55,6 +62,13 @@ class ErpStockReportsPermissionsSeeder extends Seeder
                 'module' => 'reports-erp-stock',
                 'type' => Permission::TYPE_BUTTON,
                 'description' => 'تصدير تقرير صرف المواد',
+            ],
+            [
+                'name' => 'عرض تفاصيل صرف المواد',
+                'slug' => 'reports.stock_entries.view_details',
+                'module' => 'reports-erp-stock',
+                'type' => Permission::TYPE_BUTTON,
+                'description' => 'عرض تفاصيل حركة صرف المواد (الاصناف)',
             ],
             [
                 'name' => 'عرض سجل المخزون',
@@ -97,6 +111,13 @@ class ErpStockReportsPermissionsSeeder extends Seeder
                 'module' => 'reports-erp-stock',
                 'type' => Permission::TYPE_BUTTON,
                 'description' => 'تصدير تقرير فواتير الشراء',
+            ],
+            [
+                'name' => 'عرض تفاصيل فواتير الشراء',
+                'slug' => 'reports.purchase_invoices.view_details',
+                'module' => 'reports-erp-stock',
+                'type' => Permission::TYPE_BUTTON,
+                'description' => 'عرض تفاصيل فاتورة الشراء (الاصناف)',
             ],
         ];
 

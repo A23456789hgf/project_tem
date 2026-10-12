@@ -7,6 +7,7 @@ enum ProjectStatus: string
     case Draft = 'draft';
     case CompletedDraft = 'completed_draft';
     case PendingApproval = 'pending_approval';
+    case AwaitingDisbursementPlan = 'awaiting_disbursement_plan';
     case RolledBackForReview = 'rolled_back_for_review';
     case InExecution = 'in_execution';
     case Completed = 'completed';
@@ -19,6 +20,7 @@ enum ProjectStatus: string
             self::Draft => 'مسودة',
             self::CompletedDraft => 'مسودة مكتملة',
             self::PendingApproval => 'بانتظار الاعتماد',
+            self::AwaitingDisbursementPlan => 'بانتظار خطة الصرف',
             self::RolledBackForReview => 'أعيد للمراجعة والاستكمال',
             self::InExecution => 'قيد التنفيذ',
             self::Completed => 'مكتمل',
@@ -33,6 +35,7 @@ enum ProjectStatus: string
             self::Draft => 'badge-secondary',
             self::CompletedDraft => 'badge-info',
             self::PendingApproval => 'badge-warning',
+            self::AwaitingDisbursementPlan => 'badge-warning',
             self::RolledBackForReview => 'badge-danger',
             self::InExecution => 'badge-primary',
             self::Completed => 'badge-success',

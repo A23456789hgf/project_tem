@@ -349,7 +349,7 @@ class ApprovalCenterTest extends TestCase
         ]);
 
         if ($response->status() !== 302) {
-            dump($response->content());
+
         }
 
         $response->assertRedirect();
@@ -376,7 +376,7 @@ class ApprovalCenterTest extends TestCase
         ]);
 
         if ($response->status() !== 302) {
-            dump($response->content());
+
         }
 
         $response->assertRedirect();

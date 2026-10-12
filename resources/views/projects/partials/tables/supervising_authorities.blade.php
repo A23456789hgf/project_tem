@@ -4,7 +4,7 @@
     </div>
 
     <div class="project-table-wrapper">
-        <table class="project-table" id="supervisingAuthoritiesTable">
+        <table class="project-table" id="supervisingAuthoritiesTable" data-entity-options-url="{{ route('projects.entity-options', isset($project) ? ['project_id' => $project->id] : []) }}" data-old-input="{{ old('supervising_authorities') !== null ? 'true' : 'false' }}" data-old-rows="{{ json_encode(old('supervising_authorities', []), JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_TAG | JSON_HEX_QUOT) }}">
             <thead>
                 <tr>
                     <th>نوع الجهة</th>
@@ -19,7 +19,7 @@
                         <tr data-authority-index="{{ $index }}">
                             <td>
                                 <select name="supervising_authorities[{{ $index }}][authority_type]"
-                                        class="form-select authority-type-select">
+                                        class="form-select entity-type-select">
                                     <option value="internal" {{ $authority->authority_type == 'internal' ? 'selected' : '' }}>داخلية</option>
                                     <option value="external" {{ $authority->authority_type == 'external' ? 'selected' : '' }}>خارجية</option>
                                 </select>
@@ -42,61 +42,22 @@
                                 @endphp
                                 <select name="supervising_authorities[{{ $index }}][{{ $fieldName }}]"
                                         class="form-select authority-select"
-                                        data-type="{{ $authority->authority_type }}"
-                                        data-authority-id="{{ $entityId }}">
+                                        data-entity-id="{{ $entityId }}">
                                     <option value="">اختر الجهة</option>
-                                    @if($authority->authority_type == 'internal')
-                                        @foreach($internalEntities ?? [] as $internal)
-                                            <option value="{{ $internal['id'] }}"
-                                                {{ $entityId == $internal['id'] ? 'selected' : '' }}>
-                                                {{ $internal['entity_name'] ?? $internal['name'] ?? '' }}
-                                            </option>
-                                        @endforeach
-                                    @else
-                                        @foreach($authorities ?? [] as $authItem)
-                                            <option value="{{ $authItem->id }}"
-                                                {{ $entityId == $authItem->id ? 'selected' : '' }}>
-                                                {{ $authItem->agency_name }}
-                                            </option>
-                                        @endforeach
-                                    @endif
+                                    @if($entityId)<option value="{{ $entityId }}" selected>{{ $entityName ?? $entityId }}</option>@endif
                                 </select>
                             </td>
                             <td>
-                                @php
-                                    $parentName = 'لا توجد جهة أب';
-                                    $parentId = null;
-
-                                    if ($authority->authority_type == 'internal') {
-                                        $internalEntity = $authority->internalEntity ?? \App\Models\InternalEntity::withoutGlobalScopes()->find($entityId);
-                                        if ($internalEntity) {
-                                            $parent = $internalEntity->parent()->first();
-                                            if ($parent) {
-                                                $parentName = $parent->name;
-                                                $parentId = $parent->id;
-                                            }
-                                        }
-                                    } else {
-                                        $authorityModel = $authority->authority ?? \App\Models\Authority::withoutGlobalScopes()->find($entityId);
-                                        if ($authorityModel) {
-                                            $parent = $authorityModel->parent()->first();
-                                            if ($parent) {
-                                                $parentName = $parent->agency_name ?? $parent->name;
-                                                $parentId = $parent->id;
-                                            }
-                                        }
-                                    }
-                                @endphp
                                 <input type="text"
                                        name="supervising_authorities[{{ $index }}][parent_name]"
                                        class="form-control parent-name-input"
                                        readonly
-                                       value="{{ $parentName }}"
+                                       value="لا توجد جهة أب"
                                        placeholder="سيتم تعبئته تلقائياً">
                                 <input type="hidden"
                                        name="supervising_authorities[{{ $index }}][parent_id]"
                                        class="parent-id-input"
-                                       value="{{ $parentId }}">
+                                       value="">
                             </td>
                             <td>
                                 <div class="project-action-buttons">
@@ -125,324 +86,6 @@
         </div>
     </div>
 </div>
-
-<script>
-// Supervising Authorities Management Module
-(function() {
-    'use strict';
-
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get data from PHP
-        var authorities = @json($authorities ?? []);
-        var internalEntities = @json($internalEntities ?? []);
-
-        console.log('Supervising Authorities - Authorities count:', authorities.length);
-        console.log('Supervising Authorities - Internal Entities count:', internalEntities.length);
-
-        var SupervisingAuthorityManager = {
-            counter: 0,
-            authorities: authorities,
-            internalEntities: internalEntities,
-
-            init: function() {
-                console.log('Initializing SupervisingAuthorityManager');
-
-                var rows = document.querySelectorAll('#supervisingAuthoritiesTable tbody tr[data-authority-index]');
-                rows.forEach(function(row) {
-                    var idx = parseInt(row.dataset.authorityIndex) || 0;
-                    if (idx >= this.counter) this.counter = idx + 1;
-                }.bind(this));
-
-                this.bindEvents();
-                this.initializeExistingEntities();
-            },
-
-            bindEvents: function() {
-                var addBtn = document.getElementById('addSupervisingAuthorityBtn');
-                if (addBtn) {
-                    addBtn.addEventListener('click', function() {
-                        this.addRow();
-                    }.bind(this));
-                }
-
-                document.addEventListener('click', function(e) {
-                    var btn = e.target.closest('.remove-authority');
-                    if (!btn || !btn.closest('#supervisingAuthoritiesTable')) return;
-                    this.removeRow(btn.closest('tr'));
-                }.bind(this));
-
-                document.addEventListener('change', function(e) {
-                    if (!e.target.closest('#supervisingAuthoritiesTable')) return;
-
-                    if (e.target.classList.contains('authority-type-select')) {
-                        this.handleEntityTypeChange(e.target);
-                    } else if (e.target.classList.contains('authority-select')) {
-                        this.handleAuthorityChange(e.target);
-                    }
-                }.bind(this));
-            },
-
-            initializeExistingEntities: function() {
-                var rows = document.querySelectorAll('#supervisingAuthoritiesTable tbody tr:not(.project-empty-row)');
-                rows.forEach(function(row) {
-                    var typeSelect = row.querySelector('.authority-type-select');
-                    var authoritySelect = row.querySelector('.authority-select');
-
-                    if (typeSelect && authoritySelect) {
-                        var entityType = typeSelect.value;
-                        var savedValue = authoritySelect.getAttribute('data-authority-id') || authoritySelect.value;
-
-                        this.populateAuthorityOptions(authoritySelect, entityType);
-
-                        if (savedValue) {
-                            authoritySelect.value = savedValue;
-                            this.fillParentAuthority(row, savedValue, entityType);
-                        }
-                    }
-                }.bind(this));
-            },
-
-            addRow: function() {
-                var emptyRow = document.querySelector('#supervisingAuthoritiesTable .project-empty-row');
-                if (emptyRow) emptyRow.remove();
-
-                var tbody = document.querySelector('#supervisingAuthoritiesTable tbody');
-                var row = this.createRow();
-                tbody.appendChild(row);
-
-                if (typeof AppUtils !== 'undefined' && AppUtils.Utils) {
-                    AppUtils.Utils.animate(row, 'fadeIn');
-                }
-                this.counter++;
-            },
-
-            createRow: function() {
-                var row = document.createElement('tr');
-                var index = this.counter;
-                row.dataset.authorityIndex = index;
-
-                // Build internal entity options
-                var internalOptions = '<option value="">اختر الجهة</option>';
-                this.internalEntities.forEach(function(entity) {
-                    internalOptions += '<option value="' + entity.id + '">' + (entity.entity_name || entity.name || '') + '</option>';
-                });
-
-                row.innerHTML = `
-                    <td>
-                        <select name="supervising_authorities[${index}][authority_type]"
-                                class="form-select authority-type-select">
-                            <option value="internal" selected>داخلية</option>
-                            <option value="external">خارجية</option>
-                        </select>
-                    </td>
-                    <td>
-                        <select name="supervising_authorities[${index}][internal_entity_id]"
-                                class="form-select authority-select"
-                                data-type="internal">
-                            ${internalOptions}
-                        </select>
-                    </td>
-                    <td>
-                        <input type="text"
-                               name="supervising_authorities[${index}][parent_name]"
-                               class="form-control parent-name-input"
-                               readonly
-                               placeholder="سيتم تعبئته تلقائياً">
-                        <input type="hidden"
-                               name="supervising_authorities[${index}][parent_id]"
-                               class="parent-id-input">
-                    </td>
-                    <td>
-                        <div class="project-action-buttons">
-                            <button type="button" class="project-btn project-btn-danger remove-authority" title="حذف الجهة">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-
-                return row;
-            },
-
-            removeRow: function(row) {
-                var self = this;
-                if (typeof AppUtils !== 'undefined' && AppUtils.Table) {
-                    AppUtils.Table.removeRow(row, false).then(function() {
-                        self.checkEmpty();
-                        self.renumber();
-                    });
-                } else {
-                    row.remove();
-                    this.checkEmpty();
-                    this.renumber();
-                }
-            },
-
-            handleEntityTypeChange: function(select) {
-                var row = select.closest('tr');
-                var authoritySelect = row.querySelector('.authority-select');
-                var type = select.value;
-                var index = row.dataset.authorityIndex;
-                var fieldName = type === 'internal' ? 'internal_entity_id' : 'authority_id';
-
-                authoritySelect.setAttribute('name', 'supervising_authorities[' + index + '][' + fieldName + ']');
-                authoritySelect.setAttribute('data-type', type);
-
-                this.populateAuthorityOptions(authoritySelect, type);
-                authoritySelect.value = '';
-                this.clearParentFields(row);
-            },
-
-            handleAuthorityChange: function(select) {
-                var row = select.closest('tr');
-                var typeSelect = row.querySelector('.authority-type-select');
-                var type = typeSelect ? typeSelect.value : 'internal';
-
-                console.log('Supervising Authority changed:', select.value, 'Type:', type);
-                this.fillParentAuthority(row, select.value, type);
-            },
-
-            populateAuthorityOptions: function(authoritySelect, type) {
-                var options = '<option value="">اختر الجهة</option>';
-
-                if (type === 'internal') {
-                    console.log('Populating internal entities for supervising authorities:', this.internalEntities.length);
-                    this.internalEntities.forEach(function(entity) {
-                        options += '<option value="' + entity.id + '">' + (entity.entity_name || entity.name || '') + '</option>';
-                    });
-                } else {
-                    console.log('Populating external authorities for supervising authorities:', this.authorities.length);
-                    this.authorities.forEach(function(auth) {
-                        options += '<option value="' + auth.id + '">' + (auth.agency_name || '') + '</option>';
-                    });
-                }
-
-                authoritySelect.innerHTML = options;
-            },
-
-            fillParentAuthority: function(row, authorityValue, type) {
-                var parentNameInput = row.querySelector('.parent-name-input');
-                var parentIdInput = row.querySelector('.parent-id-input');
-
-                this.clearParentFields(row);
-
-                if (!authorityValue) {
-                    parentNameInput.value = 'لا توجد جهة أب';
-                    return;
-                }
-
-                if (type === 'internal') {
-                    var selectedEntity = null;
-                    for (var i = 0; i < this.internalEntities.length; i++) {
-                        if (this.internalEntities[i].id == authorityValue) {
-                            selectedEntity = this.internalEntities[i];
-                            break;
-                        }
-                    }
-                    console.log('Selected internal entity:', selectedEntity);
-
-                    if (selectedEntity) {
-                        var pName = selectedEntity.parent_name || selectedEntity.father_name || null;
-                        if (selectedEntity.parent_id && pName) {
-                            parentNameInput.value = pName;
-                            parentIdInput.value = selectedEntity.parent_id;
-                        } else {
-                            parentNameInput.value = 'لا توجد جهة أب';
-                            parentIdInput.value = '';
-                        }
-                    }
-                } else {
-                    var selectedAuthority = null;
-                    for (var j = 0; j < this.authorities.length; j++) {
-                        if (this.authorities[j].id == authorityValue) {
-                            selectedAuthority = this.authorities[j];
-                            break;
-                        }
-                    }
-                    console.log('Selected external authority:', selectedAuthority);
-
-                    if (selectedAuthority) {
-                        if (selectedAuthority.parent_id) {
-                            var parentAuthority = null;
-                            for (var k = 0; k < this.authorities.length; k++) {
-                                if (this.authorities[k].id == selectedAuthority.parent_id) {
-                                    parentAuthority = this.authorities[k];
-                                    break;
-                                }
-                            }
-                            if (parentAuthority) {
-                                parentNameInput.value = parentAuthority.agency_name || '';
-                                parentIdInput.value = parentAuthority.id || '';
-                            } else {
-                                parentNameInput.value = 'لا توجد جهة أب';
-                                parentIdInput.value = '';
-                            }
-                        } else {
-                            parentNameInput.value = 'لا توجد جهة أب';
-                            parentIdInput.value = '';
-                        }
-                    }
-                }
-            },
-
-            clearParentFields: function(row) {
-                var parentNameInput = row.querySelector('.parent-name-input');
-                var parentIdInput = row.querySelector('.parent-id-input');
-                if (parentNameInput) parentNameInput.value = '';
-                if (parentIdInput) parentIdInput.value = '';
-            },
-
-            checkEmpty: function() {
-                var tbody = document.querySelector('#supervisingAuthoritiesTable tbody');
-                if (tbody.children.length === 0 || (tbody.children.length === 1 && tbody.children[0].classList.contains('project-empty-row'))) {
-                    return;
-                }
-
-                if (tbody.querySelectorAll('tr:not(.project-empty-row)').length === 0) {
-                    var emptyRow = document.createElement('tr');
-                    emptyRow.className = 'project-empty-row';
-                    emptyRow.innerHTML = `
-                        <td colspan="4" class="text-center">
-                            <i class="fas fa-users-cog fa-2x mb-2 text-muted"></i><br>
-                            لا توجد جهات إشرافية مضافة بعد
-                        </td>
-                    `;
-                    tbody.appendChild(emptyRow);
-                }
-            },
-
-            renumber: function() {
-                var rows = document.querySelectorAll('#supervisingAuthoritiesTable tbody tr:not(.project-empty-row)');
-                var newCounter = 0;
-
-                rows.forEach(function(row, index) {
-                    row.dataset.authorityIndex = index;
-
-                    var typeSelect = row.querySelector('.authority-type-select');
-                    var authoritySelect = row.querySelector('.authority-select');
-                    var parentNameInput = row.querySelector('.parent-name-input');
-                    var parentIdInput = row.querySelector('.parent-id-input');
-
-                    var currentType = typeSelect ? typeSelect.value : 'internal';
-                    var fieldName = currentType === 'internal' ? 'internal_entity_id' : 'authority_id';
-
-                    if (typeSelect) typeSelect.name = 'supervising_authorities[' + index + '][authority_type]';
-                    if (authoritySelect) authoritySelect.name = 'supervising_authorities[' + index + '][' + fieldName + ']';
-                    if (parentNameInput) parentNameInput.name = 'supervising_authorities[' + index + '][parent_name]';
-                    if (parentIdInput) parentIdInput.name = 'supervising_authorities[' + index + '][parent_id]';
-
-                    newCounter++;
-                });
-
-                this.counter = newCounter;
-            }
-        };
-
-        SupervisingAuthorityManager.init();
-        window.SupervisingAuthorityManager = SupervisingAuthorityManager;
-    });
-})();
-</script>
 
 <style>
 /* Additional styles for supervising authorities table */

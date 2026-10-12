@@ -54,6 +54,14 @@
                 @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
+            {{-- البريد الإلكتروني --}}
+            <div class="col-md-6">
+                <label class="form-label fw-bold">البريد الإلكتروني <span class="text-danger" id="email_required_marker" style="{{ old('is_financial_user', $user->is_financial_user) ? '' : 'display: none;' }}">*</span></label>
+                <input type="email" name="email" id="user_email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', $user->email) }}" placeholder="user@example.com">
+                @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <div class="form-text text-muted small">مطلوب عند تفعيل المستخدم المالي (Financial User) للمزامنة مع ERPNext.</div>
+            </div>
+
             {{-- الدور --}}
             <div class="col-md-6">
                 <label class="form-label fw-bold">الدور *</label>
@@ -125,6 +133,16 @@
                 </select>
             </div>
 
+            {{-- مستخدم مالي (Financial User) --}}
+            <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check form-switch p-0 m-0 d-flex align-items-center pb-2">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" name="is_financial_user" value="1" id="financialUserSwitch" @checked(old('is_financial_user', $user->is_financial_user)) style="cursor: pointer;">
+                    <label class="form-check-label fw-bold text-dark mb-0" for="financialUserSwitch" style="cursor: pointer;">
+                        Financial User (مستخدم مالي)
+                    </label>
+                </div>
+            </div>
+
             {{-- مسؤولية الموافقات --}}
             <div class="col-md-6">
                 <label class="form-label fw-bold">مسؤولية الموافقات</label>
@@ -146,6 +164,42 @@
                     'geographicScopes' => $geographicScopes
                 ])
             </div>
+
+            @if($user->erpnext_user_id || $user->is_financial_user)
+            {{-- بطاقة معلومات مزامنة ERPNext --}}
+            <div class="col-12">
+                <div class="card border bg-light-subtle rounded-3 p-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fas fa-sync-alt text-primary fa-lg"></i>
+                            <div>
+                                <h6 class="mb-0 fw-bold text-dark">مزامنة ERPNext</h6>
+                                <small class="text-muted">
+                                    معرف ERPNext: <span class="fw-semibold text-dark">{{ $user->erpnext_user_id ?: 'غير متصل بعد' }}</span>
+                                    @if($user->erpnext_synced_at)
+                                        | آخر مزامنة: {{ $user->erpnext_synced_at->format('Y-m-d H:i') }}
+                                    @endif
+                                </small>
+                            </div>
+                        </div>
+                        <div>
+                            @if($user->erpnext_sync_status === 'synced')
+                                <span class="badge bg-success px-3 py-2"><i class="fas fa-check-circle me-1"></i> متزامن</span>
+                            @elseif($user->erpnext_sync_status === 'pending')
+                                <span class="badge bg-warning text-dark px-3 py-2"><i class="fas fa-hourglass-half me-1"></i> قيد المزامنة</span>
+                            @elseif($user->erpnext_sync_status === 'failed')
+                                <span class="badge bg-danger px-3 py-2"><i class="fas fa-exclamation-triangle me-1"></i> فشل المزامنة</span>
+                            @endif
+                        </div>
+                    </div>
+                    @if($user->erpnext_sync_error)
+                        <div class="alert alert-danger mt-2 mb-0 py-1 px-2 small">
+                            <strong>خطأ المزامنة الأخير:</strong> {{ $user->erpnext_sync_error }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
 
             {{-- الأزرار --}}
             <div class="col-12 d-flex gap-3">
@@ -205,6 +259,14 @@
         });
 
         toggleOrganizationFields(true);
+
+        $('#financialUserSwitch').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#email_required_marker').show();
+            } else {
+                $('#email_required_marker').hide();
+            }
+        });
     });
     </script>
 @endsection

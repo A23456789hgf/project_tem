@@ -1,0 +1,691 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>تسجيل الدخول - نظام إدارة المشاريع</title>
+    <link rel="preload" as="style" href="http://localhost:8000/build/assets/app-cRle_-Yt.css" /><link rel="modulepreload" as="script" href="http://localhost:8000/build/assets/app-wbiO1Wd_.js" /><link rel="stylesheet" href="http://localhost:8000/build/assets/app-cRle_-Yt.css" /><script type="module" src="http://localhost:8000/build/assets/app-wbiO1Wd_.js"></script>    <style>
+        .bg-radial-gradient {
+            background: radial-gradient(circle at center, #d4af37 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+        
+        [data-lucide] {
+            stroke-width: 2px;
+        }
+    </style>
+<script id="browser-logger-active">
+(function() {
+    const ENDPOINT = 'http://localhost:8000/_boost/browser-logs';
+    const logQueue = [];
+    let flushTimeout = null;
+    const captureTypes = ["error","warning","info","log","debug","table"];
+
+    console.log('🔍 Browser logger active (MCP server detected). Posting to: ' + ENDPOINT);
+
+    // Store original console methods
+    const originalConsole = {
+        log: console.log,
+        debug: console.debug,
+        info: console.info,
+        error: console.error,
+        warn: console.warn,
+        table: console.table
+    };
+
+    // Helper to safely stringify values
+    function safeStringify(obj) {
+        const seen = new WeakSet();
+        return JSON.stringify(obj, (key, value) => {
+            if (typeof value === 'object' && value !== null) {
+                if (seen.has(value)) return '[Circular]';
+                seen.add(value);
+            }
+            if (value instanceof Error) {
+                return {
+                    name: value.name,
+                    message: value.message,
+                    stack: value.stack
+                };
+            }
+            return value;
+        });
+    }
+
+    // Normalize log type for consistency (e.g., 'warn' to 'warning')
+    function normalizeType(type) {
+        return type === 'warn' ? 'warning' : type;
+    }
+
+    // Determine if a log type should be captured based on configured levels
+    function shouldCapture(type) {
+        return captureTypes.includes(normalizeType(type));
+    }
+
+    // Batch and send logs
+    function flushLogs() {
+        if (logQueue.length === 0) return;
+
+        const batch = logQueue.splice(0, logQueue.length);
+
+        fetch(ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ logs: batch })
+        }).catch(err => {
+            // Silently fail to avoid infinite loops
+            originalConsole.error('Failed to send logs:', err);
+        });
+    }
+
+    // Debounced flush (100ms)
+    function scheduleFlush() {
+        if (flushTimeout) clearTimeout(flushTimeout);
+        flushTimeout = setTimeout(flushLogs, 100);
+    }
+
+    // Intercept console methods
+    ['log', 'debug', 'info', 'error', 'warn', 'table'].forEach(method => {
+        console[method] = function(...args) {
+            // Call original method
+            originalConsole[method].apply(console, args);
+
+            // Capture log data
+            try {
+                if (!shouldCapture(method)) {
+                    return;
+                }
+
+                logQueue.push({
+                    type: method,
+                    timestamp: new Date().toISOString(),
+                    data: args.map(arg => {
+                        try {
+                            return typeof arg === 'object' ? JSON.parse(safeStringify(arg)) : arg;
+                        } catch (e) {
+                            return String(arg);
+                        }
+                    }),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                });
+
+                scheduleFlush();
+            } catch (e) {
+                // Fail silently
+            }
+        };
+    });
+
+    // Global error handlers for uncaught errors
+    const originalOnError = window.onerror;
+    window.onerror = function boostErrorHandler(errorMsg, url, lineNumber, colNumber, error) {
+        try {
+            if (shouldCapture('error')) {
+                logQueue.push({
+                    type: 'uncaught_error',
+                    timestamp: new Date().toISOString(),
+                    data: [{
+                        message: errorMsg,
+                        filename: url,
+                        lineno: lineNumber,
+                        colno: colNumber,
+                        error: error ? {
+                            name: error.name,
+                            message: error.message,
+                            stack: error.stack
+                        } : null
+                    }],
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                });
+
+                scheduleFlush();
+            }
+
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Call original handler if it exists
+        if (originalOnError && typeof originalOnError === 'function') {
+            return originalOnError(errorMsg, url, lineNumber, colNumber, error);
+        }
+
+        // Let the error continue to propagate
+        return false;
+    }
+    window.addEventListener('error', (event) => {
+        try {
+            if (!shouldCapture('error')) {
+                return false;
+            }
+
+            logQueue.push({
+                type: 'window_error',
+                timestamp: new Date().toISOString(),
+                data: [{
+                    message: event.message,
+                    filename: event.filename,
+                    lineno: event.lineno,
+                    colno: event.colno,
+                    error: event.error ? {
+                        name: event.error.name,
+                        message: event.error.message,
+                        stack: event.error.stack
+                    } : null
+                }],
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+
+            scheduleFlush();
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Let the error continue to propagate
+        return false;
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+        try {
+            if (!shouldCapture('error')) {
+                return false;
+            }
+
+            logQueue.push({
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                data: [{
+                    message: 'Unhandled Promise Rejection',
+                    reason: event.reason instanceof Error ? {
+                        name: event.reason.name,
+                        message: event.reason.message,
+                        stack: event.reason.stack
+                    } : event.reason
+                }],
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            });
+
+            scheduleFlush();
+        } catch (e) {
+            // Fail silently
+        }
+
+        // Let the rejection continue to propagate
+        return false;
+    });
+
+    // Flush on page unload
+    window.addEventListener('beforeunload', () => {
+        if (logQueue.length > 0) {
+            navigator.sendBeacon(ENDPOINT, JSON.stringify({ logs: logQueue }));
+        }
+    });
+})();
+</script>
+    <script type="text/javascript" class="flasher-js" nonce='8a39ea8ec35e9d4e9d20b580194d36d8'>
+        (function(window, document) {
+            const merge = (first, second) => {
+                if (Array.isArray(first) && Array.isArray(second)) {
+                    return [...first, ...second.filter(item => !first.includes(item))];
+                }
+
+                if (typeof first === 'object' && typeof second === 'object') {
+                    for (const [key, value] of Object.entries(second)) {
+                        first[key] = key in first ? { ...first[key], ...value } : value;
+                    }
+                    return first;
+                }
+
+                return undefined;
+            };
+
+            const mergeOptions = (...options) => {
+                const result = {};
+
+                options.forEach(option => {
+                    Object.entries(option).forEach(([key, value]) => {
+                        result[key] = key in result ? merge(result[key], value) : value;
+                    });
+                });
+
+                return result;
+            };
+
+            const renderCallback = (options) => {
+                if(!window.flasher) {
+                    throw new Error('Flasher is not loaded');
+                }
+
+                window.flasher.render(options);
+            };
+
+            const render = (options) => {
+                if (options instanceof Event) {
+                    options = options.detail;
+                }
+
+                if (['interactive', 'complete'].includes(document.readyState)) {
+                    renderCallback(options);
+                } else {
+                    document.addEventListener('DOMContentLoaded', () => renderCallback(options));
+                }
+            };
+
+            const addScriptAndRender = (options) => {
+                const mainScript = "\/vendor\/flasher\/flasher.min.js";
+
+                if (window.flasher || !mainScript || document.querySelector('script[src="' + mainScript + '"]')) {
+                    render(options);
+                } else {
+                    const tag = document.createElement('script');
+                    tag.src = mainScript;
+                    tag.type = 'text/javascript';
+                    tag.setAttribute('nonce', "8a39ea8ec35e9d4e9d20b580194d36d8");
+                    tag.onload = () => render(options);
+
+                    document.head.appendChild(tag);
+                }
+            };
+
+            const addRenderListener = () => {
+                if (1 === document.querySelectorAll('script.flasher-js').length) {
+                    document.addEventListener('flasher:render', render);
+                    document.addEventListener('turbo:before-cache', () => {
+                        document.querySelectorAll('.fl-wrapper').forEach(el => el.remove());
+                    });
+                }
+
+                
+            };
+
+            const options = [];
+            options.push({"envelopes":[],"scripts":[],"styles":[],"options":[],"context":{"envelopes_only":false,"csp_script_nonce":"8a39ea8ec35e9d4e9d20b580194d36d8","csp_style_nonce":"3746a7e5ddbcdd1461177cbd220e35cc"}});
+            /** {--FLASHER_REPLACE_ME--} **/
+            addScriptAndRender(mergeOptions(...options));
+            addRenderListener();
+        })(window, document);
+    </script>
+</head>
+<body class="min-h-screen w-full flex flex-col-reverse lg:flex-row bg-slate-50 dark:bg-[#070e17] text-slate-900 dark:text-slate-100 font-['Cairo',sans-serif] relative overflow-hidden selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- LEFT PANEL: Form Section -->
+    <section class="flex-1 flex flex-col justify-between p-4 sm:p-6 lg:p-12 relative z-10 bg-gradient-to-b from-white to-slate-50 dark:from-[#091522] dark:to-[#070e17] overflow-y-auto min-h-screen lg:min-h-0">
+        
+        <!-- Decorative background radial accent -->
+        <div class="absolute top-0 right-0 w-96 h-96 bg-[radial-gradient(circle,rgba(212,175,55,0.03)_0%,transparent_70%)] pointer-events-none -z-10"></div>
+        
+        <!-- Micro Header with Theme Toggle -->
+        <div class="flex items-center justify-between w-full mb-6">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400">
+                    اتصال آمن ومشفّر ومراقب مركزياً
+                </span>
+            </div>
+
+            <button type="button" id="theme-toggle" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-500 dark:hover:text-amber-400 flex items-center justify-center transition-all cursor-pointer shadow-sm" title="تبديل مظهر النظام">
+                <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+            </button>
+        </div>
+
+        <!-- Center Card Container -->
+        <div class="w-full max-w-md mx-auto my-auto py-4">
+            <div class="bg-white/80 dark:bg-[#0b1a2a]/90 backdrop-blur-md p-6 sm:p-8 rounded-2xl sm:rounded-3xl shadow-xl dark:shadow-2xl border border-slate-200/60 dark:border-amber-500/15 relative">
+                
+                <!-- Elegant Top Line Accents -->
+                <div class="absolute top-0 inset-x-0 h-1 rounded-t-3xl bg-gradient-to-r from-amber-500 via-amber-600 to-[#08214c]"></div>
+
+                <!-- Form Header -->
+                <div class="mb-6 text-right">
+                    <h2 class="text-xl sm:text-2xl font-black text-[#08214c] dark:text-white mb-2 relative inline-block">
+                        مرحباً بك مجدداً
+                        <span class="absolute -bottom-1.5 right-0 w-11 h-1 bg-gradient-to-l from-amber-500 to-amber-300 rounded-full"></span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                        سجل الدخول للمتابعة إلى بوابة لوحة التحكم
+                    </p>
+                </div>
+
+                <!-- Error Messages -->
+                
+                <!-- Login Form -->
+                <form action="http://localhost:8000/login" method="POST" id="loginForm" class="space-y-4">
+                    <input type="hidden" name="_token" value="Ki6K2lE6PE5CY172kcchW7WaRYNODpJvdKjJoTLp" autocomplete="off">                    
+                    <!-- Phone/Username Field -->
+                    <div class="space-y-1.5 text-right">
+                        <label for="phone" class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                            البريد الإلكتروني / اسم المستخدم الحكومي
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="phone" name="phone" required value="" placeholder="name@agency.gov" class="w-full bg-slate-50 dark:bg-[#071320]/80 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 dark:focus:border-amber-400 rounded-xl pr-10 pl-3 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-4 focus:ring-amber-500/10 dark:focus:ring-amber-400/10 font-mono transition text-right h-11" autofocus autocomplete="username" inputmode="text">
+                            <i data-lucide="mail" class="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <!-- Password Field -->
+                    <div class="space-y-1.5 text-right">
+                        <div class="flex items-center justify-between">
+                            <label for="password" class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                                كلمة المرور
+                            </label>
+                            <button type="button" onclick="showForgotPasswordModal()" class="text-[11px] font-bold text-[#1a4b8c] dark:text-amber-400 hover:text-[#08214c] dark:hover:text-amber-300 hover:underline cursor-pointer transition">
+                                نسيت كلمة المرور؟
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required placeholder="••••••••••••" class="w-full bg-slate-50 dark:bg-[#071320]/80 border-2 border-slate-200 dark:border-slate-800 focus:border-amber-500 dark:focus:border-amber-400 rounded-xl pr-10 pl-10 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-4 focus:ring-amber-500/10 dark:focus:ring-amber-400/10 font-mono transition text-right h-11" autocomplete="current-password">
+                            <i data-lucide="lock" class="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            <button type="button" onclick="togglePassword()" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-md transition cursor-pointer" aria-label="إظهار وإخفاء كلمة المرور">
+                                <i data-lucide="eye" id="toggleIconEye" class="w-4 h-4"></i>
+                                <i data-lucide="eye-off" id="toggleIconEyeSlash" class="w-4 h-4 hidden"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Remember Me & Encryption Notice -->
+                    <div class="flex items-center justify-between pt-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 select-none">
+                        <label class="flex items-center gap-2 cursor-pointer relative group">
+                            <input type="checkbox" name="remember" id="remember"  class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#071320] text-amber-500 focus:ring-amber-400 focus:ring-offset-slate-900 accent-amber-500 cursor-pointer">
+                            <span class="font-semibold text-slate-600 dark:text-slate-300 group-hover:text-amber-500 transition-colors">تذكر بيانات الدخول</span>
+                        </label>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            تشفير آمن 256-bit
+                        </span>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-[#08214c] via-[#123363] to-[#1a4b8c] dark:from-amber-500 dark:via-amber-600 dark:to-amber-500 hover:opacity-95 text-white dark:text-slate-950 font-black py-3 rounded-xl text-xs sm:text-sm shadow-lg shadow-[#08214c]/15 dark:shadow-amber-500/10 border border-transparent dark:border-amber-400/30 transition-all duration-200 transform active:scale-95 cursor-pointer flex items-center justify-center gap-2 mt-4 h-11">
+                        <i data-lucide="loader-2" id="btnSpinner" class="w-4 h-4 animate-spin hidden"></i>
+                        <span id="btnText">تسجيل الدخول للمنظومة</span>
+                        <i data-lucide="chevron-left" id="btnIcon" class="w-4.5 h-4.5 stroke-[2.5]"></i>
+                    </button>
+                </form>
+
+                <!-- Help & Support Footer -->
+                <div class="text-center mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/40">
+                    <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                        تواجه مشكلة في الدخول؟ 
+                        <a href="mailto:support@agriculture.gov.ye" class="text-[#1a4b8c] dark:text-amber-400 hover:underline font-bold">
+                            الدعم الفني والسيبراني
+                        </a>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Security Footer -->
+        <footer class="text-center text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 pt-6 mt-auto">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-xl mx-auto border-t border-slate-200/50 dark:border-slate-800/40 pt-4">
+                <span>المنظومة الوطنية الموحدة للمشاريع • إصدار معتمد 2.6</span>
+                <span class="font-mono uppercase tracking-wider text-[9px] bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
+                    SECURE GOV ACCESS
+                </span>
+            </div>
+        </footer>
+    </section>
+
+    <!-- RIGHT PANEL: Brand Section -->
+    <section class="flex-1 lg:flex-[1.1] bg-gradient-to-br from-[#071320] via-[#0d2238] to-[#0a1b2d] text-white flex flex-col items-center justify-center p-6 lg:p-16 relative overflow-hidden select-none min-h-[220px] lg:min-h-screen z-10 border-b lg:border-b-0 lg:border-l border-amber-500/20">
+        
+        <!-- Geometric and Arabesque decorative structures -->
+        <div class="absolute inset-0 opacity-5 pointer-events-none bg-radial-gradient"></div>
+
+        <!-- Ambient Glowing Floating Circles -->
+        <div class="absolute rounded-full bg-white/5 w-64 h-64 lg:w-[450px] lg:h-[450px] -top-16 -right-16 animate-pulse pointer-events-none"></div>
+        <div class="absolute rounded-full bg-amber-500/5 w-48 h-48 lg:w-[350px] lg:h-[350px] -bottom-16 -left-16 animate-bounce pointer-events-none" style="animation-duration: 15s;"></div>
+
+        <div class="text-center max-w-md mx-auto space-y-4 lg:space-y-6 z-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            
+            <!-- Logo Container -->
+            <div class="w-24 h-24 lg:w-44 lg:h-44 bg-white rounded-full flex items-center justify-center mx-auto shadow-2xl border-2 lg:border-4 border-amber-500/80 p-3 lg:p-5 relative transition-all duration-300 hover:scale-105 group">
+                <div class="absolute -inset-1.5 rounded-full border border-dashed border-amber-400/50 animate-[spin_40s_linear_infinite] group-hover:border-amber-400 pointer-events-none"></div>
+                <img src="http://localhost:8000/images/logo.png" alt="الشعار الوطني" class="max-w-full max-h-full object-contain" onerror="this.src='data:image/svg+xml;utf8,<svg viewBox=\'0 0 100 100\' class=\'w-full h-full text-amber-600 fill-current\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M50,10 L85,25 L85,55 C85,75 50,90 50,90 C50,90 15,75 15,55 L15,25 Z\' fill=\'%2308214c\' stroke=\'%23d4af37\' stroke-width=\'2\' /><path d=\'M50,22 Q58,26 62,35 L62,55 Q50,65 38,55 L38,35 Q42,26 50,22 Z\' fill=\'%23d4af37\' /><path d=\'M22,28 L35,32 L35,52 L22,48 Z\' fill=\'%23ef4444\' /><path d=\'M78,28 L65,32 L65,52 L78,48 Z\' fill=\'%23ef4444\' /><circle cx=\'50\' cy=\'45\' r=\'5\' fill=\'%2310b981\' /></svg>'">
+            </div>
+
+            <!-- Typography -->
+            <div class="space-y-3">
+                <h1 class="text-sm sm:text-base lg:text-xl font-extrabold text-center text-white drop-shadow-md leading-relaxed tracking-wide">
+                    وزارة الزراعة والثروة السمكية والموارد المائية
+                </h1>
+                
+                <div class="w-20 lg:w-32 h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto my-3"></div>
+                
+                <h2 class="text-xs lg:text-sm font-bold text-amber-400 text-center tracking-wider drop-shadow-sm uppercase">
+                    نظام إدارة وتمويل المشاريع التنموية
+                </h2>
+            </div>
+
+            <p class="text-[10px] lg:text-xs text-slate-300 max-w-xs mx-auto leading-relaxed opacity-90 hidden sm:block">
+                منصة حكومية رقابية موحدة للتحقق من خطط التمويل وتوزيع مستلزمات الري والآبار والمنشآت الميدانية في كافة محافظات الجمهورية.
+            </p>
+        </div>
+    </section>
+
+    <!-- FORGOT PASSWORD MODAL (Tailwind implementation) -->
+    <div id="forgotPasswordModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm items-center justify-center p-4 hidden">
+        <div class="bg-[#0b1a2a] border border-amber-500/40 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-right animate-in fade-in zoom-in-95 duration-200">
+            <div class="flex items-center gap-2.5 text-amber-400">
+                <i data-lucide="key-round" class="w-5 h-5"></i>
+                <h3 class="text-sm font-black text-white">استعادة كلمة المرور للأعضاء</h3>
+            </div>
+            
+            <div id="step-phone" class="space-y-3">
+                <p class="text-xs text-slate-300 leading-relaxed font-medium">
+                    أدخل اسم المستخدم أو رقم الهاتف المسجل لإرسال رمز التحقق.
+                </p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">اسم المستخدم أو رقم الهاتف</label>
+                    <input type="text" id="reset-username" class="w-full bg-[#071320] border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 text-right h-10" placeholder="أدخل اسم المستخدم">
+                </div>
+                <button type="button" id="btn-send-otp" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2 h-10">
+                    <span id="text-send-otp">إرسال رمز التحقق</span>
+                    <i data-lucide="loader-2" id="spinner-send-otp" class="w-4 h-4 animate-spin hidden"></i>
+                </button>
+            </div>
+
+            <div id="step-otp" class="space-y-3 hidden">
+                <p class="text-xs text-slate-300 leading-relaxed font-medium">أدخل رمز التحقق المرسل إليك.</p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">رمز التحقق</label>
+                    <input type="text" id="reset-otp" class="w-full bg-[#071320] border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-base font-mono tracking-widest text-white text-center h-10" placeholder="6 أرقام" maxlength="6">
+                </div>
+                <button type="button" id="btn-verify-otp" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2 h-10">
+                    <span id="text-verify-otp">تحقق من الرمز</span>
+                    <i data-lucide="loader-2" id="spinner-verify-otp" class="w-4 h-4 animate-spin hidden"></i>
+                </button>
+            </div>
+
+            <div id="step-new-password" class="space-y-3 hidden">
+                <p class="text-xs text-slate-300 leading-relaxed font-medium">أدخل كلمة المرور الجديدة.</p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">كلمة المرور الجديدة</label>
+                    <input type="password" id="reset-new-password" class="w-full bg-[#071320] border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-mono text-white text-right h-10" placeholder="••••••••">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">تأكيد كلمة المرور</label>
+                    <input type="password" id="reset-confirm-password" class="w-full bg-[#071320] border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-xs font-mono text-white text-right h-10" placeholder="••••••••">
+                </div>
+                <button type="button" id="btn-reset-password" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-2 h-10">
+                    <span id="text-reset-password">تغيير كلمة المرور</span>
+                    <i data-lucide="loader-2" id="spinner-reset-password" class="w-4 h-4 animate-spin hidden"></i>
+                </button>
+            </div>
+
+            <div id="reset-alert" class="hidden text-xs px-3 py-2 rounded-xl mt-3 text-center border font-semibold"></div>
+
+            <button type="button" onclick="hideForgotPasswordModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors h-10">
+                إغلاق
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Password Toggle
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            const eyeIcon = document.getElementById('toggleIconEye');
+            const eyeSlashIcon = document.getElementById('toggleIconEyeSlash');
+
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                eyeIcon.classList.add('hidden');
+                eyeSlashIcon.classList.remove('hidden');
+            } else {
+                passwordField.type = 'password';
+                eyeIcon.classList.remove('hidden');
+                eyeSlashIcon.classList.add('hidden');
+            }
+        }
+
+        // Form Submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const phoneInput = document.getElementById('phone');
+            const password = document.getElementById('password').value.trim();
+            const phone = phoneInput ? phoneInput.value.trim() : '';
+
+            if (!phone || !password) {
+                // native HTML5 required attributes will handle this mostly
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            const text = document.getElementById('btnText');
+            const spinner = document.getElementById('btnSpinner');
+            const icon = document.getElementById('btnIcon');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-80', 'cursor-not-allowed');
+            text.textContent = 'جاري التحقق...';
+            spinner.classList.remove('hidden');
+            icon.classList.add('hidden');
+        });
+
+        // Theme Toggle (Simplified)
+        // Use centralized theme manager
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function() {
+                if (window.SovereignThemeManager) {
+                    const currentMode = window.SovereignThemeManager.getStoredThemeMode();
+                    const newMode = currentMode === 'dark' ? 'light' : 'dark';
+                    const themeId = window.SovereignThemeManager.getStoredThemeId();
+                    window.SovereignThemeManager.applyTheme(themeId, newMode);
+                }
+            });
+        }
+
+        // Forgot Password Logic
+        function showForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.replace('hidden', 'flex');
+        }
+        function hideForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').classList.replace('flex', 'hidden');
+            // reset logic
+            document.getElementById('step-phone').classList.remove('hidden');
+            document.getElementById('step-otp').classList.add('hidden');
+            document.getElementById('step-new-password').classList.add('hidden');
+            document.getElementById('reset-alert').classList.add('hidden');
+        }
+
+        function showAlert(msg, isSuccess = false) {
+            const alertBox = document.getElementById('reset-alert');
+            alertBox.innerHTML = msg;
+            alertBox.className = \`text-xs px-3 py-2 rounded-xl mt-3 text-center border font-semibold \${isSuccess ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}\`;
+            alertBox.classList.remove('hidden');
+        }
+
+        function toggleLoading(btnId, isLoading) {
+            const spinner = document.getElementById(\`spinner-\${btnId}\`);
+            const btn = document.getElementById(\`btn-\${btnId}\`);
+            if (isLoading) {
+                btn.disabled = true;
+                btn.classList.add('opacity-70', 'cursor-not-allowed');
+                spinner.classList.remove('hidden');
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                spinner.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('btn-send-otp').addEventListener('click', function() {
+            const username = document.getElementById('reset-username').value.trim();
+            if (!username) { showAlert('يرجى إدخال اسم المستخدم أو رقم الهاتف'); return; }
+            document.getElementById('reset-alert').classList.add('hidden');
+            toggleLoading('send-otp', true);
+            
+            fetch('http://localhost:8000/password/otp/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': 'Ki6K2lE6PE5CY172kcchW7WaRYNODpJvdKjJoTLp' },
+                body: JSON.stringify({ username: username })
+            })
+            .then(r => r.json()).then(data => {
+                toggleLoading('send-otp', false);
+                if (data.success) {
+                    showAlert(data.message, true);
+                    document.getElementById('step-phone').classList.add('hidden');
+                    document.getElementById('step-otp').classList.remove('hidden');
+                } else {
+                    showAlert(data.message || 'حدث خطأ');
+                }
+            }).catch(() => { toggleLoading('send-otp', false); showAlert('حدث خطأ بالاتصال'); });
+        });
+
+        document.getElementById('btn-verify-otp').addEventListener('click', function() {
+            const username = document.getElementById('reset-username').value.trim();
+            const otp = document.getElementById('reset-otp').value.trim();
+            if (!otp || otp.length !== 6) { showAlert('الرمز يجب أن يكون 6 أرقام'); return; }
+            toggleLoading('verify-otp', true);
+            
+            fetch('http://localhost:8000/password/otp/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': 'Ki6K2lE6PE5CY172kcchW7WaRYNODpJvdKjJoTLp' },
+                body: JSON.stringify({ username: username, otp: otp })
+            })
+            .then(r => r.json()).then(data => {
+                toggleLoading('verify-otp', false);
+                if (data.success) {
+                    showAlert(data.message, true);
+                    document.getElementById('step-otp').classList.add('hidden');
+                    document.getElementById('step-new-password').classList.remove('hidden');
+                } else { showAlert(data.message || 'الرمز غير صحيح'); }
+            }).catch(() => { toggleLoading('verify-otp', false); showAlert('حدث خطأ بالاتصال'); });
+        });
+
+        document.getElementById('btn-reset-password').addEventListener('click', function() {
+            const username = document.getElementById('reset-username').value.trim();
+            const otp = document.getElementById('reset-otp').value.trim();
+            const pass = document.getElementById('reset-new-password').value;
+            const confirmPass = document.getElementById('reset-confirm-password').value;
+            
+            if (!pass || pass.length < 6) { showAlert('كلمة المرور 6 أحرف على الأقل'); return; }
+            if (pass !== confirmPass) { showAlert('كلمة المرور غير متطابقة'); return; }
+            toggleLoading('reset-password', true);
+            
+            fetch('http://localhost:8000/password/otp/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': 'Ki6K2lE6PE5CY172kcchW7WaRYNODpJvdKjJoTLp' },
+                body: JSON.stringify({ username: username, otp: otp, password: pass, password_confirmation: confirmPass })
+            })
+            .then(r => r.json()).then(data => {
+                toggleLoading('reset-password', false);
+                if (data.success) {
+                    showAlert(data.message, true);
+                    setTimeout(hideForgotPasswordModal, 1500);
+                } else {
+                    showAlert(data.message || 'حدث خطأ');
+                }
+            }).catch(() => { toggleLoading('reset-password', false); showAlert('حدث خطأ بالاتصال'); });
+        });
+    </script>
+</body>
+</html>

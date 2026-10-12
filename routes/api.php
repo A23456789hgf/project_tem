@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\CompletedProjectController;
+use App\Http\Controllers\Api\ErpNextWebhookController;
 use App\Http\Controllers\Api\ErpUomController;
+use App\Http\Controllers\Api\FinancialReviewController;
 use App\Http\Controllers\Api\FrappeDataController;
 use App\Http\Controllers\Api\ProjectImplementingAgencyController;
 use App\Http\Controllers\Api\ProjectSupervisingEntityController;
@@ -10,7 +12,10 @@ use App\Http\Controllers\FetchController;
 use App\Http\Controllers\Project\ProjectApprovalController;
 use App\Http\Controllers\Project\ProjectReferralController;
 use App\Http\Controllers\TaskController;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +32,29 @@ use Illuminate\Support\Facades\Route;
 // Authenticated user
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+Route::middleware([
+    EncryptCookies::class,
+    AddQueuedCookiesToResponse::class,
+    StartSession::class,
+    'auth:sanctum,web',
+    'throttle:api',
+])->prefix('financial-reviews')->group(function () {
+    Route::get('/', [FinancialReviewController::class, 'index'])
+        ->middleware('can:financial-review.read');
+    Route::get('{project}', [FinancialReviewController::class, 'show'])
+        ->middleware('can:financial-review.read');
+    Route::patch('{project}', [FinancialReviewController::class, 'update'])
+        ->middleware('can:financial-review.update');
+    Route::post('{project}/notes', [FinancialReviewController::class, 'addNote'])
+        ->middleware('can:financial-review.update');
+    Route::post('{project}/approve', [FinancialReviewController::class, 'approve'])
+        ->middleware('can:financial-review.approve');
+    Route::post('{project}/reject', [FinancialReviewController::class, 'reject'])
+        ->middleware('can:financial-review.reject');
+    Route::post('{project}/return', [FinancialReviewController::class, 'return'])
+        ->middleware('can:financial-review.return');
 });
 
 /**
@@ -50,31 +78,6 @@ Route::get('frappe-project', function () {
         ],
     ]);
 })->name('frappe.project.index');
-
-Route::prefix('frappe-project')->middleware(['auth:sanctum', 'can:projects.create'])->group(function () {
-    // إنشاء مسودة
-    Route::post('save', [FrappeDataController::class, 'saveDraft'])->name('frappe.project.draft.save');
-
-    // تحديث مسودة (PUT/POST)
-    Route::put('update/{projectId}', [FrappeDataController::class, 'updateDraft'])->name('frappe.project.draft.update');
-    Route::post('update/{projectId}', [FrappeDataController::class, 'updateDraft']); // دعم POST أيضاً
-
-    // إرسال المشروع للاعتماد وبدء التنفيذ والمزامنة مع Frappe
-    Route::post('submit/{projectId}', [FrappeDataController::class, 'submitToImplementation'])
-        ->name('frappe.project.submit');
-
-    // جلب مسودة واحدة
-    Route::get('{projectId}', [FrappeDataController::class, 'getDraft'])->name('frappe.project.draft.get');
-
-    // جلب جميع المسودات للمستخدم الحالي
-    Route::get('drafts', [FrappeDataController::class, 'getUserDrafts'])->name('frappe.project.drafts.user');
-
-    // حذف مسودة
-    Route::delete('delete/{projectId}', [FrappeDataController::class, 'deleteDraft'])->name('frappe.project.draft.delete');
-
-    // التحقق من جاهزية المشروع للاعتماد
-    Route::get('{projectId}/validate', [FrappeDataController::class, 'validateDraft'])->name('frappe.project.draft.validate');
-});
 
 Route::middleware(['auth:sanctum', 'can:configuration.view'])->group(function () {
     /**
@@ -128,36 +131,55 @@ Route::get('/erp/uoms', [ErpUomController::class, 'index']);
 |
 */
 
-Route::middleware(['auth:sanctum', 'can:projects.create'])->prefix('frappe-project')->group(function () {
+Route::middleware('auth:sanctum')->prefix('frappe-project')->group(function () {
 
-    // إنشاء مشروع مسودة
-    Route::post('save', [FrappeDataController::class, 'saveDraft']);
+    Route::post('save', [FrappeDataController::class, 'saveDraft'])
+        ->middleware('can:projects.create')
+        ->name('frappe.project.draft.save');
 
-    // تحديث مشروع مسودة (PUT أو POST)
-    Route::match(['put', 'post'], 'update/{projectId}', [FrappeDataController::class, 'updateDraft'])->middleware('can:projects.edit');
+    Route::put('update/{projectId}', [FrappeDataController::class, 'updateDraft'])
+        ->middleware('can:projects.edit')
+        ->name('frappe.project.draft.update');
+    Route::post('update/{projectId}', [FrappeDataController::class, 'updateDraft'])
+        ->middleware('can:projects.edit');
 
-    // جلب بيانات مشروع مسودة محدد
-    Route::get('{projectId}', [FrappeDataController::class, 'getDraft'])->middleware('can:projects.view');
+    Route::get('drafts', [FrappeDataController::class, 'getUserDrafts'])
+        ->middleware('can:projects.view')
+        ->name('frappe.project.drafts.user');
+    Route::get('my-drafts', [FrappeDataController::class, 'getUserDrafts'])
+        ->middleware('can:projects.view');
 
-    // جلب كل المسودات الخاصة بالمستخدم
-    Route::get('my-drafts', [FrappeDataController::class, 'getUserDrafts'])->middleware('can:projects.view');
+    Route::get('financial-items', [FrappeDataController::class, 'getFinancialItems'])
+        ->middleware('can:projects.create')
+        ->name('frappe.financial_items');
 
-    // جلب البنود المالية من ERPNext (مع مزامنة الجهة المنشئة أولاً)
-    Route::get('financial-items', [FrappeDataController::class, 'getFinancialItems'])->name('frappe.financial_items');
-
-    // التحقق من الجهة في ERPNext وجلب البنود المالية — يُستخدم عند إنشاء مشروع (قبل الحفظ)
     Route::get('verify-entity-financial-items', [FrappeDataController::class, 'verifyEntityAndGetFinancialItems'])
+        ->middleware('can:projects.create')
         ->name('frappe.verify_entity_financial_items');
 
-    // اعتماد المشروع وإرساله للتنفيذ
-    Route::post('submit/{projectId}', [FrappeDataController::class, 'submitToImplementation']);
+    Route::post('submit/{projectId}', [FrappeDataController::class, 'submitToImplementation'])
+        ->middleware('can:projects.create')
+        ->name('frappe.project.submit');
 
-    // حذف مشروع مسودة
-    Route::delete('delete/{projectId}', [FrappeDataController::class, 'deleteDraft'])->middleware('can:projects.delete');
+    Route::delete('delete/{projectId}', [FrappeDataController::class, 'deleteDraft'])
+        ->middleware('can:projects.delete')
+        ->name('frappe.project.draft.delete');
 
-    // التحقق من صحة المشروع قبل الاعتماد
-    Route::get('validate/{projectId}', [FrappeDataController::class, 'validateDraft'])->middleware('can:projects.view');
+    Route::get('validate/{projectId}', [FrappeDataController::class, 'validateDraft'])
+        ->middleware('can:projects.view');
+    Route::get('{projectId}/validate', [FrappeDataController::class, 'validateDraft'])
+        ->middleware('can:projects.view')
+        ->name('frappe.project.draft.validate');
+    Route::get('{projectId}', [FrappeDataController::class, 'getDraft'])
+        ->middleware('can:projects.view')
+        ->name('frappe.project.draft.get');
 });
+
+/**
+ * ERPNext Webhook
+ */
+Route::post('webhooks/erpnext', [ErpNextWebhookController::class, 'handle'])
+    ->name('api.webhooks.erpnext');
 
 /**
  * Project Approval API Routes
@@ -184,6 +206,9 @@ Route::middleware(['web', 'auth'])->group(function () {
 Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/tasks/organizations', [TaskController::class, 'organizations'])
         ->name('api.tasks.organizations');
+    Route::get('/tasks/users-by-scope', [TaskController::class, 'getUsersByScope'])
+        ->name('api.tasks.users-by-scope')
+        ->middleware('can:task.assign');
 });
 
 /**

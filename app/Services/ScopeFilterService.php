@@ -17,64 +17,14 @@ class ScopeFilterService
 {
     protected static array $userScopeCache = [];
 
+    public function __construct(private OrganizationResolver $organizationResolver) {}
+
     /**
      * استخراج وتكييش قائمة الكيانات والنطاقات المسموح بها للمستخدم الحالي للطلب الواحد.
      */
     public function getUserEntityIds($user = null): array
     {
-        $user = $user ?? auth()->user();
-
-        if (! $user) {
-            return [];
-        }
-
-        $adminScopeId = session('selected_administrative_scope_id', $user->administrative_scope_id);
-        $entityId = session('selected_entity_id', $user->entity_id);
-        $geoScopes = session('selected_geographic_scopes');
-
-        $cacheKey = $user->id.'_'.($adminScopeId ?? 0).'_'.($entityId ?? 0).'_'.md5(json_encode($geoScopes));
-
-        if (isset(self::$userScopeCache[$cacheKey])) {
-            return self::$userScopeCache[$cacheKey];
-        }
-
-        // ── أ) النطاق الإداري ──────────────────────────────
-        $entityIdsByEnt = $adminScopeId ? InternalEntity::getAllChildrenIds($adminScopeId) : [];
-
-        // ── ب) النطاق بحسب الكيان (entity_id) ──────────────
-        $entityIdsByMyEnt = $entityId ? InternalEntity::getAllChildrenIds($entityId) : [];
-
-        // ── ج) النطاقات الجغرافية ──────────────────────────
-        if ($geoScopes !== null) {
-            $entityIdsByGovAndDist = collect($geoScopes)->map(fn ($s) => (object) $s);
-        } else {
-            $entityIdsByGovAndDist = $user->geographicScopes ?? collect();
-        }
-
-        $entityIdsByGeo = [];
-        foreach ($entityIdsByGovAndDist as $scope) {
-            $govId = is_array($scope) ? ($scope['governorate_id'] ?? null) : ($scope->governorate_id ?? null);
-            $dirId = is_array($scope) ? ($scope['directorate_id'] ?? null) : ($scope->directorate_id ?? null);
-
-            if (! empty($dirId)) {
-                $ids = InternalEntity::getAllByDirectorate($dirId);
-                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-            } elseif (! empty($govId)) {
-                if ($govId === 'all' || $govId === 0 || $govId === '0') {
-                    $ids = DB::table('internal_entities')->pluck('id')->map(fn ($id) => (int) $id)->toArray();
-                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-                } else {
-                    $ids = InternalEntity::getAllByGovernorate($govId);
-                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-                }
-            }
-        }
-
-        $entityIds = array_merge($entityIdsByEnt, $entityIdsByMyEnt, $entityIdsByGeo);
-        $entityIds = array_unique($entityIds);
-        $entityIds = array_filter($entityIds, fn ($id) => is_numeric($id) && $id > 0);
-
-        return self::$userScopeCache[$cacheKey] = array_values($entityIds);
+        return app(UserDataScopeService::class)->getUserEntityIds($user);
     }
 
     /**
@@ -88,10 +38,16 @@ class ScopeFilterService
             return collect();
         }
 
-        if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
-            return Authority::where('id', $user->authority_id)
-                ->select('id', 'agency_name as name')
-                ->get();
+        if ($user->isExternal()) {
+            $authorityQuery = Authority::withoutGlobalScopes()->select('id', 'agency_name as name');
+            $this->organizationResolver->applyVisibleAuthorities($authorityQuery, $user);
+            $authorities = $authorityQuery->get()->each->setAttribute('organization_type', OrganizationResolver::EXTERNAL);
+
+            $entityQuery = InternalEntity::withoutGlobalScopes()->where('is_active', true)->select('id', 'name');
+            $this->organizationResolver->applyVisibleInternalEntities($entityQuery, $user);
+            $entities = $entityQuery->get()->each->setAttribute('organization_type', OrganizationResolver::INTERNAL);
+
+            return $authorities->concat($entities)->values();
         }
 
         $entitiesQuery = InternalEntity::where('is_active', true)->orderBy('name')->select('id', 'name');
@@ -115,11 +71,7 @@ class ScopeFilterService
     {
         $user = $user ?? auth()->user();
 
-        if ($user?->isExternal()) {
-            return $user->authority_id ? (int) $user->authority_id : null;
-        }
-
-        return $user?->entity_id ? (int) $user->entity_id : null;
+        return $user ? $this->organizationResolver->resolve($user)['id'] : null;
     }
 
     /**
@@ -127,82 +79,7 @@ class ScopeFilterService
      */
     public function applyEntityFilter(Builder $query, string $column = 'creator_entity_id'): Builder
     {
-        $user = auth()->user();
-
-        if (! $user) {
-            return $query->whereRaw('0=1');
-        }
-
-        if ($user->isAdmin() || ($user->role && $user->role->full_access)) {
-            return $query;
-        }
-
-        // 1. المستخدم الخارجي
-        if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
-            $userAuthorityId = (int) $user->authority_id;
-            $hasWorkflowResponsibility = ! empty($user->responsibility);
-
-            return $query->where(function ($q) use ($user, $userAuthorityId, $hasWorkflowResponsibility) {
-                $table = $q->getModel()->getTable();
-                $q->where("$table.created_by_user_id", $user->id);
-
-                if ($hasWorkflowResponsibility) {
-                    $q->orWhere("$table.authority_id", $userAuthorityId);
-                } else {
-                    $authorityName = DB::table('authorities')->where('id', $userAuthorityId)->value('agency_name');
-                    if ($authorityName) {
-                        $q->orWhere("$table.created_by_entity", trim($authorityName));
-                    }
-                    $q->orWhere("$table.authority_id", $userAuthorityId);
-                }
-            });
-        }
-
-        // 2. مستخدم الوزارة الداخلي
-        $entityIds = $this->getUserEntityIds($user);
-
-        if (! empty($entityIds)) {
-            $entityNames = DB::table('internal_entities')->whereIn('id', $entityIds)->pluck('name')->filter()->toArray();
-
-            return $query->where(function ($q) use ($entityIds, $entityNames, $user, $column) {
-                $table = $q->getModel()->getTable();
-                $q->whereIn("$table.$column", $entityIds)
-                    ->orWhereIn("$table.internal_entity_id", $entityIds)
-                    ->orWhere("$table.created_by_user_id", $user->id);
-
-                $cleanEntityNames = array_filter(array_map(function ($name) {
-                    return trim(preg_replace('/\s+/u', ' ', $name));
-                }, $entityNames));
-
-                if (! empty($cleanEntityNames)) {
-                    $q->orWhereIn("$table.created_by_entity", $cleanEntityNames);
-                }
-
-                if ($table === 'projects') {
-                    $q->orWhereHas('projectApprovals', fn ($appQ) => $appQ->whereIn('project_approvals.entity_id', $entityIds));
-                }
-            });
-        } else {
-            $userEntityId = $user->entity_id;
-            $userEntityName = $user->entity?->name;
-
-            return $query->where(function ($q) use ($user, $userEntityId, $userEntityName, $column) {
-                $table = $q->getModel()->getTable();
-                $q->where("$table.created_by_user_id", $user->id);
-                if ($userEntityId) {
-                    $q->orWhere("$table.$column", $userEntityId)
-                        ->orWhere("$table.internal_entity_id", $userEntityId);
-
-                    if ($table === 'projects') {
-                        $q->orWhereHas('projectApprovals', fn ($appQ) => $appQ->where('project_approvals.entity_id', $userEntityId));
-                    }
-                }
-                if ($userEntityName) {
-                    $cleanEntName = trim(preg_replace('/\s+/u', ' ', $userEntityName));
-                    $q->orWhere("$table.created_by_entity", $cleanEntName);
-                }
-            });
-        }
+        return app(UserDataScopeService::class)->applyScope($query, auth()->user());
     }
 
     /**
@@ -232,8 +109,8 @@ class ScopeFilterService
         $orgInput = null;
         if ($request->has('organization') || $request->has('entity')) {
             $orgInput = $request->input('organization', $request->input('entity'));
-        } elseif ($enforceDefaultEntity && ($user->entity_id || $user->authority_id)) {
-            $orgInput = $user->entity_id ?? $user->authority_id;
+        } elseif ($enforceDefaultEntity) {
+            $orgInput = $this->organizationResolver->resolve($user)['id'];
         }
 
         if (! empty($orgInput) && $orgInput !== 'all' && $orgInput !== '') {

@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <title>وثيقة طلب مشروع | {{ $projectRequest->project_name }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<x-letterhead-styles />
     <style>
         @font-face {
             font-family: 'Cairo';
@@ -131,26 +133,11 @@
     </style>
 </head>
 <body>
+<div class="no-print p-3"><x-letterhead-selector /></div>
 
     <!-- Cover Page -->
     <div class="cover-page page-break">
-        <table style="border: none; margin-bottom: 40px;">
-            <tr>
-                <td width="33%" class="text-end" style="border: none;">
-                    <strong>الجمهورية اليمنية</strong><br>
-                    اللجنة الزراعية والسمكية العليا
-                </td>
-                <td width="33%" class="text-center" style="border: none;">
-                    @if($logoBase64)
-                        <img src="{{ $logoBase64 }}" alt="Logo" style="height: 80px;">
-                    @endif
-                </td>
-                <td width="33%" class="text-start" style="border: none;">
-                    <strong>Republic of Yemen</strong><br>
-                    Higher Agri & Fisheries Com.
-                </td>
-            </tr>
-        </table>
+        <x-letterhead-header hideBorder="true" />
 
         <div style="margin-top: 50px;">
             <h1 style="font-size: 26pt; color: #000;">وثيقة طلب مشروع مقترح</h1>
@@ -337,8 +324,7 @@
                     </td>
                 </tr>
             </table>
-        </div>
-    </div>
-
-</body>
+        <x-letterhead-footer documentName="وثيقة طلب مشروع مقترح" />
+    </div></div></body>
 </html>
+

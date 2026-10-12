@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\UserDataScopeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -98,14 +99,21 @@ class ProjectReferral extends Model
 
     public function scopeActionableFor(Builder $query, User $user): Builder
     {
-        return $query->where(function (Builder $query) use ($user) {
-            $query->where(function (Builder $query) use ($user) {
-                $query->where('status', 'pending')
+        $allowedEntityIds = app(UserDataScopeService::class)->getUserEntityIds($user);
+
+        return $query->where(function (Builder $query) use ($user, $allowedEntityIds) {
+            $query->where(function (Builder $q) use ($user) {
+                $q->where('status', 'pending')
                     ->where('referred_user_id', $user->id);
-            })->orWhere(function (Builder $query) use ($user) {
-                $query->where('status', 'responded')
+            })->orWhere(function (Builder $q) use ($user) {
+                $q->where('status', 'responded')
                     ->where('referring_user_id', $user->id);
             });
+
+            if (! empty($allowedEntityIds)) {
+                $query->orWhereIn('referred_entity_id', $allowedEntityIds)
+                    ->orWhereIn('referring_entity_id', $allowedEntityIds);
+            }
         });
     }
 

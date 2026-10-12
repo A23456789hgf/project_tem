@@ -17,6 +17,9 @@ class Task extends Model
         'chain_project_activity',
         'project_entities_id',
         'assigned_entity_id',
+        'assigned_authority_id',
+        'assigned_user_id',
+        'assigned_organization_type',
         'assignment_type',
         'executive_activity_action_id',
         'title',
@@ -58,6 +61,23 @@ class Task extends Model
     public function assignedEntity()
     {
         return $this->belongsTo(InternalEntity::class, 'assigned_entity_id');
+    }
+
+    public function assignedAuthority()
+    {
+        return $this->belongsTo(Authority::class, 'assigned_authority_id');
+    }
+
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    public function assignedOrganization(): InternalEntity|Authority|null
+    {
+        return $this->assigned_organization_type === 'external'
+            ? $this->assignedAuthority
+            : $this->assignedEntity;
     }
 
     public function executiveAction()
@@ -152,6 +172,25 @@ class Task extends Model
         return $this->hasMany(TaskActivity::class);
     }
 
+    public function achievementReports()
+    {
+        return $this->hasMany(TaskAchievementReport::class);
+    }
+
+    public function isStandaloneGeneralTask(): bool
+    {
+        return $this->project_id === null
+            && $this->value_chain_id === null
+            && $this->assigned_entity_id === null
+            && $this->assigned_authority_id === null
+            && $this->assigned_user_id === null
+            && ! $this->is_within_activities
+            && $this->activity_type === null
+            && $this->activity_id === null
+            && $this->procedure_id === null
+            && $this->executive_activity_action_id === null;
+    }
+
     public function getOfficialExecutionProgressAttribute(): ?int
     {
         if (! $this->executive_activity_action_id) {
@@ -202,20 +241,20 @@ class Task extends Model
             return true;
         }
 
+        if ($this->assigned_user_id && (int) $this->assigned_user_id === (int) $user->id) {
+            return true;
+        }
+
+        if ($this->assigned_organization_type === 'external' && $this->assigned_authority_id) {
+            $organization = $user->organization();
+
+            return $organization['type'] === 'external'
+                && $organization['id'] === (int) $this->assigned_authority_id;
+        }
+
         // Or if the task is assigned to an entity within the user's scope
         if ($this->assigned_entity_id) {
-            $userEntityIds = [];
-            if ($user->administrative_scope_id) {
-                $userEntityIds = array_merge($userEntityIds, InternalEntity::getAllChildrenIds($user->administrative_scope_id));
-            }
-            foreach ($user->geographicScopes as $scope) {
-                if (! empty($scope->governorate_id) && empty($scope->directorate_id)) {
-                    $userEntityIds = array_merge($userEntityIds, InternalEntity::getAllByGovernorate($scope->governorate_id));
-                } elseif (! empty($scope->directorate_id)) {
-                    $userEntityIds = array_merge($userEntityIds, InternalEntity::getAllByDirectorate($scope->directorate_id));
-                }
-            }
-            $userEntityIds = array_unique($userEntityIds);
+            $userEntityIds = $user->getFilteredEntityIds();
 
             if (in_array((int) $this->assigned_entity_id, $userEntityIds)) {
                 return true;

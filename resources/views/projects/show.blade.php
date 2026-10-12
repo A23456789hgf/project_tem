@@ -175,7 +175,19 @@
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
                     <div class="d-flex justify-content-md-end gap-2 flex-wrap">
-                        @if($project->status === 'in_progress')
+                        @if($project->status === 'awaiting_disbursement_plan')
+                            @if($project->disbursementPlan && auth()->user()->hasPermission('disbursements.view', $project))
+                                <a href="{{ route('projects.disbursement-plan.show', $project->id) }}" class="btn btn-warning shadow-sm fw-bold">
+                                    <i class="fas fa-coins me-2"></i>خطة الصرف
+                                </a>
+                            @elseif(!$project->disbursementPlan && auth()->user()->hasPermission('disbursements.create', $project))
+                                <a href="{{ route('projects.disbursement-plan.create', $project->id) }}" class="btn btn-warning shadow-sm fw-bold">
+                                    <i class="fas fa-plus-circle me-2"></i>إعداد خطة الصرف
+                                </a>
+                            @endif
+                        @endif
+
+                        @if(in_array($project->status, ['in_progress', 'in_execution'], true))
                             @can('viewSchedule', $project)
                             <a href="{{ route('projects.schedule', $project->id) }}" class="btn btn-white shadow-sm fw-bold auth-perm-projects-schedule">
                                 <i class="fas fa-calendar-alt me-2 text-info"></i>الجدول الزمني
@@ -201,7 +213,13 @@
                             @endcan
                         @endif
 
-                        @if($project->status === 'in_progress')
+                        @if(in_array($project->status, ['in_progress', 'in_execution'], true))
+                            @if($project->disbursementPlan && auth()->user()->hasPermission('disbursements.view', $project))
+                                <a href="{{ route('projects.disbursement-plan.show', $project->id) }}" class="btn btn-outline-warning shadow-sm fw-bold">
+                                    <i class="fas fa-coins me-2"></i>خطة الصرف
+                                </a>
+                            @endif
+
                             @can('execute', $project)
                             <a href="{{ route('projects.execution', $project->id) }}" class="btn btn-success shadow-sm fw-bold auth-perm-projects-execute">
                                 <i class="fas fa-rocket me-2"></i>التنفيذ
@@ -1143,7 +1161,7 @@
                 </h5>
             </div>
             <div class="card-body p-4">
-                @if($project->status === 'in_progress')
+                @if(in_array($project->status, ['in_progress', 'in_execution'], true))
                     <div class="alert alert-success border-0 shadow-sm rounded-3 p-4 mb-0 animate-fade-in">
                         <div class="d-flex align-items-center">
                             <div class="bg-success text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
@@ -1151,7 +1169,44 @@
                             </div>
                             <div>
                                 <h4 class="alert-heading fw-bold mb-1">المشروع في مرحلة التنفيذ</h4>
-                                <p class="mb-0 text-success-emphasis">تم اعتماد المشروع بالكامل وهو الآن جاهز للتنفيذ والمتابعة.</p>
+                                <p class="mb-0 text-success-emphasis">تم اعتماد المشروع بالكامل وهو الآن في مرحلة التنفيذ والمتابعة.</p>
+                            </div>
+                        </div>
+                    </div>
+                @elseif($project->status === 'awaiting_disbursement_plan')
+                    <div class="alert alert-warning border-0 shadow-sm rounded-3 p-4 mb-0 animate-fade-in">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-warning text-dark rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                                    <i class="fas fa-coins fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h4 class="alert-heading fw-bold mb-1">المشروع بانتظار إعداد خطة الصرف</h4>
+                                    <p class="mb-0 text-muted">تمت الموافقة النهائية على المشروع بنجاح، ويتطلب مسار الصرف إعداد خطة الدفعات واعتمادها للبدء بالتنفيذ.</p>
+                                </div>
+                            </div>
+                            <div>
+                                @if($project->disbursementPlan && auth()->user()->hasPermission('disbursements.view', $project))
+                                    <a href="{{ route('projects.disbursement-plan.show', $project->id) }}" class="btn btn-warning fw-bold px-4 rounded-pill">
+                                        <i class="fas fa-eye me-1"></i> عرض خطة الصرف
+                                    </a>
+                                @elseif(!$project->disbursementPlan && auth()->user()->hasPermission('disbursements.create', $project))
+                                    <a href="{{ route('projects.disbursement-plan.create', $project->id) }}" class="btn btn-warning fw-bold px-4 rounded-pill">
+                                        <i class="fas fa-plus-circle me-1"></i> إعداد خطة الصرف الآن
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @elseif($project->status === 'completed')
+                    <div class="alert alert-info border-0 shadow-sm rounded-3 p-4 mb-0 animate-fade-in">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-info text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                                <i class="fas fa-check-double fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="alert-heading fw-bold mb-1">المشروع مكتمل ومغلق</h4>
+                                <p class="mb-0 text-muted">تم استكمال جميع الأعمال وإخلاء كافة الدفعات المالية واعتماد إغلاق المشروع بنجاح.</p>
                             </div>
                         </div>
                     </div>

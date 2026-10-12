@@ -1,0 +1,3691 @@
+{
+  "counts": {
+    "total": 525,
+    "full": 349,
+    "partials": 110,
+    "components": 21,
+    "print_pdf": 45,
+    "auth": 7,
+    "admin": 193,
+    "migrated": 5,
+    "pending": 511,
+    "excluded": 9
+  },
+  "files": [
+    {
+      "path": "design-system-demo.blade.php",
+      "module": "root",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "home.blade.php",
+      "module": "root",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Migrated"
+    },
+    {
+      "path": "sample-multistep.blade.php",
+      "module": "root",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "test-buttons.blade.php",
+      "module": "root",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "test-locations.blade.php",
+      "module": "root",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "welcome.blade.php",
+      "module": "root",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "admin/ui-showcase.blade.php",
+      "module": "admin",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "admin/audit-logs/index.blade.php",
+      "module": "admin",
+      "submodule": "audit-logs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "admin/audit-logs/show.blade.php",
+      "module": "admin",
+      "submodule": "audit-logs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "admin/entity-stages/create.blade.php",
+      "module": "admin",
+      "submodule": "entity-stages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "admin/entity-stages/edit.blade.php",
+      "module": "admin",
+      "submodule": "entity-stages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "admin/entity-stages/index.blade.php",
+      "module": "admin",
+      "submodule": "entity-stages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "approvals/completed.blade.php",
+      "module": "approvals",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "approvals/index.blade.php",
+      "module": "approvals",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "approvals/show.blade.php",
+      "module": "approvals",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "approvals/show_referral.blade.php",
+      "module": "approvals",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "approvals/partials/decision-panel.blade.php",
+      "module": "approvals",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "auth/force-change-password.blade.php",
+      "module": "auth",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "auth/forgot-password.blade.php",
+      "module": "auth",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "auth/login.blade.php",
+      "module": "auth",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "auth/register.blade.php",
+      "module": "auth",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "auth/reset-password.blade.php",
+      "module": "auth",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ajax-login-modal.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/chat-widget.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/data-operations.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/footer.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/force-password-change-modal.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/icon.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/index-page.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/navbar.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/notifications.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/signature-modal.blade.php",
+      "module": "components",
+      "submodule": "",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/projects/add-entity-modal.blade.php",
+      "module": "components",
+      "submodule": "projects",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/alert.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/badge.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/button.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/card.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/empty-state.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/input.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/loading.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/modal.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/select.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "components/ui/table.blade.php",
+      "module": "components",
+      "submodule": "ui",
+      "type": "Component",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/import-export.blade.php",
+      "module": "configuration",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/import.blade.php",
+      "module": "configuration",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/shared_styles.blade.php",
+      "module": "configuration",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/association/create.blade.php",
+      "module": "configuration",
+      "submodule": "association",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/association/edit.blade.php",
+      "module": "configuration",
+      "submodule": "association",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/association/index.blade.php",
+      "module": "configuration",
+      "submodule": "association",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/authority-tree.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/bulk_edit_page.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/create.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/edit.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/export.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/import.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/index.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/show.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/partials/bulk-edit-modal.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/authorities/partials/tree-node.blade.php",
+      "module": "configuration",
+      "submodule": "authorities",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/beneficiaries/create.blade.php",
+      "module": "configuration",
+      "submodule": "beneficiaries",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/beneficiaries/edit.blade.php",
+      "module": "configuration",
+      "submodule": "beneficiaries",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/beneficiaries/index.blade.php",
+      "module": "configuration",
+      "submodule": "beneficiaries",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/beneficiary_group/create.blade.php",
+      "module": "configuration",
+      "submodule": "beneficiary_group",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/beneficiary_group/edit.blade.php",
+      "module": "configuration",
+      "submodule": "beneficiary_group",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/beneficiary_group/index.blade.php",
+      "module": "configuration",
+      "submodule": "beneficiary_group",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/advanced-search.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/deleted.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/form.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/index.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/overdue.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/print.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/referrals.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/show.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/statistics.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/correspondence/partials/movement-table.blade.php",
+      "module": "configuration",
+      "submodule": "correspondence",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/directorates/create.blade.php",
+      "module": "configuration",
+      "submodule": "directorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/directorates/edit.blade.php",
+      "module": "configuration",
+      "submodule": "directorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/directorates/export.blade.php",
+      "module": "configuration",
+      "submodule": "directorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/directorates/import.blade.php",
+      "module": "configuration",
+      "submodule": "directorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/directorates/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "directorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/directorates/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "directorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/directorates/index.blade.php",
+      "module": "configuration",
+      "submodule": "directorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/domains/create.blade.php",
+      "module": "configuration",
+      "submodule": "domains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/domains/edit.blade.php",
+      "module": "configuration",
+      "submodule": "domains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/domains/import.blade.php",
+      "module": "configuration",
+      "submodule": "domains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/domains/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "domains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/domains/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "domains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/domains/index.blade.php",
+      "module": "configuration",
+      "submodule": "domains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/domains/scripts.blade.php",
+      "module": "configuration",
+      "submodule": "domains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/donors/create.blade.php",
+      "module": "configuration",
+      "submodule": "donors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/donors/edit.blade.php",
+      "module": "configuration",
+      "submodule": "donors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/donors/index.blade.php",
+      "module": "configuration",
+      "submodule": "donors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/entities/index.blade.php",
+      "module": "configuration",
+      "submodule": "entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/entity_authorities/index.blade.php",
+      "module": "configuration",
+      "submodule": "entity_authorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/executors/create.blade.php",
+      "module": "configuration",
+      "submodule": "executors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/executors/edit.blade.php",
+      "module": "configuration",
+      "submodule": "executors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/executors/index.blade.php",
+      "module": "configuration",
+      "submodule": "executors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/financialitems/create.blade.php",
+      "module": "configuration",
+      "submodule": "financialitems",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/financialitems/edit.blade.php",
+      "module": "configuration",
+      "submodule": "financialitems",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/financialitems/index.blade.php",
+      "module": "configuration",
+      "submodule": "financialitems",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/formfinancing/create.blade.php",
+      "module": "configuration",
+      "submodule": "formfinancing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/formfinancing/edit.blade.php",
+      "module": "configuration",
+      "submodule": "formfinancing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/formfinancing/index.blade.php",
+      "module": "configuration",
+      "submodule": "formfinancing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/funded-entities/create.blade.php",
+      "module": "configuration",
+      "submodule": "funded-entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/funded-entities/edit.blade.php",
+      "module": "configuration",
+      "submodule": "funded-entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/funded-entities/import.blade.php",
+      "module": "configuration",
+      "submodule": "funded-entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/funded-entities/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "funded-entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/funded-entities/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "funded-entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/funded-entities/index.blade.php",
+      "module": "configuration",
+      "submodule": "funded-entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/governorates/create.blade.php",
+      "module": "configuration",
+      "submodule": "governorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/governorates/edit.blade.php",
+      "module": "configuration",
+      "submodule": "governorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/governorates/governorates.show.blade.php",
+      "module": "configuration",
+      "submodule": "governorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/governorates/import.blade.php",
+      "module": "configuration",
+      "submodule": "governorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/governorates/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "governorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/governorates/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "governorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/governorates/index.blade.php",
+      "module": "configuration",
+      "submodule": "governorates",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/create.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/edit.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/hierarchy-tree.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/index.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/show.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/internal_entities/partials/tree-node.blade.php",
+      "module": "configuration",
+      "submodule": "internal_entities",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/interventions/create.blade.php",
+      "module": "configuration",
+      "submodule": "interventions",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/interventions/edit.blade.php",
+      "module": "configuration",
+      "submodule": "interventions",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/interventions/index.blade.php",
+      "module": "configuration",
+      "submodule": "interventions",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/interventions/partials/script.blade.php",
+      "module": "configuration",
+      "submodule": "interventions",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/main_guides/create.blade.php",
+      "module": "configuration",
+      "submodule": "main_guides",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/main_guides/edit.blade.php",
+      "module": "configuration",
+      "submodule": "main_guides",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/main_guides/index.blade.php",
+      "module": "configuration",
+      "submodule": "main_guides",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/main_routers/create.blade.php",
+      "module": "configuration",
+      "submodule": "main_routers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/main_routers/edit.blade.php",
+      "module": "configuration",
+      "submodule": "main_routers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/main_routers/index.blade.php",
+      "module": "configuration",
+      "submodule": "main_routers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/mothers/create.blade.php",
+      "module": "configuration",
+      "submodule": "mothers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/mothers/edit.blade.php",
+      "module": "configuration",
+      "submodule": "mothers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/mothers/index.blade.php",
+      "module": "configuration",
+      "submodule": "mothers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/participation/create.blade.php",
+      "module": "configuration",
+      "submodule": "participation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/participation/edit.blade.php",
+      "module": "configuration",
+      "submodule": "participation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/participation/index.blade.php",
+      "module": "configuration",
+      "submodule": "participation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/priorities/create.blade.php",
+      "module": "configuration",
+      "submodule": "priorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/priorities/edit.blade.php",
+      "module": "configuration",
+      "submodule": "priorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/priorities/index.blade.php",
+      "module": "configuration",
+      "submodule": "priorities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/create.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/edit.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/export.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/import.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/index.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/modal_add.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/pdf.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/import/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/import/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/programs/import/import_result.blade.php",
+      "module": "configuration",
+      "submodule": "programs",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/report_type/create.blade.php",
+      "module": "configuration",
+      "submodule": "report_type",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/report_type/edit.blade.php",
+      "module": "configuration",
+      "submodule": "report_type",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/report_type/import.blade.php",
+      "module": "configuration",
+      "submodule": "report_type",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/report_type/index.blade.php",
+      "module": "configuration",
+      "submodule": "report_type",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sms/logs.blade.php",
+      "module": "configuration",
+      "submodule": "sms",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sms/manual.blade.php",
+      "module": "configuration",
+      "submodule": "sms",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sms/settings.blade.php",
+      "module": "configuration",
+      "submodule": "sms",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sourcefunding/create.blade.php",
+      "module": "configuration",
+      "submodule": "sourcefunding",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sourcefunding/edit.blade.php",
+      "module": "configuration",
+      "submodule": "sourcefunding",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sourcefunding/index.blade.php",
+      "module": "configuration",
+      "submodule": "sourcefunding",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subareas/create.blade.php",
+      "module": "configuration",
+      "submodule": "subareas",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subareas/edit.blade.php",
+      "module": "configuration",
+      "submodule": "subareas",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subareas/import.blade.php",
+      "module": "configuration",
+      "submodule": "subareas",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subareas/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "subareas",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subareas/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "subareas",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subareas/index.blade.php",
+      "module": "configuration",
+      "submodule": "subareas",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subareas/show.blade.php",
+      "module": "configuration",
+      "submodule": "subareas",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subdomain/create.blade.php",
+      "module": "configuration",
+      "submodule": "subdomain",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subdomain/edit.blade.php",
+      "module": "configuration",
+      "submodule": "subdomain",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subdomain/index.blade.php",
+      "module": "configuration",
+      "submodule": "subdomain",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subfinancingform/create.blade.php",
+      "module": "configuration",
+      "submodule": "subfinancingform",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subfinancingform/edit.blade.php",
+      "module": "configuration",
+      "submodule": "subfinancingform",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/subfinancingform/index.blade.php",
+      "module": "configuration",
+      "submodule": "subfinancingform",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sub_routers/create.blade.php",
+      "module": "configuration",
+      "submodule": "sub_routers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sub_routers/edit.blade.php",
+      "module": "configuration",
+      "submodule": "sub_routers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/sub_routers/index.blade.php",
+      "module": "configuration",
+      "submodule": "sub_routers",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/supervisors/create.blade.php",
+      "module": "configuration",
+      "submodule": "supervisors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/supervisors/edit.blade.php",
+      "module": "configuration",
+      "submodule": "supervisors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/supervisors/index.blade.php",
+      "module": "configuration",
+      "submodule": "supervisors",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/type_entity/create.blade.php",
+      "module": "configuration",
+      "submodule": "type_entity",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/type_entity/edit.blade.php",
+      "module": "configuration",
+      "submodule": "type_entity",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/type_entity/index.blade.php",
+      "module": "configuration",
+      "submodule": "type_entity",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/type_financing/create.blade.php",
+      "module": "configuration",
+      "submodule": "type_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/type_financing/edit.blade.php",
+      "module": "configuration",
+      "submodule": "type_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/type_financing/index.blade.php",
+      "module": "configuration",
+      "submodule": "type_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/unit/create.blade.php",
+      "module": "configuration",
+      "submodule": "unit",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/unit/edit.blade.php",
+      "module": "configuration",
+      "submodule": "unit",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/unit/index.blade.php",
+      "module": "configuration",
+      "submodule": "unit",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/value_chain_financing_types/create.blade.php",
+      "module": "configuration",
+      "submodule": "value_chain_financing_types",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/value_chain_financing_types/edit.blade.php",
+      "module": "configuration",
+      "submodule": "value_chain_financing_types",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/value_chain_financing_types/export.blade.php",
+      "module": "configuration",
+      "submodule": "value_chain_financing_types",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/value_chain_financing_types/import.blade.php",
+      "module": "configuration",
+      "submodule": "value_chain_financing_types",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/value_chain_financing_types/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "value_chain_financing_types",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/value_chain_financing_types/index.blade.php",
+      "module": "configuration",
+      "submodule": "value_chain_financing_types",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/value_chain_financing_types/import/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "value_chain_financing_types",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/villages/create.blade.php",
+      "module": "configuration",
+      "submodule": "villages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/villages/edit.blade.php",
+      "module": "configuration",
+      "submodule": "villages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/villages/import.blade.php",
+      "module": "configuration",
+      "submodule": "villages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/villages/import_preview.blade.php",
+      "module": "configuration",
+      "submodule": "villages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/villages/import_report.blade.php",
+      "module": "configuration",
+      "submodule": "villages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/villages/index.blade.php",
+      "module": "configuration",
+      "submodule": "villages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "configuration/villages/show.blade.php",
+      "module": "configuration",
+      "submodule": "villages",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "consultations/index.blade.php",
+      "module": "consultations",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "consultations/show.blade.php",
+      "module": "consultations",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/advanced-search.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/deleted.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/form.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/index.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/overdue.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/print.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/referrals.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/show.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/statistics.blade.php",
+      "module": "correspondence",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/partials/actions-table.blade.php",
+      "module": "correspondence",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/partials/details-content.blade.php",
+      "module": "correspondence",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/partials/movement-table.blade.php",
+      "module": "correspondence",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "correspondence/partials/tasks-table.blade.php",
+      "module": "correspondence",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "entity-officers/create.blade.php",
+      "module": "entity-officers",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "entity-officers/edit.blade.php",
+      "module": "entity-officers",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "entity-officers/index.blade.php",
+      "module": "entity-officers",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "errors/403.blade.php",
+      "module": "errors",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "home/assignments.blade.php",
+      "module": "home",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Migrated"
+    },
+    {
+      "path": "home/recent_projects.blade.php",
+      "module": "home",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Migrated"
+    },
+    {
+      "path": "home/suggestions.blade.php",
+      "module": "home",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Migrated"
+    },
+    {
+      "path": "import_logs/index.blade.php",
+      "module": "import_logs",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "import_logs/show.blade.php",
+      "module": "import_logs",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "layouts/app.blade.php",
+      "module": "layouts",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "layouts/print.blade.php",
+      "module": "layouts",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "memoirs/create.blade.php",
+      "module": "memoirs",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "memoirs/edit.blade.php",
+      "module": "memoirs",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "memoirs/index.blade.php",
+      "module": "memoirs",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "memoirs/print.blade.php",
+      "module": "memoirs",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "memoirs/show.blade.php",
+      "module": "memoirs",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "memoirs/partials/print_settings_modal.blade.php",
+      "module": "memoirs",
+      "submodule": "partials",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/create.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/edit.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/implementation_plan.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/import.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/index.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/print.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/print_batch.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/print_comprehensive_batch.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/print_implementation.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/show.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/partials/_activities_modal.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/partials/_activity_actions_modal.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/partials/_goals_modal.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/partials/_projects_table.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "planning/plans/partials/_project_goals.blade.php",
+      "module": "planning",
+      "submodule": "plans",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "profile/show.blade.php",
+      "module": "profile",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "project-requests/create.blade.php",
+      "module": "project-requests",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "project-requests/index.blade.php",
+      "module": "project-requests",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "project-requests/print.blade.php",
+      "module": "project-requests",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "project-requests/review.blade.php",
+      "module": "project-requests",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "project-requests/show.blade.php",
+      "module": "project-requests",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "project-requests/partials/activity-history.blade.php",
+      "module": "project-requests",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "project-requests/partials/approval-form.blade.php",
+      "module": "project-requests",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/complete-data.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/create.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/edit.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/execution-tracking.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/execution.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/import-list.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/import.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/index.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Migrated"
+    },
+    {
+      "path": "projects/multi-step-form-example.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/pdf-export.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/pdf-financial-summary.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/pdf-list.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/pdf-simple.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/print-old.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/print.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/print_old.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/review.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/schedule.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/show-old.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/show.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/wizard.blade.php",
+      "module": "projects",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/achievements/all.blade.php",
+      "module": "projects",
+      "submodule": "achievements",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/achievements/create.blade.php",
+      "module": "projects",
+      "submodule": "achievements",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/achievements/index.blade.php",
+      "module": "projects",
+      "submodule": "achievements",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/achievements/print-single.blade.php",
+      "module": "projects",
+      "submodule": "achievements",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/achievements/print.blade.php",
+      "module": "projects",
+      "submodule": "achievements",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/achievements/show.blade.php",
+      "module": "projects",
+      "submodule": "achievements",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/approval/index.blade.php",
+      "module": "projects",
+      "submodule": "approval",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/approval/show.blade.php",
+      "module": "projects",
+      "submodule": "approval",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/budgets/index.blade.php",
+      "module": "projects",
+      "submodule": "budgets",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/card/pdf.blade.php",
+      "module": "projects",
+      "submodule": "card",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/card/print-reviews.blade.php",
+      "module": "projects",
+      "submodule": "card",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/card/print.blade.php",
+      "module": "projects",
+      "submodule": "card",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/card/show.blade.php",
+      "module": "projects",
+      "submodule": "card",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/empowerment/index.blade.php",
+      "module": "projects",
+      "submodule": "empowerment",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/empowerment/show.blade.php",
+      "module": "projects",
+      "submodule": "empowerment",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/empowerment/beneficiaries/all.blade.php",
+      "module": "projects",
+      "submodule": "empowerment",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/empowerment/beneficiaries/index.blade.php",
+      "module": "projects",
+      "submodule": "empowerment",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/actions.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/activity-history-display.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/activity-history.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/approval-form.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/approval-tracker.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/document-item.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/document-upload.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/execution-approval.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/financial_status.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/movement-log.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/project-status-badge.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/project_cost.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/stakeholders_management.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tasks-summary-table.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/unit-fetch-script.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/weight-calculator.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/_basic_info.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/_financing.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/_project_cost.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/_project_details.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/_project_objective.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/_review.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/_risks.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-delay-justification-modal.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-executive-display.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-executive-financial-justification.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-executive-form.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-executive-technical-justification.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-executive.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-preliminary-display.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-preliminary-form.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-preliminary.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-print.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-procedure-financial-justification.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-procedure-technical-justification.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/execution-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/financial_justifications.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/implementation/index.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/modals/stakeholder_modals.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/modals/_add_entity_modal.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/modals/_edit_entity_modal.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/beneficiary-entities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/financing.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/implementing-entities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/objective_results.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/participating-entities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/project_entities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/project_location.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/project_obstacles.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/result_outputs.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/specific_objectives.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/supervising_authorities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/_unified_table_template.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/action-assigned-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/action-cost-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/activities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/activity-action-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/activity-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/activity_actions.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/executive-financial-summary.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/hierarchical-action.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/hierarchical-activities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/executive/hierarchical-activity.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/activities-backup.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/activities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/activity-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/activity_procedures.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/cost-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/hierarchical-activities.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/hierarchical-activity.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/hierarchical-cost.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/hierarchical-procedure.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/preliminary-financial-summary.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/procedure-row.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/partials/tables/preliminary/procedure_costs.blade.php",
+      "module": "projects",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/pdf/export.blade.php",
+      "module": "projects",
+      "submodule": "pdf",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/pdf/project-report.blade.php",
+      "module": "projects",
+      "submodule": "pdf",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/pdf/report_landscape.blade.php",
+      "module": "projects",
+      "submodule": "pdf",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-executive-display.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-executive-form.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-executive.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-preliminary-display.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-preliminary-form.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-preliminary.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-procedure-financial-justification.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-procedure-technical-justification.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-row.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_implementation/execution-tracking.blade.php",
+      "module": "projects",
+      "submodule": "project_implementation",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_referrals/index.blade.php",
+      "module": "projects",
+      "submodule": "project_referrals",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_referrals/print.blade.php",
+      "module": "projects",
+      "submodule": "project_referrals",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_referrals/show.blade.php",
+      "module": "projects",
+      "submodule": "project_referrals",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/project_referrals/partials/_add_referral_modal.blade.php",
+      "module": "projects",
+      "submodule": "project_referrals",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/quality/dashboard.blade.php",
+      "module": "projects",
+      "submodule": "quality",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/quality/index.blade.php",
+      "module": "projects",
+      "submodule": "quality",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/quality/print.blade.php",
+      "module": "projects",
+      "submodule": "quality",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/quality/charts/comparison-charts.blade.php",
+      "module": "projects",
+      "submodule": "quality",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/quality/charts/financial-charts.blade.php",
+      "module": "projects",
+      "submodule": "quality",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/quality/charts/performance-charts.blade.php",
+      "module": "projects",
+      "submodule": "quality",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/quality/charts/timeline-charts.blade.php",
+      "module": "projects",
+      "submodule": "quality",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/erpnext_financial.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/financial.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/implementation.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/index.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/official_summary.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_erpnext_financial.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_financial.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_implementation.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_index.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_options.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_progress.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_project_financial.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/print_quality.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/progress.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/quality.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/stakeholders.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/partials/_report_filters.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/stock/material_requests.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/stock/purchase_invoices.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/stock/stock_entries.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/reports/stock/stock_ledger.blade.php",
+      "module": "projects",
+      "submodule": "reports",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/review/financial.blade.php",
+      "module": "projects",
+      "submodule": "review",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/review/technical.blade.php",
+      "module": "projects",
+      "submodule": "review",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/steps/step-4-preliminary-activities.blade.php",
+      "module": "projects",
+      "submodule": "steps",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/create.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/create_form_partial.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/create_styles_partial.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/edit.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/general_index.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/global_index.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/index.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/print.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/print_general.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/print_general_index.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/print_index.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/show.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/partials/attachments.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/partials/chat.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/partials/memos.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/partials/notes.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/partials/task_card.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "projects/tasks/partials/timeline.blade.php",
+      "module": "projects",
+      "submodule": "tasks",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "project_financing/topic_referrals/index.blade.php",
+      "module": "project_financing",
+      "submodule": "topic_referrals",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "project_financing/topic_referrals/print.blade.php",
+      "module": "project_financing",
+      "submodule": "topic_referrals",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "project_financing/topic_referrals/show.blade.php",
+      "module": "project_financing",
+      "submodule": "topic_referrals",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/permissions_report.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/pl-expense-summary-print.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/pl-expense-summary.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/print_financial_items.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/print_general_financial.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/print_permissions_report.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/profit-and-loss-print.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "reports/profit-and-loss.blade.php",
+      "module": "reports",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "requests_descend/create.blade.php",
+      "module": "requests_descend",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "requests_descend/edit.blade.php",
+      "module": "requests_descend",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "requests_descend/financial.blade.php",
+      "module": "requests_descend",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "requests_descend/index.blade.php",
+      "module": "requests_descend",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "requests_descend/show.blade.php",
+      "module": "requests_descend",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/create.blade.php",
+      "module": "roles",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/edit.blade.php",
+      "module": "roles",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/index.blade.php",
+      "module": "roles",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/show.blade.php",
+      "module": "roles",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/partials/permission_matrix_dedicated_scopes.blade.php",
+      "module": "roles",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/partials/_entity_tree_item.blade.php",
+      "module": "roles",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/partials/_permissions_matrix.blade.php",
+      "module": "roles",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/partials/_permissions_matrix_rows.blade.php",
+      "module": "roles",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "roles/partials/_permissions_tree_view.blade.php",
+      "module": "roles",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "roles-permissions/index.blade.php",
+      "module": "roles-permissions",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "signatures/create.blade.php",
+      "module": "signatures",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "signatures/edit.blade.php",
+      "module": "signatures",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "signatures/index.blade.php",
+      "module": "signatures",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "stages/approval-path.blade.php",
+      "module": "stages",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "stages/create.blade.php",
+      "module": "stages",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "stages/edit.blade.php",
+      "module": "stages",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "stages/form.blade.php",
+      "module": "stages",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "stages/index.blade.php",
+      "module": "stages",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "stages/partials/stage-item.blade.php",
+      "module": "stages",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "stages/partials/stage-row.blade.php",
+      "module": "stages",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "user/audit-log-pdf.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "user/audit-log-show.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/audit-log.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/create.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/edit.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/index.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/reset-password.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/roles_permissions.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/show.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/user-activity-log.blade.php",
+      "module": "user",
+      "submodule": "",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "user/partials/geographic_management_table.blade.php",
+      "module": "user",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "user/partials/_geo_row.blade.php",
+      "module": "user",
+      "submodule": "partials",
+      "type": "Partial",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/chain_plans/create.blade.php",
+      "module": "value_chains",
+      "submodule": "chain_plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/chain_plans/edit.blade.php",
+      "module": "value_chains",
+      "submodule": "chain_plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/chain_plans/import.blade.php",
+      "module": "value_chains",
+      "submodule": "chain_plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/chain_plans/index.blade.php",
+      "module": "value_chains",
+      "submodule": "chain_plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/chain_plans/print.blade.php",
+      "module": "value_chains",
+      "submodule": "chain_plans",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/chain_plans/print_batch.blade.php",
+      "module": "value_chains",
+      "submodule": "chain_plans",
+      "type": "Print/PDF",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/chain_plans/show.blade.php",
+      "module": "value_chains",
+      "submodule": "chain_plans",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/participating_entities/create.blade.php",
+      "module": "value_chains",
+      "submodule": "participating_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/participating_entities/edit.blade.php",
+      "module": "value_chains",
+      "submodule": "participating_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/participating_entities/index.blade.php",
+      "module": "value_chains",
+      "submodule": "participating_entities",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/series_financing/create.blade.php",
+      "module": "value_chains",
+      "submodule": "series_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/series_financing/edit.blade.php",
+      "module": "value_chains",
+      "submodule": "series_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/series_financing/global_create.blade.php",
+      "module": "value_chains",
+      "submodule": "series_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/series_financing/global_edit.blade.php",
+      "module": "value_chains",
+      "submodule": "series_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/series_financing/global_index.blade.php",
+      "module": "value_chains",
+      "submodule": "series_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/series_financing/index.blade.php",
+      "module": "value_chains",
+      "submodule": "series_financing",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chains/create.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chains/edit.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chains/import.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chains/import_preview.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chains/import_report.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chains/index.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chains",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chain_members/create.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chain_members",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chain_members/edit.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chain_members",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "value_chains/value_chain_members/index.blade.php",
+      "module": "value_chains",
+      "submodule": "value_chain_members",
+      "type": "Full Page",
+      "status": "Pending"
+    },
+    {
+      "path": "vendor/pagination/bootstrap-4.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/bootstrap-5.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/default.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/semantic-ui.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/simple-bootstrap-4.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/simple-bootstrap-5.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/simple-default.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/simple-tailwind.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    },
+    {
+      "path": "vendor/pagination/tailwind.blade.php",
+      "module": "vendor",
+      "submodule": "pagination",
+      "type": "Full Page",
+      "status": "Excluded (Vendor)"
+    }
+  ]
+}

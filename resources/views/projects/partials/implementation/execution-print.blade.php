@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تقرير التنفيذ - {{ $project->project_name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <x-letterhead-styles :letterhead="$letterhead ?? null" />
     <style>
         :root {
-            --primary-color: #1a4d2e;
+            --primary-color: {{ $letterhead?->primary_color ?? '#1a4d2e' }};
             --secondary-color: #4f6f52;
             --accent-color: #f8f9fa;
             --text-dark: #2d2e2e;
@@ -220,13 +220,17 @@
     </button>
 
     <div class="report-container">
+        <x-letterhead-selector :currentLetterhead="$letterhead ?? null" />
+        @php
+            $executionLogoUrl = !empty($letterhead?->logo_path) ? asset('storage/' . $letterhead->logo_path) : asset('images/logo.png');
+        @endphp
         <div class="report-header">
             <div>
                 <h1 style="display: inline-flex; align-items: center; gap: 8px;"><x-icon name="file-invoice" size="24" /> تقرير تنفيذ المشروع</h1>
-                <div style="font-size: 12px; color: #666; margin-top: 5px;">سجل المتابعة الدوري للأنشطة والإجراءات</div>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">{{ $letterhead?->organization_name ?? 'سجل المتابعة الدوري للأنشطة والإجراءات' }}</div>
             </div>
             <div style="text-align: left;">
-                <img src="https://placehold.co/120x60?text=LOGO" alt="Logo" style="height: 50px;">
+                <img src="{{ $executionLogoUrl }}" alt="Logo" style="height: 50px; max-width: 150px; object-fit: contain;">
             </div>
         </div>
 

@@ -19,7 +19,7 @@ class ProjectInfoImport implements ToCollection, WithHeadingRow
         $this->parent = $parent;
     }
 
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         $originalRows = $rows->map(fn ($row) => $row->toArray())->toArray();
         $mappedRows = $rows->map(function ($row) {

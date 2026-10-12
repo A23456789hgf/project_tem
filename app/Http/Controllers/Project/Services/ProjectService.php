@@ -35,6 +35,7 @@ use App\Scopes\DomainScope;
 use App\Services\ApprovalService;
 use App\Services\EntityHierarchyService;
 use App\Services\ErpNextReportService;
+use App\Services\UserDataScopeService;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Contracts\View\View;
@@ -277,6 +278,8 @@ class ProjectService
      */
     public function getEditData(Project $project)
     {
+        $this->authorizeProjectAccess($project);
+
         $allowedStatuses = ['draft', 'completed_draft', 'rolled_back_for_review', 'financial_review', 'reviewed_completed'];
 
         if ($project->project_type !== 'old' && ! in_array($project->status, $allowedStatuses)) {
@@ -337,6 +340,8 @@ class ProjectService
      */
     public function completeData(Project $project)
     {
+        $this->authorizeProjectAccess($project);
+
         // قائمة الحالات المسموح بها
         $allowedStatuses = ['draft', 'financial_review', 'reviewed_completed'];
 
@@ -489,118 +494,7 @@ class ProjectService
      */
     public function applyAccessibleProjectsQuery(Builder $query, ?User $user = null, ?Request $request = null): Builder
     {
-        $user = $user ?? auth()->user();
-        if (! $user) {
-            return $query->whereRaw('0 = 1');
-        }
-
-        // 1. Admin / Full Access
-        if ($user->isAdmin() || ($user->role && $user->role->full_access)) {
-            return $query;
-        }
-
-        // 2. External Authority User (Strict Authority Isolation)
-        if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
-            $userAuthorityId = (int) $user->authority_id;
-            $hasWorkflowResponsibility = ! empty($user->responsibility);
-
-            $query->where(function ($q) use ($user, $userAuthorityId, $hasWorkflowResponsibility) {
-                // User always sees projects they personally created
-                $q->where('projects.created_by_user_id', $user->id);
-
-                if ($hasWorkflowResponsibility) {
-                    // Authority user with responsibility sees all projects under their authority
-                    $q->orWhere('projects.authority_id', $userAuthorityId);
-                } else {
-                    $authorityName = DB::table('authorities')->where('id', $userAuthorityId)->value('agency_name');
-                    if ($authorityName) {
-                        $q->orWhere('projects.created_by_entity', trim($authorityName));
-                    }
-                    $q->orWhere('projects.authority_id', $userAuthorityId);
-                }
-            });
-
-            return $query;
-        }
-
-        // 3. Internal Ministry User
-        $activeAdminScopeId = session('selected_administrative_scope_id', $user->administrative_scope_id);
-        $entityIdsByEnt = $activeAdminScopeId ? InternalEntity::getAllChildrenIds($activeAdminScopeId) : [];
-
-        $activeGeoScopes = session('selected_geographic_scopes');
-        if ($activeGeoScopes !== null) {
-            $entityIdsByGovAndDist = collect($activeGeoScopes)->map(fn ($s) => (object) $s);
-        } else {
-            $entityIdsByGovAndDist = $user->geographicScopes ?? collect();
-        }
-
-        $entityIdsByGeo = [];
-        foreach ($entityIdsByGovAndDist as $scope) {
-            $govId = is_array($scope) ? ($scope['governorate_id'] ?? null) : ($scope->governorate_id ?? null);
-            $dirId = is_array($scope) ? ($scope['directorate_id'] ?? null) : ($scope->directorate_id ?? null);
-
-            if (! empty($dirId)) {
-                $ids = InternalEntity::getAllByDirectorate($dirId);
-                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-            } elseif (! empty($govId) || $govId === 'all' || $govId === 0 || $govId === '0') {
-                if ($govId === 'all' || $govId === 0 || $govId === '0') {
-                    $ids = DB::table('internal_entities')->pluck('id')->map(fn ($id) => (int) $id)->toArray();
-                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-                } else {
-                    $ids = InternalEntity::getAllByGovernorate($govId);
-                    $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-                }
-            }
-        }
-
-        $activeEntityId = session('selected_entity_id', $user->entity_id);
-        $entityIdsByMyEnt = [];
-        if (empty($entityIdsByEnt) && empty($entityIdsByGeo)) {
-            $entityIdsByMyEnt = $activeEntityId ? InternalEntity::getAllChildrenIds($activeEntityId) : [];
-        }
-
-        $entityIds = array_unique(array_merge($entityIdsByEnt, $entityIdsByMyEnt, $entityIdsByGeo));
-        $entityIds = array_values(array_filter($entityIds, fn ($id) => is_numeric($id) && $id > 0));
-
-        if (! empty($entityIds)) {
-            $entityNames = DB::table('internal_entities')->whereIn('id', $entityIds)->pluck('name')->filter()->toArray();
-            $cleanEntityNames = array_filter(array_map(fn ($name) => trim(preg_replace('/\s+/u', ' ', $name)), $entityNames));
-
-            $query->where(function ($q) use ($entityIds, $cleanEntityNames, $user) {
-                $q->whereIn('projects.creator_entity_id', $entityIds)
-                    ->orWhereIn('projects.internal_entity_id', $entityIds)
-                    ->orWhere('projects.created_by_user_id', $user->id);
-
-                if (! empty($cleanEntityNames)) {
-                    $q->orWhereIn('projects.created_by_entity', $cleanEntityNames);
-                }
-
-                // Internal Ministry reviewer/approver can see external projects assigned to or in workflow at their entity
-                $q->orWhereHas('projectApprovals', function ($appQ) use ($entityIds) {
-                    $appQ->whereIn('project_approvals.entity_id', $entityIds);
-                });
-            });
-        } else {
-            $userEntityId = $user->entity_id;
-            $userEntityName = $user->entity?->name;
-            $cleanEntName = $userEntityName ? trim(preg_replace('/\s+/u', ' ', $userEntityName)) : null;
-
-            $query->where(function ($q) use ($user, $userEntityId, $cleanEntName) {
-                $q->where('projects.created_by_user_id', $user->id);
-                if (! empty($userEntityId)) {
-                    $q->orWhere('projects.creator_entity_id', $userEntityId)
-                        ->orWhere('projects.internal_entity_id', $userEntityId)
-                        ->orWhereHas('projectApprovals', function ($appQ) use ($userEntityId) {
-                            $appQ->where('project_approvals.entity_id', $userEntityId);
-                        });
-                }
-                if (! empty($cleanEntName)) {
-                    $q->orWhere('projects.created_by_entity', $cleanEntName);
-                }
-            });
-        }
-
-        return $query;
+        return app(UserDataScopeService::class)->applyScope($query, $user, 'projects');
     }
 
     /**
@@ -608,21 +502,7 @@ class ProjectService
      */
     public function authorizeProjectAccess(Project $project, ?User $user = null): void
     {
-        $user = $user ?? auth()->user();
-        if (! $user) {
-            abort(401, 'يجب تسجيل الدخول أولاً');
-        }
-
-        if ($user->isAdmin() || ($user->role && $user->role->full_access)) {
-            return;
-        }
-
-        $query = Project::withoutGlobalScopes()->where('projects.id', $project->id);
-        $isAllowed = $this->applyAccessibleProjectsQuery($query, $user)->exists();
-
-        if (! $isAllowed) {
-            abort(403, 'ليس لديك الصلاحية لعرض أو الوصول إلى هذا المشروع');
-        }
+        app(UserDataScopeService::class)->authorizeRecord($project, $user);
     }
 
     /**
@@ -1000,6 +880,8 @@ class ProjectService
      */
     public function getProjectWithDetails(Project $project)
     {
+        $this->authorizeProjectAccess($project);
+
         $project->load($this->getProjectDetailedRelations());
         $approvalStages = $this->getApprovalStages($project); // Fetch approval stages
         $reviewerType = $this->getCurrentReviewerType();
@@ -1572,34 +1454,38 @@ class ProjectService
 
     /**
      * تحويل المشروع تلقائياً إلى إدارة التمكين
-     * يتم التحقق إذا اكتملت المسودة وتضمنت تمويل تمكين
+     * يتم التحقق إذا تضمنت التمويلات نوع تمويل أو مصدر تمويل تمكين أو قرض
      */
     public function syncProjectToEmpowermentDepartment(Project $project): void
     {
         $project->refresh();
         $project->load(['financings.fundingSource', 'financings.financingType', 'cost']);
 
-        // البحث عن تمويل التمكين: مصدر التمويل أو نوع التمويل يحتوي على "تمكين" أو "قرض"
+        // البحث عن تمويل التمكين: مصدر التمويل أو نوع التمويل يحتوي على "تمكين" أو "قرض" أو "قروض" أو "محتوى"
         $empowermentFinancings = $project->financings->filter(function ($financing) {
             $sourceName = optional($financing->fundingSource)->name ?? '';
             $typeName = optional($financing->financingType)->name ?? '';
 
-            // التحقق من وجود "تمكين" أو "قرض" في أي من الحقلين
+            // التحقق من وجود "تمكين" أو "قرض" أو "قروض" أو "محتوى" في أي من الحقلين
             $hasEmpowerment = str_contains($sourceName, 'تمكين') || str_contains($typeName, 'تمكين');
-            $hasLoan = str_contains($sourceName, 'قرض') || str_contains($typeName, 'قرض');
+            $hasLoan = str_contains($sourceName, 'قرض') || str_contains($typeName, 'قرض') || str_contains($sourceName, 'قروض') || str_contains($typeName, 'قروض');
+            $hasContent = str_contains($sourceName, 'محتوى') || str_contains($typeName, 'محتوى');
 
-            return $hasEmpowerment || $hasLoan;
+            return $hasEmpowerment || $hasLoan || $hasContent;
         });
 
         if ($empowermentFinancings->isNotEmpty()) {
             $totalLoan = $empowermentFinancings->sum('financing_amount');
             $totalCost = optional($project->cost)->total_cost ?? 0;
+            if ($totalCost <= 0) {
+                $totalCost = $project->financings->sum('financing_amount');
+            }
             $loanPercentage = ($totalCost > 0) ? round(($totalLoan / $totalCost) * 100, 4) : 0;
 
             EmpowermentProject::updateOrCreate(
                 ['project_id' => $project->id],
                 [
-                    'project_number' => $project->form_number,
+                    'project_number' => $project->project_number ?? $project->form_number,
                     'project_name' => $project->project_name,
                     'submitting_entity' => $project->creator_entity_id,
                     'total_project_cost' => $totalCost,
@@ -1619,6 +1505,13 @@ class ProjectService
                 'financings_count' => $empowermentFinancings->count(),
             ]);
         } else {
+            $existing = EmpowermentProject::where('project_id', $project->id)->first();
+            if ($existing) {
+                $existing->update([
+                    'total_loan_amount' => 0,
+                    'loan_percentage' => 0,
+                ]);
+            }
             \Log::info('لم يتم العثور على تمويل تمكين للمشروع', [
                 'project_id' => $project->id,
             ]);
@@ -2483,6 +2376,7 @@ class ProjectService
             }
         }
         $project->financings()->whereNotIn('id', $keepIds)->delete();
+        $this->syncProjectToEmpowermentDepartment($project);
     }
 
     protected function syncProjectOverallCosts(Project $project, array $costData): void
@@ -2503,6 +2397,7 @@ class ProjectService
 
         if ($hasMeaningfulData) {
             ProjectCost::updateOrCreate(['project_id' => $project->id], $filteredData);
+            $this->syncProjectToEmpowermentDepartment($project);
         }
     }
 

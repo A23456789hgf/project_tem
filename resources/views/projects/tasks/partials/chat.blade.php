@@ -77,7 +77,7 @@
     {{-- ===== نموذج الإرسال ===== --}}
     @can('task.chat.reply', $task)
         <div class="chat-input-wrapper">
-            <form action="{{ route('projects.tasks.discussions.store', [$project->id, $task->id]) }}" method="POST"
+            <form action="{{ $task->project_id ? route('projects.tasks.discussions.store', [$task->project_id, $task->id]) : route('tasks.discussions.store', $task) }}" method="POST"
                 id="chat-send-form" class="chat-send-form">
                 @csrf
                 <div class="chat-input-container">

@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\UserResponsibilityType;
+use App\Services\OrganizationResolver;
 use App\Services\PermissionResolver;
 use App\Services\ProjectAuthorizationService;
 use App\Services\SchemaCache;
+use App\Services\UserDataScopeService;
 use App\Traits\Auditable;
 use App\Traits\HasActiveScope;
 use App\Traits\HasCreatorTracking;
@@ -19,10 +21,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Auditable, HasActiveScope, HasCreatorTracking, HasDomainScope, HasFactory, Notifiable;
+    use Auditable, HasActiveScope, HasApiTokens, HasCreatorTracking, HasDomainScope, HasFactory, Notifiable;
 
     public $statusColumn = 'status';
 
@@ -58,6 +61,12 @@ class User extends Authenticatable
         'must_change_password',
         'signature_path',
         'is_admin',
+        'erpnext_id',
+        'is_financial_user',
+        'erpnext_user_id',
+        'erpnext_sync_status',
+        'erpnext_synced_at',
+        'erpnext_sync_error',
     ];
 
     protected $hidden = [
@@ -74,10 +83,24 @@ class User extends Authenticatable
         'must_change_password' => 'boolean',
         'is_admin' => 'boolean',
         'responsibility' => UserResponsibilityType::class,
+        'is_financial_user' => 'boolean',
+        'erpnext_synced_at' => 'datetime',
     ];
 
     protected static function booted()
     {
+        static::saving(function (User $user) {
+            if ($user->organization_type === OrganizationResolver::EXTERNAL) {
+                $user->entity_id = null;
+            } elseif ($user->organization_type === OrganizationResolver::INTERNAL) {
+                $user->authority_id = null;
+            } elseif ($user->authority_id && ! $user->entity_id) {
+                $user->organization_type = OrganizationResolver::EXTERNAL;
+            } elseif ($user->entity_id && ! $user->authority_id) {
+                $user->organization_type = OrganizationResolver::INTERNAL;
+            }
+        });
+
         static::updated(function ($user) {
             $domainFields = [
                 'entity_id',
@@ -148,36 +171,38 @@ class User extends Authenticatable
 
     public function isInternal(): bool
     {
-        if ($this->organization_type === 'internal') {
-            return true;
-        }
-        if ($this->organization_type === 'external') {
+        if ($this->organization_type === null && $this->entity_id && $this->authority_id) {
             return false;
         }
 
-        // Ambiguous corrupted state: both entity_id and authority_id are present without organization_type
-        if (! empty($this->entity_id) && ! empty($this->authority_id)) {
-            return false;
-        }
-
-        return empty($this->authority_id);
+        return (new OrganizationResolver)->type($this) === OrganizationResolver::INTERNAL;
     }
 
     public function isExternal(): bool
     {
-        if ($this->organization_type === 'external') {
-            return true;
-        }
-        if ($this->organization_type === 'internal') {
+        if ($this->organization_type === null && $this->entity_id && $this->authority_id) {
             return false;
         }
 
-        // Ambiguous corrupted state: both entity_id and authority_id are present without organization_type
-        if (! empty($this->entity_id) && ! empty($this->authority_id)) {
-            return false;
-        }
+        return (new OrganizationResolver)->type($this) === OrganizationResolver::EXTERNAL;
+    }
 
-        return ! empty($this->authority_id);
+    /**
+     * @return array{type: string, id: int|null, model: InternalEntity|Authority|null}
+     */
+    public function organization(): array
+    {
+        return (new OrganizationResolver)->resolve($this);
+    }
+
+    public function organizationModel(): InternalEntity|Authority|null
+    {
+        return (new OrganizationResolver)->model($this);
+    }
+
+    public function administrativeOrganization(): InternalEntity|Authority|null
+    {
+        return (new OrganizationResolver)->administrativeScope($this);
     }
 
     public function geographicScope()
@@ -203,6 +228,11 @@ class User extends Authenticatable
     public function geographicScopes(): HasMany
     {
         return $this->hasMany(UserGeographicScope::class, 'user_id');
+    }
+
+    public function taskAchievementReports(): HasMany
+    {
+        return $this->hasMany(TaskAchievementReport::class, 'user_id');
     }
 
     public function createdUsers(): HasMany
@@ -237,6 +267,11 @@ class User extends Authenticatable
     public function responsibleApprovalStages(): HasMany
     {
         return $this->hasMany(EntityApprovalStage::class, 'responsible_user_id');
+    }
+
+    public function responsibleAuthorityApprovalStages(): HasMany
+    {
+        return $this->hasMany(AuthorityApprovalStage::class, 'responsible_user_id');
     }
 
     public function userRoles(): HasMany
@@ -285,7 +320,8 @@ class User extends Authenticatable
     public static function generateNextUserId(): string
     {
         $prefix = 'MAFWRPRO';
-        $userIds = static::where('user_id', 'LIKE', $prefix.'%')
+        $userIds = static::withoutGlobalScopes()
+            ->where('user_id', 'LIKE', $prefix.'%')
             ->pluck('user_id');
 
         $maxNumber = 0;
@@ -336,6 +372,26 @@ class User extends Authenticatable
         return ! empty($this->signature_path) && Storage::disk('public')->exists($this->signature_path);
     }
 
+    public function isFinancialUser(): bool
+    {
+        return (bool) $this->is_financial_user;
+    }
+
+    public function isLinkedToErpNext(): bool
+    {
+        return ! empty($this->erpnext_user_id);
+    }
+
+    public function isErpNextSynced(): bool
+    {
+        return $this->erpnext_sync_status === 'synced';
+    }
+
+    public function shouldBeEnabledInErpNext(): bool
+    {
+        return $this->isFinancialUser() && $this->isActive();
+    }
+
     // ------------------------------------------------
     // Null-Safe Attribute Accessors
     // ------------------------------------------------
@@ -373,6 +429,16 @@ class User extends Authenticatable
         return $this->role?->description ?? $this->role?->name ?? null;
     }
 
+    public function getOrganizationNameAttribute(): ?string
+    {
+        $orgModel = $this->organizationModel();
+        if (! $orgModel) {
+            return $this->isCentralUser() ? 'المركز الرئيسي' : null;
+        }
+
+        return $orgModel instanceof Authority ? $orgModel->agency_name : $orgModel->name;
+    }
+
     // ------------------------------------------------
     // Central / Geographic User Check
     // ------------------------------------------------
@@ -389,7 +455,9 @@ class User extends Authenticatable
         }
 
         // 2. Resolve geographic context from entity or geographic_scopes table
-        return count($this->getAssignedGovernorateIds()) === 0 && count($this->getAssignedDirectorateIds()) === 0;
+        $orgResolver = new OrganizationResolver;
+
+        return count($orgResolver->governorateIds($this)) === 0 && count($orgResolver->directorateIds($this)) === 0;
     }
 
     /**
@@ -615,32 +683,11 @@ class User extends Authenticatable
 
     protected function checkRecordScope($ability, $record): bool
     {
-
-        if ($record instanceof Project || (is_object($record) && method_exists($record, 'checkVisibility'))) {
-            return $record->checkVisibility($this);
+        if ($this->isAdmin()) {
+            return true;
         }
 
-        // For Correspondence, scope is handled by the model's canBeViewedBy()
-        // Geo/admin scope checks are not applicable for correspondence records
-        if ($record instanceof Correspondence) {
-            return $record->canBeViewedBy($this);
-        }
-
-        static $permissionObjCache = [];
-        if (! array_key_exists($ability, $permissionObjCache)) {
-            $permissionObjCache[$ability] = Cache::remember("permission_obj_v2_{$ability}", now()->addHours(24), function () use ($ability) {
-                return Permission::where('slug', $ability)->first();
-            });
-        }
-        $permission = $permissionObjCache[$ability];
-
-        $module = $permission ? $permission->module : $this->resolveModuleFromRecord($record);
-
-        if (! $this->isCentralUser()) {
-            return $this->isInGeoScope($record, $module);
-        }
-
-        return $this->isInAdminScope($record, $module);
+        return app(UserDataScopeService::class)->canAccessRecord($record, $this);
     }
 
     public function hasAnyPermission($permissions): bool
@@ -826,23 +873,7 @@ class User extends Authenticatable
             return $this->assignedGovIdCache;
         }
 
-        if ($this->governorate_id) {
-            return $this->assignedGovIdCache = (int) $this->governorate_id;
-        }
-
-        $entityData = $this->getRawEntityData();
-        if ($entityData) {
-            if (! empty($entityData->governorate_id)) {
-                return $this->assignedGovIdCache = (int) $entityData->governorate_id;
-            }
-            if (! empty($entityData->authority_id)) {
-                $govId = DB::table('authorities')->where('id', $entityData->authority_id)->value('governorate_id');
-
-                return $this->assignedGovIdCache = ($govId ? (int) $govId : null);
-            }
-        }
-
-        return $this->assignedGovIdCache = null;
+        return $this->assignedGovIdCache = (new OrganizationResolver)->governorateIds($this)[0] ?? null;
     }
 
     /**
@@ -850,16 +881,7 @@ class User extends Authenticatable
      */
     public function getAssignedGovernorateIds(): array
     {
-        $ids = [];
-        $primary = $this->getAssignedGovernorateId();
-        if ($primary) {
-            $ids[] = $primary;
-        }
-
-        $this->loadMissing('geographicScopes');
-        $extraIds = $this->geographicScopes->pluck('governorate_id')->filter()->toArray();
-
-        return array_unique(array_merge($ids, $extraIds));
+        return (new OrganizationResolver)->governorateIds($this);
     }
 
     /**
@@ -871,23 +893,7 @@ class User extends Authenticatable
             return $this->assignedDirIdCache;
         }
 
-        if ($this->directorate_id) {
-            return $this->assignedDirIdCache = (int) $this->directorate_id;
-        }
-
-        $entityData = $this->getRawEntityData();
-        if ($entityData) {
-            if (! empty($entityData->directorate_id)) {
-                return $this->assignedDirIdCache = (int) $entityData->directorate_id;
-            }
-            if (! empty($entityData->authority_id)) {
-                $dirId = DB::table('authorities')->where('id', $entityData->authority_id)->value('directorate_id');
-
-                return $this->assignedDirIdCache = ($dirId ? (int) $dirId : null);
-            }
-        }
-
-        return $this->assignedDirIdCache = null;
+        return $this->assignedDirIdCache = (new OrganizationResolver)->directorateIds($this)[0] ?? null;
     }
 
     /**
@@ -895,16 +901,7 @@ class User extends Authenticatable
      */
     public function getAssignedDirectorateIds(): array
     {
-        $ids = [];
-        $primary = $this->getAssignedDirectorateId();
-        if ($primary) {
-            $ids[] = $primary;
-        }
-
-        $this->loadMissing('geographicScopes');
-        $extraIds = $this->geographicScopes->pluck('directorate_id')->filter()->toArray();
-
-        return array_unique(array_merge($ids, $extraIds));
+        return (new OrganizationResolver)->directorateIds($this);
     }
 
     /**
@@ -943,11 +940,7 @@ class User extends Authenticatable
      */
     public function getUserEntityId(): ?int
     {
-        if ($this->isExternal()) {
-            return $this->authority_id ? (int) $this->authority_id : null;
-        }
-
-        return $this->entity_id ? (int) $this->entity_id : null;
+        return $this->organization()['id'];
     }
 
     /**
@@ -956,12 +949,8 @@ class User extends Authenticatable
      */
     public function getSubEntityIds(): array
     {
-        if ($this->administrative_scope_id) {
-            return $this->getDescendantEntityIds((int) $this->administrative_scope_id);
-        }
-
-        if ($this->isExternal()) {
-            return $this->authority_id ? [(int) $this->authority_id] : [];
+        if ($this->isExternal() || $this->administrative_scope_id) {
+            return (new OrganizationResolver)->administrativeOrganizationIds($this);
         }
 
         // If geographically restricted, do not grant broad central administrative access
@@ -1029,26 +1018,7 @@ class User extends Authenticatable
      */
     protected function getDescendantEntityIds(int $entityId): array
     {
-        return Cache::remember("descendant_entity_ids_{$entityId}", now()->addMinutes(30), function () use ($entityId) {
-            $ids = [$entityId];
-            $toProcess = [$entityId];
-
-            while (! empty($toProcess)) {
-                $batch = DB::table('entities')
-                    ->whereIn('entity_father_id', $toProcess)
-                    ->pluck('id')
-                    ->toArray();
-
-                if (empty($batch)) {
-                    break;
-                }
-
-                $ids = array_merge($ids, $batch);
-                $toProcess = $batch;
-            }
-
-            return array_unique($ids);
-        });
+        return InternalEntity::getAllDescendantIds($entityId);
     }
 
     // ------------------------------------------------
@@ -1104,54 +1074,7 @@ class User extends Authenticatable
             return true;
         }
 
-        $module = $module ?? $this->resolveModuleFromRecord($record);
-        $scope = $this->getModuleAdminScope($module);
-
-        if ($scope === 'none') {
-            return false;
-        }
-        if ($scope === 'all') {
-            return true;
-        }
-
-        if ($scope === 'user') {
-            $userCol = $this->detectUserColumn($record->getTable());
-
-            return (int) ($record->$userCol ?? $record->user_id) === (int) $this->id;
-        }
-
-        $allowedIds = $this->getAllowedAdministrativeIds($module);
-        if ($allowedIds === 'all') {
-            return true;
-        }
-        if (empty($allowedIds)) {
-            return false;
-        }
-
-        $table = $record->getTable();
-        $adminCol = Schema::hasColumn($table, 'administrative_scope_id')
-            ? 'administrative_scope_id'
-            : $this->detectAdminColumn($table);
-
-        if (! $adminCol) {
-            return true;
-        }
-
-        $cols = (array) $adminCol;
-        foreach ($cols as $col) {
-            $recordAdminId = $record->$col;
-            if (is_array($allowedIds)) {
-                if (in_array((int) $recordAdminId, $allowedIds)) {
-                    return true;
-                }
-            } else {
-                if ((int) $recordAdminId === (int) $allowedIds) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return app(UserDataScopeService::class)->canAccessRecord($record, $this);
     }
 
     public function isInGeoScope($record, $module = null): bool
@@ -1160,28 +1083,7 @@ class User extends Authenticatable
             return true;
         }
 
-        $module = $module ?? $this->resolveModuleFromRecord($record);
-        $scope = $this->getModuleGeoScope($module);
-
-        if ($scope === 'none') {
-            return false;
-        }
-        if ($scope === 'all' || $scope === 'custom') {
-            return true;
-        }
-
-        $recordGeoId = $record->geographic_scope_id ?? $record->governorate_id ?? null;
-        if (is_null($recordGeoId)) {
-            return true;
-        }
-
-        $allowedIds = $this->getAllowedGeographicIds($module);
-
-        if (is_array($allowedIds)) {
-            return in_array((int) $recordGeoId, $allowedIds);
-        }
-
-        return (int) $recordGeoId === (int) $allowedIds;
+        return app(UserDataScopeService::class)->canAccessRecord($record, $this);
     }
 
     // ------------------------------------------------
@@ -1243,6 +1145,13 @@ class User extends Authenticatable
             return $map[$table];
         }
 
+        // للمستخدمين الخارجيين، يجب البحث عن عمود authority_id أولاً
+        if ($this->organization_type === 'external') {
+            if (SchemaCache::hasColumn($table, 'authority_id')) {
+                return 'authority_id';
+            }
+        }
+
         $candidates = ['internal_entity_id', 'entity_id', 'submitting_entity_id', 'sender_entity_id', 'created_by_entity', 'creator_entity_id'];
         foreach ($candidates as $col) {
             if (SchemaCache::hasColumn($table, $col)) {
@@ -1295,32 +1204,9 @@ class User extends Authenticatable
         return $this->hasPermission('plans.view-all');
     }
 
-    /**
-     * Get all entity IDs that the user has administrative or geographic visibility over.
-     * Aligns with the visibility logic used in the main project list.
-     */
     public function getFilteredEntityIds(): array
     {
-        $entityIdsByEnt = InternalEntity::getAllChildrenIds($this->administrative_scope_id);
-        $entityIdsByMyEnt = InternalEntity::getAllChildrenIds($this->entity_id);
-        $this->loadMissing('geographicScopes');
-        $entityIdsByGovAndDist = $this->geographicScopes;
-        $entityIdsByGeo = [];
-        foreach ($entityIdsByGovAndDist as $scope) {
-            $govId = is_array($scope) ? ($scope['governorate_id'] ?? null) : ($scope->governorate_id ?? null);
-            $dirId = is_array($scope) ? ($scope['directorate_id'] ?? null) : ($scope->directorate_id ?? null);
-
-            if (! empty($govId) && empty($dirId)) {
-                $ids = InternalEntity::getAllByGovernorate($govId);
-                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-            } elseif (! empty($dirId)) {
-                $ids = InternalEntity::getAllByDirectorate($dirId);
-                $entityIdsByGeo = array_merge($entityIdsByGeo, $ids);
-            }
-        }
-        $entityIds = array_merge($entityIdsByEnt ?? [], $entityIdsByGeo ?? [], $entityIdsByMyEnt ?? []);
-
-        return array_values(array_unique($entityIds));
+        return app(UserDataScopeService::class)->getUserEntityIds($this);
     }
 
     public function hasGeographicScope(): bool

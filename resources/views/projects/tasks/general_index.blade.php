@@ -430,6 +430,9 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-1">
+                                        <a href="{{ $task->project_id ? route('projects.tasks.show', [$task->project_id, $task->id]) : route('tasks.show', $task->id) }}" class="btn btn-sm btn-light border" title="عرض تفاصيل المهمة" aria-label="عرض تفاصيل المهمة">
+                                            <i class="fas fa-eye text-success"></i>
+                                        </a>
                                         @can('update', $task)
                                         <button type="button" class="btn btn-sm btn-light border" title="التعديل" onclick="editTaskModal({{ json_encode($task) }})">
                                             <i class="fas fa-edit text-warning"></i>
@@ -556,6 +559,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6">
+                        @can('task.assign')
                         <label class="form-label fw-bold small text-slate-700">إسناد إلى مستخدم</label>
                         <select name="assigned_to[]" multiple class="form-select select2">
                             <option value="">اختر مستخدماً (اختياري)</option>
@@ -563,6 +567,7 @@
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
                             @endforeach
                         </select>
+                        @endcan
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-slate-700">تاريخ الاستحقاق</label>
@@ -676,12 +681,14 @@
                 <div class="row">
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-slate-700">إسناد إلى مستخدم</label>
+                        @can('task.assign')
                         <select name="assigned_to[]" multiple id="edit-assigned_to" class="form-select">
                             <option value="">اختر مستخدماً (اختياري)</option>
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
                             @endforeach
                         </select>
+                        @endcan
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-slate-700">تاريخ الاستحقاق</label>

@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="mb-0 text-primary fw-bold">إضافة مراحل لجهة</h4>
-            <small class="text-muted">تحديد مراحل المراجعة والاعتماد لجهة معينة</small>
+            <small class="text-muted">تحديد مراحل المراجعة والاعتماد والمرفقات المطلوبة والإجراءات المسموحة</small>
         </div>
         <a href="{{ route('admin.entity-stages.index') }}" class="btn btn-outline-secondary shadow-sm">
             <i class="fas fa-arrow-right me-1"></i> العودة للقائمة
@@ -25,11 +25,12 @@
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-5">
             @can('stages.create')
-            <form action="{{ route('admin.entity-stages.store', ['tab' => $tab]) }}" method="POST">
+            <form action="{{ route('admin.entity-stages.store', ['tab' => $tab]) }}" method="POST" id="workflowForm">
             @endcan
                 @csrf
                 <input type="hidden" name="tab" id="form-tab" value="{{ $tab }}">
-                
+                <input type="hidden" name="workflow_type" value="{{ $workflowType }}">
+
                 <div class="row mb-5">
                     <div class="col-md-6">
                         @if($tab === 'internal')
@@ -48,7 +49,7 @@
                                 <option value="">-- اختر الجهة الخارجية --</option>
                                 @foreach($authorities as $authority)
                                     <option value="{{ $authority->id }}" @selected(old('authority_id') == $authority->id)>
-                                        {{ $authority->name }}
+                                        {{ $authority->agency_name ?? $authority->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -73,7 +74,7 @@
                             <option value="">-- اختر الجهة الخارجية الوجهة --</option>
                             @foreach($authorities as $authority)
                                 <option value="{{ $authority->id }}" @selected(old('destination_authority_id') == $authority->id)>
-                                    {{ $authority->name }}
+                                    {{ $authority->agency_name ?? $authority->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -93,9 +94,16 @@
                             <i class="fas fa-plus"></i> إضافة مرحلة جديدة
                         </button>
                     </div>
-                    
+
+                    {{-- تنبيه المرحلة النهائية --}}
+                    <div class="alert alert-info border-0 rounded-3 small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>ملاحظة:</strong> يجب تحديد <strong>مرحلة نهائية واحدة فقط</strong> في السلسلة.
+                        عند اعتمادها سيدخل المشروع/الطلب إلى مرحلة التنفيذ تلقائياً.
+                    </div>
+
                     <div id="stages-container">
-                        <!-- Default Stages injected by JS -->
+                        <!-- Stages injected by JS -->
                     </div>
                 </div>
 
@@ -110,22 +118,32 @@
     </div>
 </div>
 
+{{-- ============================================================ --}}
+{{-- Stage Template                                              --}}
+{{-- ============================================================ --}}
 <template id="stage-template">
-    <div class="card border border-2 rounded-4 mb-3 stage-row">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <h6 class="fw-bold text-primary mb-0 stage-title">مرحلة جديدة</h6>
-                <button type="button" class="btn btn-sm btn-outline-danger remove-stage-btn">
-                    <i class="fas fa-trash"></i>
-                </button>
+    <div class="card border border-2 rounded-4 mb-3 stage-row" style="border-color: #cbd5e1 !important;">
+        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary rounded-pill px-3 py-2 stage-badge">مرحلة 1</span>
+                <span class="fw-bold text-dark stage-title">إعداد المرحلة</span>
+                <span class="badge bg-danger rounded-pill stage-final-badge d-none">
+                    <i class="fas fa-flag-checkered me-1"></i> نهائية
+                </span>
             </div>
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-circle remove-stage-btn" title="حذف المرحلة">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="card-body">
             <div class="row g-3">
+                {{-- Basic Info --}}
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">الاسم الداخلي (Key)</label>
+                    <label class="form-label small fw-bold">الاسم الداخلي (Key) <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm stage-key-input" name="stages[__INDEX__][stage]" required placeholder="مثال: technical_review">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold">اسم المرحلة (عربي)</label>
+                    <label class="form-label small fw-bold">اسم المرحلة (عربي) <span class="text-danger">*</span></label>
                     <input type="text" class="form-control form-control-sm stage-name-ar-input" name="stages[__INDEX__][stage_name_ar]" required placeholder="مثال: مراجعة فنية">
                 </div>
                 <div class="col-md-3">
@@ -138,24 +156,142 @@
                         <option value="">-- اختر المستخدم --</option>
                     </select>
                 </div>
-                <div class="col-12 mt-3">
-                    <label class="form-label small fw-bold">الإجراءات المتاحة</label>
-                    <div class="d-flex gap-3 flex-wrap">
+
+                {{-- ✅ خصائص نهاية المسار --}}
+                <div class="col-12 mt-3 pt-3 border-top">
+                    <label class="form-label small fw-bold text-dark d-block mb-2">
+                        <i class="fas fa-flag-checkered text-danger me-1"></i> خصائص نهاية المسار
+                    </label>
+                    <div class="d-flex gap-4 flex-wrap bg-white p-3 rounded-3 border">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="approve" checked>
-                            <label class="form-check-label small">اعتماد (Approve)</label>
+                            <input class="form-check-input stage-final-checkbox"
+                                   type="checkbox"
+                                   name="stages[__INDEX__][is_final]"
+                                   value="1"
+                                   id="stage_final___INDEX__">
+                            <label class="form-check-label small" for="stage_final___INDEX__">
+                                <strong class="text-danger">المرحلة النهائية</strong>
+                                <span class="text-muted d-block" style="font-size: 0.75rem;">
+                                    بعد الاعتماد عليها يُغلق مسار الاعتماد
+                                </span>
+                            </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="return" checked>
-                            <label class="form-check-label small">إعادة (Return)</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="stages[__INDEX__][available_actions][]" value="reject">
-                            <label class="form-check-label small">رفض (Reject)</label>
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   name="stages[__INDEX__][triggers_execution]"
+                                   value="1"
+                                   id="stage_exec___INDEX__">
+                            <label class="form-check-label small" for="stage_exec___INDEX__">
+                                <strong class="text-success">تُفعِّل التنفيذ</strong>
+                                <span class="text-muted d-block" style="font-size: 0.75rem;">
+                                    عند الاعتماد يبدأ المشروع/الطلب مرحلة التنفيذ
+                                </span>
+                            </label>
                         </div>
                     </div>
                 </div>
+
+                {{-- ✅ الإجراءات المسموحة (جميع الإجراءات) --}}
+                <div class="col-12 mt-3 pt-3 border-top">
+                    <label class="form-label small fw-bold text-dark d-block mb-2">
+                        <i class="fas fa-check-square text-success me-1"></i> الإجراءات المسموحة في هذه المرحلة
+                    </label>
+                    <div class="d-flex gap-3 flex-wrap bg-white p-3 rounded-3 border">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="submit">
+                            <label class="form-check-label small fw-semibold text-info">إرسال (Submit)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="approve" checked>
+                            <label class="form-check-label small fw-semibold text-success">اعتماد (Approve)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="return" checked>
+                            <label class="form-check-label small fw-semibold text-warning">إعادة (Return)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="reject">
+                            <label class="form-check-label small fw-semibold text-danger">رفض (Reject)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="comment">
+                            <label class="form-check-label small text-secondary">تعليق (Comment)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="upload_attachment">
+                            <label class="form-check-label small text-primary">رفع مرفق (Upload)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="need_action">
+                            <label class="form-check-label small text-orange">بحاجة لإجراء (Need Action)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="consult">
+                            <label class="form-check-label small text-primary">استشارة (Consult)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="stages[__INDEX__][available_actions][]" value="forward">
+                            <label class="form-check-label small text-primary">تحويل (Forward)</label>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ✅ المرفقات المطلوبة --}}
+                <div class="col-12 mt-3 pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label small fw-bold text-dark mb-0">
+                            <i class="fas fa-paperclip text-primary me-1"></i> المرفقات المطلوبة في هذه المرحلة (إن وجدت):
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill add-attachment-btn">
+                            <i class="fas fa-plus me-1"></i> إضافة مرفق مطلوب
+                        </button>
+                    </div>
+                    <div class="attachments-list bg-white p-3 rounded-3 border">
+                        <div class="text-muted small no-attachments-hint">لا توجد مرفقات إلزامية محددة لهذه المرحلة حالياً.</div>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+</template>
+
+{{-- ============================================================ --}}
+{{-- Attachment Row Template                                     --}}
+{{-- ============================================================ --}}
+<template id="attachment-template">
+    <div class="row g-2 align-items-center mb-2 attachment-row">
+        <div class="col-md-4">
+            <input type="text" class="form-control form-control-sm"
+                   name="stages[__INDEX__][required_attachments][__ATT_INDEX__][key]"
+                   required placeholder="رمز المرفق (مثال: clearance_receipt)">
+        </div>
+        <div class="col-md-5">
+            <input type="text" class="form-control form-control-sm"
+                   name="stages[__INDEX__][required_attachments][__ATT_INDEX__][label]"
+                   required placeholder="وصف المرفق (مثال: محضر الاستلام المالي)">
+        </div>
+        <div class="col-md-2">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox"
+                       name="stages[__INDEX__][required_attachments][__ATT_INDEX__][required]"
+                       value="1" checked id="req___INDEX_____ATT_INDEX__">
+                <label class="form-check-label small" for="req___INDEX_____ATT_INDEX__">إلزامي</label>
+            </div>
+        </div>
+        <div class="col-md-1 text-center">
+            <button type="button" class="btn btn-sm btn-link text-danger remove-attachment-btn">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     </div>
 </template>
@@ -213,29 +349,88 @@
             });
         }
 
-        function addStage(key = '', nameAr = '', nameEn = '', actions = ['approve', 'return'], responsibleUserId = '') {
+        /**
+         * إضافة مرحلة جديدة
+         *
+         * @param {string}  key
+         * @param {string}  nameAr
+         * @param {string}  nameEn
+         * @param {array}   actions
+         * @param {string}  responsibleUserId
+         * @param {array}   attachments
+         * @param {boolean} isFinal
+         * @param {boolean} triggersExecution
+         */
+        function addStage(key = '', nameAr = '', nameEn = '', actions = ['approve', 'return'], responsibleUserId = '', attachments = [], isFinal = false, triggersExecution = false) {
             const template = $('#stage-template').html();
             const $newStage = $(template.replace(/__INDEX__/g, stageIndex));
-            
-            $newStage.find('.stage-title').text('مرحلة ' + (stageIndex + 1));
+
+            $newStage.find('.stage-badge').text('مرحلة ' + (stageIndex + 1));
+            $newStage.find('.stage-title').text(nameAr || ('مرحلة ' + (stageIndex + 1)));
             $newStage.find('.stage-key-input').val(key);
             $newStage.find('.stage-name-ar-input').val(nameAr);
             $newStage.find('input[name="stages['+stageIndex+'][stage_name_en]"]').val(nameEn);
-            
-            $newStage.find('input[type="checkbox"]').prop('checked', false);
-            actions.forEach(action => {
-                $newStage.find(`input[value="${action}"]`).prop('checked', true);
+
+            // تحديث عنوان البطاقة تلقائياً
+            $newStage.find('.stage-name-ar-input').on('input', function() {
+                $newStage.find('.stage-title').text($(this).val() || ('مرحلة ' + (stageIndex + 1)));
             });
 
-            // Populate select
+            // الإجراءات المتاحة
+            $newStage.find('input[name*="[available_actions]"]').prop('checked', false);
+            actions.forEach(action => {
+                $newStage.find(`input[name*="[available_actions]"][value="${action}"]`).prop('checked', true);
+            });
+
+            // ✅ المرحلة النهائية وتفعيل التنفيذ
+            $newStage.find('.stage-final-checkbox').prop('checked', !!isFinal);
+            $newStage.find('input[name*="[triggers_execution]"]').prop('checked', !!triggersExecution);
+
+            if (isFinal) {
+                $newStage.find('.stage-final-badge').removeClass('d-none');
+            }
+
+            // Populate user select
             let $select = $newStage.find('.stage-user-select');
             eligibleUsers.forEach(user => {
                 let selected = (user.id == responsibleUserId) ? 'selected' : '';
                 $select.append(`<option value="${user.id}" ${selected}>${user.name}</option>`);
             });
 
+            // ✅ إضافة المرفقات المطلوبة
+            let currentStageIdx = stageIndex;
+            let attList = $newStage.find('.attachments-list');
+            if (attachments && attachments.length > 0) {
+                attList.find('.no-attachments-hint').hide();
+                attachments.forEach((att, attIdx) => {
+                    const attTpl = $('#attachment-template').html()
+                        .replace(/__INDEX__/g, currentStageIdx)
+                        .replace(/__ATT_INDEX__/g, attIdx);
+                    const $attRow = $(attTpl);
+                    $attRow.find('input[name*="[key]"]').val(att.key);
+                    $attRow.find('input[name*="[label]"]').val(att.label);
+                    $attRow.find('input[name*="[required]"]').prop('checked', !!att.required);
+                    attList.append($attRow);
+                });
+            }
+
+            // زر إضافة مرفق جديد لهذه المرحلة
+            $newStage.find('.add-attachment-btn').click(function() {
+                attList.find('.no-attachments-hint').hide();
+                let attCount = attList.find('.attachment-row').length;
+                const attTpl = $('#attachment-template').html()
+                    .replace(/__INDEX__/g, currentStageIdx)
+                    .replace(/__ATT_INDEX__/g, attCount);
+                attList.append(attTpl);
+            });
+
             $('#stages-container').append($newStage);
             stageIndex++;
+
+            // إذا كانت المرحلة النهائية، ألغِ تحديد الباقي
+            if (isFinal) {
+                enforceSingleFinalStage($newStage.find('.stage-final-checkbox'));
+            }
         }
 
         $('#add-stage-btn').click(function() {
@@ -247,15 +442,57 @@
             // Re-index titles
             let i = 1;
             $('#stages-container .stage-row').each(function() {
-                $(this).find('.stage-title').text('مرحلة ' + i++);
+                $(this).find('.stage-badge').text('مرحلة ' + i);
+                i++;
             });
         });
 
-        // Initialize default stages only on create page
+        $(document).on('click', '.remove-attachment-btn', function() {
+            let container = $(this).closest('.attachments-list');
+            $(this).closest('.attachment-row').remove();
+            if (container.find('.attachment-row').length === 0) {
+                container.find('.no-attachments-hint').show();
+            }
+        });
+
+        // ✅ ضمان وجود مرحلة نهائية واحدة فقط
+        function enforceSingleFinalStage($currentCheckbox) {
+            if (!$currentCheckbox.is(':checked')) {
+                return;
+            }
+
+            $('#stages-container .stage-final-checkbox').not($currentCheckbox).each(function() {
+                let $other = $(this);
+                if ($other.is(':checked')) {
+                    $other.prop('checked', false);
+                    $other.closest('.stage-row').find('.stage-final-badge').addClass('d-none');
+                    $other.closest('.stage-row')
+                        .find('input[name*="[triggers_execution]"]')
+                        .prop('checked', false);
+                }
+            });
+        }
+
+        // ✅ ربط حدث تغيير checkbox المرحلة النهائية
+        $(document).on('change', '.stage-final-checkbox', function() {
+            let $checkbox = $(this);
+            let $row = $checkbox.closest('.stage-row');
+
+            if ($checkbox.is(':checked')) {
+                enforceSingleFinalStage($checkbox);
+                $row.find('.stage-final-badge').removeClass('d-none');
+                // علّم "تفعيل التنفيذ" تلقائياً
+                $row.find('input[name*="[triggers_execution]"]').prop('checked', true);
+            } else {
+                $row.find('.stage-final-badge').addClass('d-none');
+            }
+        });
+
+        // Initialize default stages
         if ($('#stages-container').children().length === 0 && !window.hasExistingStages) {
             addStage('technical_review', 'مراجعة فنية', 'Technical Review', ['approve', 'return']);
             addStage('financial_review', 'مراجعة مالية', 'Financial Review', ['approve', 'return']);
-            addStage('final_approval', 'اعتماد نهائي', 'Final Approval', ['approve', 'return', 'reject']);
+            addStage('final_approval', 'اعتماد نهائي', 'Final Approval', ['approve', 'return', 'reject'], '', [], true, true);
         }
 
         $('#route_destination_type').on('change', function() {
@@ -265,6 +502,23 @@
             } else {
                 $('#destination_authority_container').hide();
                 $('#destination_authority_container select').prop('required', false).val('').trigger('change');
+            }
+        });
+
+        // ✅ تحقق قبل الإرسال
+        $('#workflowForm').on('submit', function(e) {
+            let finalCount = $('#stages-container .stage-final-checkbox:checked').length;
+
+            if (finalCount === 0) {
+                e.preventDefault();
+                alert('⚠️ يجب تحديد مرحلة نهائية واحدة على الأقل قبل الحفظ.');
+                return false;
+            }
+
+            if (finalCount > 1) {
+                e.preventDefault();
+                alert('⚠️ لا يمكن تحديد أكثر من مرحلة نهائية واحدة.');
+                return false;
             }
         });
     });

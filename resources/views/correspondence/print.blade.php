@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>مراسلة | {{ $correspondence->correspondence_number ?? '............' }}</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<x-letterhead-styles :letterhead="$letterhead ?? null" />
 <style>
 @page {
     margin: 10mm;
@@ -250,39 +253,15 @@ td {
 
 <div class="print-container">
 
-<table class="header-table">
-    <tr>
-        <td class="header-right">
-            الجمهورية اليمنية<br>
-            اللجنة الزراعية والسمكية العليا<br>
-            {{ auth()->user()->entity?->name ?? 'وحدة المعلومات' }}
-        </td>
-        <td class="header-center">
-            @php
-                $logoContent = '';
-                if(isset($logoPath) && file_exists($logoPath)) {
-                    $content = @file_get_contents($logoPath);
-                    if ($content) {
-                        $logoContent = base64_encode($content);
-                    }
-                }
-            @endphp
+<x-letterhead-selector :currentLetterhead="$letterhead ?? null" />
 
-            @if($logoContent)
-                <img src="data:image/png;base64,{{ $logoContent }}" class="logo"><br>
-            @endif
-            <h1>مذكرة مراسلة رسمية</h1>
-            <div class="batch-info">رقم المراسلة: {{ $correspondence->correspondence_number }}</div>
-            <div class="number-badge">بتاريخ: {{ $correspondence->correspondence_date }}</div>
-        </td>
-        <td class="header-left">
-            @if(isset($qrCodeData) && $qrCodeData)
-                <img src="{{ $qrCodeData }}" alt="QR Code" class="qr-code-img"><br>
-            @endif
-            <div class="batch-info">تاريخ الطباعة: {{ now()->format('Y/m/d') }}</div>
-        </td>
-    </tr>
-</table>
+<x-letterhead-header 
+    :letterhead="$letterhead ?? null"
+    :documentNumber="$correspondence->correspondence_number" 
+    :documentDate="$correspondence->correspondence_date" 
+    :qrCodeData="$qrCodeData ?? null" 
+    customTitle="مذكرة مراسلة رسمية" 
+/>
 
 <table class="info-grid">
     <tr>
@@ -397,11 +376,7 @@ td {
             </td>
         </tr>
     </table>
-</div>
-
-<div class="footer-info">
-    هذه الوثيقة صادرة عن نظام المراسلات الإلكتروني - تاريخ الاستخراج: {{ now()->format('Y/m/d H:i') }}
-</div>
+<x-letterhead-footer :letterhead="$letterhead ?? null" documentName="مذكرة مراسلة رسمية" />
 
 </div>
 

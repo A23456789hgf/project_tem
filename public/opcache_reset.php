@@ -1,2 +1,4 @@
-<?php opcache_reset();
+<?php
+
+opcache_reset();
 echo 'OPcache reset';

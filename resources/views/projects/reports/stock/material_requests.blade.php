@@ -33,6 +33,9 @@
             @can('reports.material_requests.print')
             <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="fas fa-print me-1"></i> طباعة</button>
             @endcan
+            @can('reports.material_requests.export')
+            <button type="button" class="btn btn-success btn-sm" disabled><i class="fas fa-file-excel me-1"></i> تصدير (قريباً)</button>
+            @endcan
         </div>
     </div>
 
@@ -168,9 +171,11 @@
                                     <span class="badge bg-warning text-dark">{{ $row['status'] ?? 'Pending' }}</span>
                                 </td>
                                 <td class="d-print-none">
+                                    @can('reports.material_requests.view_details')
                                     <button class="btn btn-sm btn-info text-white btn-view-details" data-id="{{ $row['name'] }}">
                                         <i class="fas fa-eye me-1"></i> التفاصيل
                                     </button>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

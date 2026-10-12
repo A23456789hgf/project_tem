@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 // تم إزالة HasModelVisibility لإصلاح خطأ "Call to undefined method App\Scopes\DomainScope::applyEntityBasedScope()"
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\DB;
 class Project extends Model
 {
     use Auditable, HasCreatorTracking, HasFactory, HasProjectVisibility; // بدون HasModelVisibility
+
+    public bool $isErpnextInbound = false;
 
     protected $fillable = [
         'project_type',
@@ -79,6 +82,7 @@ class Project extends Model
         'is_data_completed',
         'data_completed_at',
         'entity_modified',
+        'uses_disbursement_workflow',
     ];
 
     protected $appends = ['project_duration', 'mainObjective', 'current_stage_name', 'execution_progress', 'draft_integrity'];
@@ -96,6 +100,7 @@ class Project extends Model
         'is_data_completed' => 'boolean',
         'data_completed_at' => 'datetime',
         'entity_modified' => 'boolean',
+        'uses_disbursement_workflow' => 'boolean',
     ];
 
     /**
@@ -643,6 +648,11 @@ class Project extends Model
         return $this->hasMany(ProjectFinancing::class);
     }
 
+    public function empowermentProject(): HasOne
+    {
+        return $this->hasOne(EmpowermentProject::class);
+    }
+
     public function supervisingAuthorities(): HasMany
     {
         return $this->hasMany(ProjectSupervisingAuthority::class, 'project_id');
@@ -711,6 +721,131 @@ class Project extends Model
     public function beneficiaryEntities(): HasMany
     {
         return $this->hasMany(BeneficiaryEntity::class);
+    }
+
+    public function disbursementPlan(): HasOne
+    {
+        return $this->hasOne(ProjectDisbursementPlan::class);
+    }
+
+    public function disbursementPlanDetails(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            ProjectDisbursementPlanDetail::class,
+            ProjectDisbursementPlan::class,
+            'project_id',
+            'project_disbursement_plan_id'
+        );
+    }
+
+    public function clearanceRequests(): HasMany
+    {
+        return $this->hasMany(ProjectClearanceRequest::class);
+    }
+
+    public function paymentRequests(): HasMany
+    {
+        return $this->hasMany(ProjectPaymentRequest::class);
+    }
+
+    public function projectExecutions(): HasMany
+    {
+        return $this->hasMany(ProjectExecution::class);
+    }
+
+    public function preliminaryProcedureExecutions(): HasMany
+    {
+        return $this->hasMany(PreliminaryProcedureExecution::class);
+    }
+
+    /**
+     * Authoritative sum of amounts actually disbursed to this project
+     */
+    public function getTotalActuallyDisbursedAttribute(): float
+    {
+        if (! $this->uses_disbursement_workflow) {
+            return (float) ($this->cost->total_cost ?? 0);
+        }
+
+        $plan = $this->disbursementPlan;
+        if (! $plan) {
+            return 0.0;
+        }
+
+        return $plan->getAuthoritativeDisbursedAmount();
+    }
+
+    /**
+     * Total financial execution (spent amount) across preliminary and executive activities
+     */
+    public function getTotalFinancialExecutionAttribute(): float
+    {
+        $peSpent = (float) ProjectExecution::where('project_id', $this->id)->sum('amount_spent');
+        $ppeSpent = (float) PreliminaryProcedureExecution::where('project_id', $this->id)->sum('amount_spent');
+
+        return $peSpent + $ppeSpent;
+    }
+
+    /**
+     * Remaining ceiling available for financial execution based on what has been disbursed
+     */
+    public function getAvailableForExecutionAttribute(): float
+    {
+        $installment = $this->active_disbursed_installment;
+
+        if ($this->uses_disbursement_workflow) {
+            if (! $installment) {
+                return 0.0;
+            }
+
+            return max(0.0, (float) $installment->disbursed_amount - $this->spentFromInstallment($installment));
+        }
+
+        return max(0.0, $this->total_actually_disbursed - $this->total_financial_execution);
+    }
+
+    public function spentFromInstallment(ProjectDisbursementPlanDetail $installment): float
+    {
+        $projectSpent = ProjectExecution::query()
+            ->where('disbursement_plan_detail_id', $installment->id)
+            ->where(function (Builder $query): void {
+                $query->whereNull('approval_status')->orWhereIn('approval_status', ['approved', 'pending']);
+            })
+            ->sum('amount_spent');
+
+        $preliminarySpent = PreliminaryProcedureExecution::query()
+            ->where('disbursement_plan_detail_id', $installment->id)
+            ->where(function (Builder $query): void {
+                $query->whereNull('approval_status')->orWhereIn('approval_status', ['approved', 'pending']);
+            })
+            ->sum('amount_spent');
+
+        return (float) $projectSpent + (float) $preliminarySpent;
+    }
+
+    /**
+     * Remaining project cost not yet disbursed
+     */
+    public function getRemainingProjectCostAttribute(): float
+    {
+        $totalCost = (float) ($this->cost->total_cost ?? 0);
+
+        return max(0.0, $totalCost - $this->total_actually_disbursed);
+    }
+
+    /**
+     * Current active disbursed installment for allocating new executions
+     */
+    public function getActiveDisbursedInstallmentAttribute(): ?ProjectDisbursementPlanDetail
+    {
+        if (! $this->disbursementPlan) {
+            return null;
+        }
+
+        return $this->disbursementPlan->details()
+            ->whereIn('status', ['disbursed', 'clearance_requested'])
+            ->orderBy('sequence_number')
+            ->first();
     }
 
     public function getProjectLinkedEntities()
@@ -787,7 +922,7 @@ class Project extends Model
 
     public function projectApprovals(): HasMany
     {
-        return $this->hasMany(ProjectApproval::class);
+        return $this->hasMany(ProjectApproval::class)->whereNull('workflow_request_id')->whereNull('unified_request_id');
     }
 
     public function qualityRecords(): HasMany
@@ -1177,8 +1312,27 @@ class Project extends Model
             $project->draftCollaborators()->delete();
             $project->draftActivities()->delete();
             $project->achievements()->delete();
+            $project->empowermentProject()?->delete();
             // Many-to-many detachment
             $project->beneficiaryGroups()->detach();
+        });
+
+        /**
+         * EVENT: Updated
+         * مزامنة التغييرات في اسم المشروع أو رقمه أو تواريخه أو عدد المستفيدين مع إدارة التمكين
+         */
+        static::updated(function ($project) {
+            if ($project->wasChanged(['project_name', 'project_number', 'form_number', 'number_of_beneficiaries', 'start_date_gregorian', 'start_date_hijri', 'end_date_gregorian', 'end_date_hijri'])) {
+                EmpowermentProject::where('project_id', $project->id)->update([
+                    'project_name' => $project->project_name,
+                    'project_number' => $project->project_number ?? $project->form_number,
+                    'number_of_beneficiaries' => $project->number_of_beneficiaries ?? 0,
+                    'start_date_gregorian' => $project->start_date_gregorian,
+                    'start_date_hijri' => $project->start_date_hijri,
+                    'end_date_gregorian' => $project->end_date_gregorian,
+                    'end_date_hijri' => $project->end_date_hijri,
+                ]);
+            }
         });
     }
 

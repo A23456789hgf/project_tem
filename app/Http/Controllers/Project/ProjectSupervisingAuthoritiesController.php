@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Authority;
 use App\Models\InternalEntity;
 use App\Models\Project;
+use App\Services\ProjectEntitySelectionValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -52,6 +53,8 @@ class ProjectSupervisingAuthoritiesController extends Controller
                 'supervising_authorities' => ['يجب توفير جهة إشرافية واحدة على الأقل للمشروع النهائي.'],
             ]);
         }
+
+        ProjectEntitySelectionValidator::validate($supervisingAuthorities ?? [], 'supervising_authorities');
 
         DB::beginTransaction();
         try {

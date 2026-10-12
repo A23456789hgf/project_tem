@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'تفاصيل الاستشارة: ' . ($project->project_name ?? 'مشروع #' . $referral->project_id))
+@section('title', 'تفاصيل الاستشارة: ' . ($project?->project_name ?? 'مشروع #' . $referral->project_id))
 
 @section('styles')
 <style>
@@ -172,10 +172,10 @@
                 </nav>
                 <div class="d-flex align-items-center gap-3 flex-wrap">
                     <h3 class="fw-bold mb-0 text-white">
-                        {{ $project->project_name ?? 'مشروع #' . $referral->project_id }}
+                        {{ $project?->project_name ?? 'مشروع #' . $referral->project_id }}
                     </h3>
                     <span class="badge bg-light text-dark px-3 py-1 rounded-pill small fw-semibold">
-                        <i class="fas fa-hashtag me-1"></i>{{ $project->form_number ?: 'PRJ-'.$project->id }}
+                        <i class="fas fa-hashtag me-1"></i>{{ $project?->form_number ?: 'PRJ-'.$referral->project_id }}
                     </span>
                     @if($referral->status === 'pending')
                         <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold">
@@ -204,7 +204,7 @@
                 <a href="{{ route('consultations.index') }}" class="btn btn-outline-light rounded-pill px-4 btn-sm fw-semibold">
                     <i class="fas fa-arrow-right me-1"></i> العودة لقائمة الاستشارات
                 </a>
-                <a href="{{ route('approvals.show', $project->id) }}" class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold shadow-sm">
+                <a href="{{ route('approvals.show', $referral->project_id) }}" class="btn btn-primary rounded-pill px-4 btn-sm fw-semibold shadow-sm">
                     <i class="fas fa-clipboard-check me-1"></i> صفحة المشروع بالاعتمادات
                 </a>
             </div>
@@ -226,33 +226,33 @@
                     <div class="row g-3">
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">اسم المشروع</div>
-                            <div class="info-value">{{ $project->project_name }}</div>
+                            <div class="info-value">{{ $project?->project_name ?? 'مشروع محذوف #' . $referral->project_id }}</div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">رقم الاستمارة</div>
-                            <div class="info-value font-monospace">{{ $project->form_number ?: 'PRJ-'.$project->id }}</div>
+                            <div class="info-value font-monospace">{{ $project?->form_number ?: 'PRJ-'.$referral->project_id }}</div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">التكلفة الإجمالية</div>
                             <div class="info-value text-success">
-                                {{ number_format((float)($project->cost->total_cost ?? 0), 2) }} {{ $project->cost->currency ?? 'USD' }}
+                                {{ number_format((float)($project?->cost?->total_cost ?? 0), 2) }} {{ $project?->cost?->currency ?? 'USD' }}
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">الجهة المقدمة للمشروع</div>
-                            <div class="info-value">{{ $project->creator_entity_name }}</div>
+                            <div class="info-value">{{ $project?->creator_entity_name ?? 'غير محدد' }}</div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">المرحلة الحالية بالمسار</div>
                             <div class="info-value text-primary">
-                                {{ $project->current_stage_order ? 'الخطوة #' . $project->current_stage_order : 'مسار الاعتماد' }}
+                                {{ $project?->current_stage_order ? 'الخطوة #' . $project?->current_stage_order : 'مسار الاعتماد' }}
                             </div>
                         </div>
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="info-label">حالة المشروع الرئيسية</div>
                             <div>
                                 <span class="badge bg-primary px-3 py-1 rounded-pill small fw-semibold">
-                                    {{ $project->status }}
+                                    {{ $project?->status ?? 'محذوف / غير متوفر' }}
                                 </span>
                             </div>
                         </div>
@@ -502,7 +502,7 @@
                                 </form>
                             @endif
 
-                            <a href="{{ route('approvals.show', $project->id) }}" class="btn btn-outline-primary rounded-pill btn-sm px-4 fw-bold">
+                            <a href="{{ route('approvals.show', $referral->project_id) }}" class="btn btn-outline-primary rounded-pill btn-sm px-4 fw-bold">
                                 <i class="fas fa-external-link-alt me-1"></i> عرض المشروع في مركز الاعتمادات
                             </a>
                         </div>

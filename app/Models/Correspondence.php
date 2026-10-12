@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\CorrespondenceOrganizationResolver;
+use App\Services\OrganizationResolver;
 use App\Traits\Auditable;
 use App\Traits\HasCreatorTracking;
 use App\Traits\HasDomainScope;
@@ -201,9 +203,29 @@ class Correspondence extends Model
      * العلاقات (Relationships)
      * ============================================
      */
+    public function senderAuthority()
+    {
+        return $this->belongsTo(Authority::class, 'sender_authority_id');
+    }
+
+    public function getSenderOrganizationAttribute()
+    {
+        return app(CorrespondenceOrganizationResolver::class)->resolveSender($this);
+    }
+
     public function senderEntity()
     {
         return $this->belongsTo(InternalEntity::class, 'sender_entity_id');
+    }
+
+    public function recipientAuthority()
+    {
+        return $this->belongsTo(Authority::class, 'recipient_authority_id');
+    }
+
+    public function getRecipientOrganizationAttribute()
+    {
+        return app(CorrespondenceOrganizationResolver::class)->resolveRecipient($this);
     }
 
     public function recipientEntity()
@@ -513,12 +535,24 @@ class Correspondence extends Model
         // Users with "all" scope handled by DomainScope and hasPermission logic.
 
         // 1. Check if user belongs to sender or recipient entity
-        if ($this->sender_entity_id == $user->entity_id || $this->recipient_entity_id == $user->entity_id) {
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
+        $userOrg = app(OrganizationResolver::class)->resolve($user);
+
+        if ($orgResolver->matchesUserOrganization($userOrg, $this->sender_type, $this->sender_entity_id, $this->sender_authority_id) ||
+            $orgResolver->matchesUserOrganization($userOrg, $this->recipient_type, $this->recipient_entity_id, $this->recipient_authority_id)) {
             return true;
         }
 
         // 2. Check if it was referred to user's entity
-        if ($this->referrals()->where('referred_to_entity_id', $user->entity_id)->exists()) {
+        if ($this->referrals()->where(function ($q) use ($userOrg) {
+            if ($userOrg['type'] === 'external') {
+                $q->where('referred_to_type', 'external')->where('referred_to_authority_id', $userOrg['id']);
+            } else {
+                $q->where(function ($sq) {
+                    $sq->where('referred_to_type', 'internal')->orWhereNull('referred_to_type');
+                })->where('referred_to_entity_id', $userOrg['id']);
+            }
+        })->exists()) {
             return true;
         }
 
@@ -539,11 +573,23 @@ class Correspondence extends Model
         // Note: we don't check roles here anymore.
 
         // Sender/Recipient/Referral can reply if they have the permission slug
-        if ($this->sender_entity_id == $user->entity_id || $this->recipient_entity_id == $user->entity_id) {
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
+        $userOrg = app(OrganizationResolver::class)->resolve($user);
+
+        if ($orgResolver->matchesUserOrganization($userOrg, $this->sender_type, $this->sender_entity_id, $this->sender_authority_id) ||
+            $orgResolver->matchesUserOrganization($userOrg, $this->recipient_type, $this->recipient_entity_id, $this->recipient_authority_id)) {
             return true;
         }
 
-        if ($this->referrals()->where('referred_to_entity_id', $user->entity_id)->exists()) {
+        if ($this->referrals()->where(function ($q) use ($userOrg) {
+            if ($userOrg['type'] === 'external') {
+                $q->where('referred_to_type', 'external')->where('referred_to_authority_id', $userOrg['id']);
+            } else {
+                $q->where(function ($sq) {
+                    $sq->where('referred_to_type', 'internal')->orWhereNull('referred_to_type');
+                })->where('referred_to_entity_id', $userOrg['id']);
+            }
+        })->exists()) {
             return true;
         }
 
@@ -561,11 +607,23 @@ class Correspondence extends Model
         }
 
         // Sender/Recipient/Referral can refer
-        if ($this->sender_entity_id == $user->entity_id || $this->recipient_entity_id == $user->entity_id) {
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
+        $userOrg = app(OrganizationResolver::class)->resolve($user);
+
+        if ($orgResolver->matchesUserOrganization($userOrg, $this->sender_type, $this->sender_entity_id, $this->sender_authority_id) ||
+            $orgResolver->matchesUserOrganization($userOrg, $this->recipient_type, $this->recipient_entity_id, $this->recipient_authority_id)) {
             return true;
         }
 
-        if ($this->referrals()->where('referred_to_entity_id', $user->entity_id)->exists()) {
+        if ($this->referrals()->where(function ($q) use ($userOrg) {
+            if ($userOrg['type'] === 'external') {
+                $q->where('referred_to_type', 'external')->where('referred_to_authority_id', $userOrg['id']);
+            } else {
+                $q->where(function ($sq) {
+                    $sq->where('referred_to_type', 'internal')->orWhereNull('referred_to_type');
+                })->where('referred_to_entity_id', $userOrg['id']);
+            }
+        })->exists()) {
             return true;
         }
 
@@ -607,9 +665,11 @@ class Correspondence extends Model
     public function getStatusLabelAttribute()
     {
         $user = auth()->user();
+        $userOrg = $user ? app(OrganizationResolver::class)->resolve($user) : null;
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
 
         if ($this->status === 'pending') {
-            if ($user && $this->sender_entity_id == $user->entity_id) {
+            if ($user && $orgResolver->matchesUserOrganization($userOrg, $this->sender_type, $this->sender_entity_id, $this->sender_authority_id)) {
                 return 'بانتظار الرد';
             }
 

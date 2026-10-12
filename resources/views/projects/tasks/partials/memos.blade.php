@@ -34,7 +34,7 @@
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <form action="{{ route('projects.tasks.memos.store', [$project->id, $task->id]) }}" method="POST"
+                <form action="{{ $task->project_id ? route('projects.tasks.memos.store', [$task->project_id, $task->id]) : route('tasks.memos.store', $task) }}" method="POST"
                     enctype="multipart/form-data">
                     @csrf
                     <div class="memo-form-body">
@@ -247,7 +247,7 @@
                         @endif
 
                         @can('task.memo.delete', $task)
-                            <form action="{{ route('projects.tasks.memos.destroy', [$project->id, $task->id, $memo->id]) }}"
+                            <form action="{{ $task->project_id ? route('projects.tasks.memos.destroy', [$task->project_id, $task->id, $memo->id]) : route('tasks.memos.destroy', [$task, $memo]) }}"
                                 method="POST" onsubmit="return confirmAction(this, 'هل أنت متأكد من حذف هذه المذكرة؟')"
                                 class="d-inline">
                                 @csrf
@@ -1405,7 +1405,12 @@
 
     function openSignatureModal(memoId) {
         const form = document.getElementById('signatureForm');
-        form.action = `/projects/{{ $project->id }}/tasks/{{ $task->id }}/memos/${memoId}/sign`;
+        const memoSignRoute = @json(
+            $task->project_id
+                ? route('projects.tasks.memos.sign', [$task->project_id, $task->id, '__MEMO_ID__'])
+                : route('tasks.memos.sign', [$task, '__MEMO_ID__'])
+        );
+        form.action = memoSignRoute.replace('__MEMO_ID__', memoId);
 
         const modal = new bootstrap.Modal(document.getElementById('signatureModal'));
         modal.show();

@@ -4,6 +4,7 @@
 
 namespace App\Models;
 
+use App\Services\CorrespondenceOrganizationResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -34,9 +35,33 @@ class CorrespondenceMovement extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function fromAuthority()
+    {
+        return $this->belongsTo(Authority::class, 'from_authority_id');
+    }
+
+    public function getFromOrganizationAttribute()
+    {
+        $resolver = app(CorrespondenceOrganizationResolver::class);
+
+        return $resolver->resolveOrganization($this->from_type, $this->from_entity_id, $this->from_authority_id);
+    }
+
     public function fromEntity(): BelongsTo
     {
         return $this->belongsTo(InternalEntity::class, 'from_entity_id');
+    }
+
+    public function toAuthority()
+    {
+        return $this->belongsTo(Authority::class, 'to_authority_id');
+    }
+
+    public function getToOrganizationAttribute()
+    {
+        $resolver = app(CorrespondenceOrganizationResolver::class);
+
+        return $resolver->resolveOrganization($this->to_type, $this->to_entity_id, $this->to_authority_id);
     }
 
     public function toEntity(): BelongsTo

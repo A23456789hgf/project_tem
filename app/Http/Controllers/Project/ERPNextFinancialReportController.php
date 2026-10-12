@@ -6,14 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\InternalEntity;
 use App\Models\Project;
 use App\Services\FrappeAPIService;
+use App\Services\OrganizationResolver;
+use App\Services\ScopeFilterService;
 use Illuminate\Http\Request;
 
 class ERPNextFinancialReportController extends Controller
 {
     protected FrappeAPIService $frappe;
 
-    public function __construct(FrappeAPIService $frappe)
-    {
+    public function __construct(
+        FrappeAPIService $frappe,
+        private OrganizationResolver $organizationResolver,
+        private ScopeFilterService $scopeFilterService,
+    ) {
         $this->frappe = $frappe;
         $this->middleware('permission:reports.view');
     }
@@ -24,7 +29,7 @@ class ERPNextFinancialReportController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $user->loadMissing(['entity', 'role']);
+        $user->loadMissing(['entity', 'authority', 'role']);
 
         $isAdmin = $user->isAdmin() || ($user->role && $user->role->full_access);
 
@@ -32,22 +37,35 @@ class ERPNextFinancialReportController extends Controller
         $userEntityErpId = null;
         $allowedCompanies = null;
 
-        if (! $isAdmin && $user->entity) {
-            $userEntityName = $user->entity->name;
-            $userEntityErpId = $user->entity->erpnext_id ?: $user->entity->name;
-            $allowedCompanies = [$userEntityErpId];
+        if ($isAdmin) {
             $companies = InternalEntity::where('entity_type', 'Company')
-                ->where('id', $user->entity_id)
                 ->active()
                 ->get();
         } else {
-            $companies = InternalEntity::where('entity_type', 'Company')
-                ->active()
-                ->get();
+            $organization = $this->organizationResolver->resolve($user);
+            $companyQuery = InternalEntity::withoutGlobalScopes()
+                ->where('entity_type', 'Company')
+                ->active();
+
+            if ($organization['type'] === OrganizationResolver::INTERNAL) {
+                $companyQuery->whereKey($organization['id']);
+            } else {
+                $this->organizationResolver->applyVisibleInternalEntities($companyQuery, $user);
+            }
+
+            $companies = $companyQuery->get();
+            $allowedCompanies = $companies
+                ->map(fn (InternalEntity $entity) => $entity->erpnext_id ?: $entity->name)
+                ->values()
+                ->all();
+            $userEntityName = $organization['model']?->name ?? $organization['model']?->agency_name;
+            $userEntityErpId = count($allowedCompanies) === 1 ? $allowedCompanies[0] : null;
         }
 
         // جلب المشاريع النشطة المرتبطة بـ ERPNext للفلاتر
-        $projects = Project::whereNotNull('erpnext_project_id')
+        $projectQuery = Project::whereNotNull('erpnext_project_id');
+        $this->scopeFilterService->applyEntityFilter($projectQuery);
+        $projects = $projectQuery
             ->select('id', 'erpnext_project_id', 'project_name', 'form_number')
             ->orderBy('project_name')
             ->get();
@@ -176,12 +194,19 @@ class ERPNextFinancialReportController extends Controller
         if ($isAdmin) {
             return null;
         }
-        $user->loadMissing('entity');
-        if (! $user->entity) {
-            return [];
+        $organization = $this->organizationResolver->resolve($user);
+        $query = InternalEntity::withoutGlobalScopes()->where('entity_type', 'Company')->active();
+
+        if ($organization['type'] === OrganizationResolver::INTERNAL) {
+            $query->whereKey($organization['id']);
+        } else {
+            $this->organizationResolver->applyVisibleInternalEntities($query, $user);
         }
 
-        return [$user->entity->erpnext_id ?: $user->entity->name];
+        return $query->get()
+            ->map(fn (InternalEntity $entity) => $entity->erpnext_id ?: $entity->name)
+            ->values()
+            ->all();
     }
 
     protected function isCompanyAllowed(string $company, ?array $allowedCompanies): bool

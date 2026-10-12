@@ -533,17 +533,27 @@
 @section('content')
 <div class="quality-container">
     <!-- Header -->
-    <div class="quality-header">
-        <h1><i class="fas fa-chart-line me-2"></i>إدارة جودة المشروع</h1>
-        <div class="project-info">
-            <div class="info-badge">
-                <i class="fas fa-hashtag me-1"></i>
-                رقم المشروع: {{ $project->form_number ?? 'غير محدد' }}
+    <div class="quality-header d-flex justify-content-between align-items-start flex-wrap">
+        <div>
+            <h1><i class="fas fa-chart-line me-2"></i>إدارة جودة المشروع</h1>
+            <div class="project-info">
+                <div class="info-badge">
+                    <i class="fas fa-hashtag me-1"></i>
+                    رقم المشروع: {{ $project->form_number ?? 'غير محدد' }}
+                </div>
+                <div class="info-badge">
+                    <i class="fas fa-project-diagram me-1"></i>
+                    {{ $project->project_name ?? 'غير محدد' }}
+                </div>
             </div>
-            <div class="info-badge">
-                <i class="fas fa-project-diagram me-1"></i>
-                {{ $project->project_name ?? 'غير محدد' }}
-            </div>
+        </div>
+        <div class="mt-3 mt-md-0 d-flex gap-2">
+            <a href="{{ route('quality.print', ['report_scope' => 'single', 'single_project_id' => $project->id]) }}" target="_blank" class="btn" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                <i class="fas fa-print"></i> طباعة التقرير
+            </a>
+            <a href="{{ route('quality.export', ['report_scope' => 'single', 'single_project_id' => $project->id]) }}" class="btn" style="background: var(--gold-color); color: var(--primary-dark); border: none; font-weight: bold;">
+                <i class="fas fa-file-excel"></i> تصدير Excel
+            </a>
         </div>
     </div>
 

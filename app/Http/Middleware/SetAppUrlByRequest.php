@@ -19,13 +19,14 @@ class SetAppUrlByRequest
         // 🔵 داخل الشبكة (IP داخلي)
         if ($host === '10.172.172.9' || $host === 'localhost' || $host === '127.0.0.1') {
             config(['app.url' => 'http://'.$host.':8841']);
-            config(['session.secure' => false]);
+            // Session secure flag is no longer toggled per host to avoid CSRF token mismatch.
             URL::forceScheme('http');
         }
         // 🟢 خارج الشبكة (الدومين الرسمي)
         else {
             config(['app.url' => 'https://project.mafwr.gov.ye']);
-            config(['session.secure' => true]);
+            // No per‑host session.secure override – rely on global config.
+
             URL::forceScheme('https');
         }
 

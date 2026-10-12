@@ -7,6 +7,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بطاقة المشروع | {{ $project->project_name ?? 'اعتماد رسمي' }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    @php
+        $cardLetterhead = $letterhead ?? null;
+        $primaryColor = $cardLetterhead ? ($cardLetterhead->getTypographySettings()['primary_color'] ?? '#2c5f2d') : '#2c5f2d';
+        $secondaryColor = $cardLetterhead ? ($cardLetterhead->getTypographySettings()['secondary_color'] ?? '#97bc62') : '#97bc62';
+        $resolvedLogoUrl = $cardLetterhead ? $cardLetterhead->getLogoUrl() : asset('images/logo.png');
+        $rightSettings = $cardLetterhead ? $cardLetterhead->getHeaderRightSettings() : [];
+        $headerRightText = !empty($rightSettings['text']) ? $rightSettings['text'] : "الجمهورية اليمنية\nوزارة الزراعة والثروة السمكية والموارد المائية";
+    @endphp
+    @if($cardLetterhead)
+        <x-letterhead-styles :letterhead="$cardLetterhead" />
+    @endif
     <style>
         * {
             margin: 0;
@@ -15,8 +26,8 @@
         }
 
         :root {
-            --main-color: #2c5f2d;
-            --sec-color: #97bc62;
+            --main-color: {{ $primaryColor }};
+            --sec-color: {{ $secondaryColor }};
             --dark-text: #1f2937;
             --light-text: #6b7280;
         }
@@ -501,15 +512,24 @@
 
 <body>
 
+    @if($cardLetterhead)
+        <div class="no-print" style="max-width: 210mm; margin: 15px auto 5px; padding: 0 10px;">
+            <x-letterhead-selector :currentLetterhead="$cardLetterhead" />
+        </div>
+    @endif
+
     <!-- ========== الصفحة 1: الغلاف ========== -->
     <div class="page">
         <div class="cover-header-bg"></div>
         <div class="cover-content">
-            <div class="gov-title">الجمهورية اليمنية</div>
-            <div class="gov-title">وزارة الزراعة والثروة السمكية والموارد المائية</div>
+            @foreach(explode("\n", trim($headerRightText)) as $titleLine)
+                @if(trim($titleLine))
+                    <div class="gov-title">{{ trim($titleLine) }}</div>
+                @endif
+            @endforeach
             <div class="logo-container">
                 <div class="logo-wrapper">
-                    <img src="{{ asset('images/logo.png') }}" alt="الشعار الرسمي">
+                    <img src="{{ $resolvedLogoUrl }}" alt="الشعار الرسمي">
                 </div>
             </div>
             <span class="doc-badge">بطاقة المشروع</span>

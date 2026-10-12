@@ -311,34 +311,11 @@
     .modal-artistic .form-select { font-size: 0.72rem !important; }
 
     /* ─── أحجام الأعمدة المحددة ─── */
-    .projects-table th:nth-child(1), .projects-table td:nth-child(1) { width: 35px; }
-    .projects-table th:nth-child(2), .projects-table td:nth-child(2) { width: 35px; }
-    .projects-table th:nth-child(3), .projects-table td:nth-child(3) { width: 85px; }
-    .projects-table th:nth-child(4), .projects-table td:nth-child(4) { width: auto; }
-    .projects-table th:nth-child(5), .projects-table td:nth-child(5) { width: 55px; }
-    .projects-table th:nth-child(6), .projects-table td:nth-child(6) { width: 90px; }
-    .projects-table th:nth-child(7), .projects-table td:nth-child(7) { width: 85px; }
-    .projects-table th:nth-child(8), .projects-table td:nth-child(8) { width: 85px; }
-    .projects-table th:nth-child(9), .projects-table td:nth-child(9) { width: 100px; }
-    .projects-table th:nth-child(10), .projects-table td:nth-child(10) { width: 110px; }
-    .projects-table th:nth-child(11), .projects-table td:nth-child(11) { width: 75px; }
-    .projects-table th:nth-child(12), .projects-table td:nth-child(12) { width: 80px; }
-    .projects-table th:nth-child(13), .projects-table td:nth-child(13) { width: 155px; }
-
-    /* ─── Responsive hiding ─── */
-    @media (max-width: 1200px) {
-        .hide-xl { display: none !important; }
-        .projects-table th:nth-child(12), .projects-table td:nth-child(12) { display: none; }
-    }
-    @media (max-width: 992px) {
-        .hide-lg { display: none !important; }
-        .projects-table th:nth-child(11), .projects-table td:nth-child(11) { display: none; }
-    }
-    @media (max-width: 768px) {
-        .projects-table th:nth-child(6), .projects-table td:nth-child(6),
-        .projects-table th:nth-child(7), .projects-table td:nth-child(7),
-        .projects-table th:nth-child(8), .projects-table td:nth-child(8) { display: none; }
-    }
+    .projects-table th:nth-child(1), .projects-table td:nth-child(1) { width: 110px; }
+    .projects-table th:nth-child(2), .projects-table td:nth-child(2) { width: auto; }
+    .projects-table th:nth-child(3), .projects-table td:nth-child(3) { width: 22%; }
+    .projects-table th:nth-child(4), .projects-table td:nth-child(4) { width: 150px; }
+    .projects-table th:nth-child(5), .projects-table td:nth-child(5) { width: 190px; }
 
     /* ─── منع التمرير الأفقي على مستوى الصفحة ─── */
     html, body {
@@ -367,6 +344,7 @@
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-artistic">
                         @can('projects.import')
                             <li><a class="dropdown-item auth-perm-projects-import" href="{{ route('projects.import') }}"><x-icon name="file-import" class="text-primary" size="12" /> استيراد</a></li>
+                            <li><a class="dropdown-item auth-perm-projects-import" href="{{ route('projects.financings.import.form') }}"><x-icon name="coins" class="text-warning" size="12" /> استيراد التمويلات</a></li>
                             <li><hr class="dropdown-divider"></li>
                         @endcan
                         @can('projects.export')
@@ -485,18 +463,10 @@
                 <table class="table projects-table mb-0">
                     <thead>
                         <tr>
-                            <th class="text-center no-wrap"><input type="checkbox" id="select-all-projects" class="custom-checkbox"></th>
-                            <th class="text-center no-wrap">#</th>
                             <th class="text-center no-wrap">رقم المشروع</th>
                             <th>اسم المشروع</th>
-                            <th class="text-center no-wrap">النوع</th>
-                            <th>البرنامج</th>
-                            <th>المجال</th>
-                            <th>المجال الفرعي</th>
-                            <th class="text-center no-wrap">المرحلة</th>
-                            <th class="text-center no-wrap">الحالة</th>
-                            <th class="text-center no-wrap hide-lg">المنشئ</th>
-                            <th class="hide-xl">الجهة</th>
+                            <th>الجهة المقدمة للمشروع</th>
+                            <th class="text-center no-wrap">إجمالي تكلفة المشروع</th>
                             <th class="text-center no-wrap">إجراءات</th>
                         </tr>
                     </thead>
@@ -562,14 +532,13 @@
                                 }
                             @endphp
                             <tr>
-                                <td class="text-center"><input type="checkbox" name="selected_projects[]" value="{{ $project->id }}" class="custom-checkbox project-checkbox"></td>
-                                <td class="text-center"><span class="fw-bold text-primary" style="font-size:0.68rem;">{{ $loop->iteration }}</span></td>
                                 <td class="text-center"><span class="project-number">{{ $project->form_number ?? 'ـ' }}</span></td>
                                 <td>
                                     <div class="text-truncate-custom" title="{{ $project->project_name }}">
                                         {{ $project->project_name ?: ($isDraft ? 'مسودة' : 'غير معنون') }}
                                     </div>
                                 </td>
+                                {{-- الحقول التفصيلية مستبعدة من القائمة الرئيسية.
                                 <td class="text-center">
                                     @if($project->project_type === 'old')
                                         <span class="badge-artistic badge-old">قديم</span>
@@ -634,7 +603,9 @@
                                     @endif
                                 </td>
                                 <td class="text-center hide-lg"><span class="fw-semibold text-dark" style="font-size:0.68rem;">{{ optional($project->createdBy)->name ?? 'ـ' }}</span></td>
-                                <td class="hide-xl"><div class="text-truncate-custom text-muted" title="{{ $project->creator_entity_name }}">{{ $project->creator_entity_name }}</div></td>
+                                --}}
+                                <td><div class="text-truncate-custom text-muted" title="{{ $project->creator_entity_name }}">{{ $project->creator_entity_name ?: 'ـ' }}</div></td>
+                                <td class="text-center no-wrap fw-semibold">{{ number_format((float) ($project->cost?->total_cost ?? 0), 2) }}</td>
                                 <td class="text-center">
                                     <div class="d-flex align-items-center justify-content-center gap-1 flex-wrap">
                                         @can('view', $project)
@@ -773,7 +744,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="13" class="empty-state">
+                                <td colspan="5" class="empty-state">
                                     <div class="empty-icon"><x-icon name="project-diagram" size="30" class="text-muted" /></div>
                                     <h6>لا توجد مشاريع</h6>
                                     <small class="d-block mb-2">القائمة فارغة أو لا تطابق البحث</small>

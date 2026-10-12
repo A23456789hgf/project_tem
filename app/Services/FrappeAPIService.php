@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\InternalEntity;
 use App\Models\Project;
+use App\Models\ProjectDisbursementPlanDetail;
 use App\Models\ProjectExecution;
 use App\Models\SyncLog;
 use Exception;
@@ -25,11 +26,11 @@ class FrappeAPIService
 
     private static $customerCache = [];
 
-    public function __construct()
+    public function __construct(?string $baseUrl = null, ?string $apiKey = null, ?string $apiSecret = null)
     {
-        $this->baseUrl = config('services.frappe.url', 'http://172.16.10.231:8051');
-        $this->apiKey = config('services.frappe.api_key');
-        $this->apiSecret = config('services.frappe.api_secret');
+        $this->baseUrl = rtrim($baseUrl ?? config('services.frappe.url', config('external.erpnext.base_url', 'http://82.114.179.169:8855')), '/');
+        $this->apiKey = $apiKey ?? config('services.frappe.api_key', config('external.erpnext.api_key'));
+        $this->apiSecret = $apiSecret ?? config('services.frappe.api_secret', config('external.erpnext.api_secret'));
     }
 
     /**
@@ -74,17 +75,28 @@ class FrappeAPIService
                 ->$method($endpoint, $projectData);
 
             if ($response->successful()) {
+                $frappeId = $response->json('data.name');
+                if ($frappeId && empty($project->erpnext_project_id)) {
+                    $project->update([
+                        'erpnext_project_id' => $frappeId,
+                        'frappe_project_id' => $frappeId,
+                        'frappe_project_name' => $response->json('data.project_name') ?? $project->project_name,
+                        'sync_status' => 'synced',
+                        'synced_to_erpnext_at' => now(),
+                    ]);
+                }
+
                 Log::info('Project successfully synced to Frappe', [
                     'project_id' => $project->id,
                     'project_name' => $project->project_name,
-                    'frappe_id' => $response->json('data.name') ?? null,
+                    'frappe_id' => $frappeId,
                     'status_code' => $response->status(),
                 ]);
 
                 return [
                     'success' => true,
                     'message' => 'Project synced successfully to Frappe',
-                    'frappe_id' => $response->json('data.name'),
+                    'frappe_id' => $frappeId,
                     'response' => $response->json(),
                 ];
             }
@@ -162,45 +174,43 @@ class FrappeAPIService
         }
 
         // تحديد نوع الجهة المنشئة بناءً على entity_type من نموذج InternalEntity (مع دعم البديل عبر المستخدم المنشئ)
-        $creatorEntity = $project->creatorEntity ?? $project->createdBy?->entity; // InternalEntity model
+        $creatorEntity = null;
+        if ($project->creator_entity_id) {
+            $creatorEntity = InternalEntity::withoutGlobalScopes()->find($project->creator_entity_id);
+        }
+        if (! $creatorEntity) {
+            $creatorEntity = $project->creatorEntity ?? $project->createdBy?->entity;
+        }
         $entityType = $creatorEntity?->entity_type;
 
         if ($creatorEntity) {
-            if ($entityType === 'Company') {
-                $companyName = $creatorEntity->name;
+            $companyName = $this->resolveErpNextCompanyFromEntity($creatorEntity);
+            if ($companyName !== null && $companyName !== '') {
                 $data['company'] = $companyName;
 
-                if ($this->ensureCustomerExists($companyName)) {
-                    $data['customer'] = $companyName;
-                } else {
-                    Log::warning('Skipping customer field - Company entity could not be created as Customer in Frappe', [
-                        'project_id' => $project->id,
-                        'customer_name' => $companyName,
-                        'entity_type' => $entityType,
-                    ]);
-                }
-            } elseif ($entityType === 'Department') {
-                $departmentName = $creatorEntity->name;
-
-                // Find actual department document name (ID) in ERPNext
-                $erpDeptId = $this->findDepartmentErpId($departmentName);
-                $data['department'] = $erpDeptId ?: $departmentName;
-
-                // Find the parent company name from hierarchy
-                $companyName = $this->findParentCompanyName($creatorEntity);
-                if ($companyName) {
-                    $data['company'] = $companyName;
-                } else {
-                    Log::warning('Creator entity is Department but parent Company not found in hierarchy', [
-                        'project_id' => $project->id,
-                        'department_name' => $departmentName,
-                    ]);
+                if ($creatorEntity->entity_type === 'Company') {
+                    if ($this->ensureCustomerExists($companyName)) {
+                        $data['customer'] = $companyName;
+                    } else {
+                        Log::warning('Skipping customer field - Company entity could not be created as Customer in Frappe', [
+                            'project_id' => $project->id,
+                            'customer_name' => $companyName,
+                            'entity_type' => $creatorEntity->entity_type,
+                        ]);
+                    }
                 }
             } else {
-                Log::warning('Creator entity has unknown entity_type', [
+                Log::warning('Could not resolve valid ERPNext Company for project creator entity. Preserving existing ERPNext company.', [
                     'project_id' => $project->id,
-                    'entity_type' => $entityType,
+                    'creator_entity_id' => $creatorEntity->id,
+                    'creator_entity_name' => $creatorEntity->name,
                 ]);
+            }
+
+            if ($creatorEntity->entity_type === 'Department') {
+                $departmentName = $creatorEntity->name;
+                $erpDeptId = $this->findDepartmentErpId($departmentName);
+                $data['department'] = $erpDeptId ?: $departmentName;
             }
         } else {
             Log::warning('Project creatorEntity relation is not set', [
@@ -268,18 +278,132 @@ class FrappeAPIService
     }
 
     /**
+     * Resolve a Laravel InternalEntity from an ERPNext Company identifier or name.
+     *
+     * Rules:
+     * 1. Prefer stable identifier (erpnext_id) with exact match.
+     * 2. Fallback to exact name match.
+     * 3. No fuzzy or partial matching.
+     * 4. Does not create or guess entities. Returns null if unmapped.
+     */
+    public function resolveEntityFromErpNextCompany(?string $companyName): ?InternalEntity
+    {
+        if ($companyName === null || trim($companyName) === '') {
+            return null;
+        }
+
+        $clean = trim($companyName);
+
+        // 1. Prefer stable identifier: erpnext_id exact match
+        $entity = InternalEntity::withoutGlobalScopes()
+            ->where('erpnext_id', $clean)
+            ->first();
+
+        if ($entity) {
+            return $entity;
+        }
+
+        // 2. Fallback: exact name match
+        $entity = InternalEntity::withoutGlobalScopes()
+            ->where('name', $clean)
+            ->first();
+
+        if ($entity) {
+            return $entity;
+        }
+
+        Log::warning('ERPNext Company could not be mapped to any Laravel InternalEntity', [
+            'company' => $companyName,
+        ]);
+
+        return null;
+    }
+
+    /**
+     * Resolve ERPNext Company name from a Laravel InternalEntity.
+     *
+     * Rules:
+     * 1. If entity itself is of entity_type === 'Company', prefer its erpnext_id, fallback to its name.
+     * 2. If entity is a Department, inspect hierarchy for an unambiguous parent Company.
+     *    Return parent's erpnext_id, fallback to parent's name.
+     * 3. Do not create new ERPNext companies or guess. Returns null if unmapped.
+     */
+    public function resolveErpNextCompanyFromEntity(?InternalEntity $entity): ?string
+    {
+        if (! $entity) {
+            return null;
+        }
+
+        // 1. Entity is directly a Company
+        if ($entity->entity_type === 'Company') {
+            $companyName = ! empty($entity->erpnext_id) ? $entity->erpnext_id : $entity->name;
+
+            return ! empty($companyName) ? $companyName : null;
+        }
+
+        // 2. Entity is a Department: inspect hierarchy for parent Company
+        if ($entity->entity_type === 'Department') {
+            $parentId = $entity->parent_id;
+            $visited = [$entity->id];
+            while ($parentId) {
+                if (in_array($parentId, $visited, true)) {
+                    break;
+                }
+                $visited[] = $parentId;
+                $parent = InternalEntity::withoutGlobalScopes()->find($parentId);
+                if (! $parent) {
+                    break;
+                }
+                if ($parent->entity_type === 'Company') {
+                    $companyName = ! empty($parent->erpnext_id) ? $parent->erpnext_id : $parent->name;
+
+                    return ! empty($companyName) ? $companyName : null;
+                }
+                $parentId = $parent->parent_id;
+            }
+
+            Log::warning('Department has no ancestor Company in hierarchy', [
+                'entity_id' => $entity->id,
+                'entity_name' => $entity->name,
+            ]);
+
+            return null;
+        }
+
+        // 3. Any other entity type: use erpnext_id if explicitly defined
+        if (! empty($entity->erpnext_id)) {
+            return $entity->erpnext_id;
+        }
+
+        Log::warning('InternalEntity cannot be resolved to an ERPNext Company', [
+            'entity_id' => $entity->id,
+            'entity_name' => $entity->name,
+            'entity_type' => $entity->entity_type,
+        ]);
+
+        return null;
+    }
+
+    /**
      * Ascends the entity hierarchy to find the first ancestor of type 'Company'.
      */
     public function findParentCompanyName(InternalEntity $entity): ?string
     {
-        $current = $entity->parent ?? null;
-
-        while ($current) {
-            $current->loadMissing('parent');
-            if ($current->entity_type === 'Company') {
-                return $current->name;
+        $parentId = $entity->parent_id;
+        $visited = [$entity->id];
+        while ($parentId) {
+            if (in_array($parentId, $visited, true)) {
+                break;
             }
-            $current = $current->parent ?? null;
+            $visited[] = $parentId;
+            $parent = InternalEntity::withoutGlobalScopes()->find($parentId);
+            if (! $parent) {
+                break;
+            }
+            if ($parent->entity_type === 'Company') {
+                return ! empty($parent->erpnext_id) ? $parent->erpnext_id : $parent->name;
+            }
+            $parentId = $parent->parent_id;
         }
 
         return null;
@@ -538,6 +662,56 @@ class FrappeAPIService
     }
 
     /**
+     * Generic PUT request to any Frappe doctype resource.
+     * Returns ['success' => bool, 'data' => array|null, 'status' => int, 'body' => mixed]
+     */
+    public function httpPut(string $doctype, array $payload = []): array
+    {
+        try {
+            $response = $this->client()
+                ->put($this->getEndpoint($doctype), $payload);
+
+            return [
+                'success' => $response->successful(),
+                'data' => $response->json('data'),
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ];
+        } catch (Exception $e) {
+            Log::error("Frappe httpPut error for {$doctype}", ['error' => $e->getMessage()]);
+
+            return ['success' => false, 'data' => null, 'status' => 0, 'body' => null];
+        }
+    }
+
+    /**
+     * Rename a Frappe document (change primary key / name).
+     */
+    public function renameDoc(string $doctype, string $oldName, string $newName, bool $merge = false): array
+    {
+        try {
+            $response = $this->client()
+                ->post("{$this->baseUrl}/api/method/frappe.client.rename_doc", [
+                    'doctype' => $doctype,
+                    'old_name' => $oldName,
+                    'new_name' => $newName,
+                    'merge' => $merge ? 1 : 0,
+                ]);
+
+            return [
+                'success' => $response->successful(),
+                'data' => $response->json('message') ?? $response->json('data'),
+                'status' => $response->status(),
+                'body' => $response->json(),
+            ];
+        } catch (Exception $e) {
+            Log::error("Frappe renameDoc error for {$doctype}: {$oldName} -> {$newName}", ['error' => $e->getMessage()]);
+
+            return ['success' => false, 'data' => null, 'status' => 0, 'body' => null];
+        }
+    }
+
+    /**
      * Check Frappe API connectivity
      */
     public function testConnection(): bool
@@ -591,20 +765,35 @@ class FrappeAPIService
             if (! $project->erpnext_project_id) {
                 $frappeId = $this->findProjectByName($project->project_name);
                 if ($frappeId) {
-                    $project->update(['erpnext_project_id' => $frappeId]);
+                    $project->update([
+                        'erpnext_project_id' => $frappeId,
+                        'frappe_project_id' => $frappeId,
+                    ]);
                     $projectData['name'] = $frappeId;
                 }
             }
 
-            $endpoint = $project->erpnext_project_id
-                ? $this->getEndpoint('Project/'.urlencode($project->erpnext_project_id))
-                : $this->getEndpoint('Project');
+            // Strictly enforce: Never create a new ERPNext project during execution transition
+            if (! $project->erpnext_project_id) {
+                Log::error('sendProjectOnExecution: Project is not linked to ERPNext and could not be found by name. Aborting execution sync to prevent duplicate creation.', [
+                    'project_id' => $project->id,
+                    'project_name' => $project->project_name,
+                ]);
 
-            $method = $project->erpnext_project_id ? 'put' : 'post';
+                return [
+                    'success' => false,
+                    'message' => 'المشروع غير مرتبط بسجل مشروع في ERPNext ولا يمكن إنشاؤه أثناء الانتقال للتنفيذ.',
+                ];
+            }
+
+            $endpoint = $this->getEndpoint('Project/'.urlencode($project->erpnext_project_id));
+            $method = 'put';
 
             Log::info("Sending project on execution to Frappe ($method)", [
                 'project_id' => $project->id,
                 'project_name' => $project->project_name,
+                'erpnext_project_id' => $project->erpnext_project_id,
+                'status' => $projectData['status'] ?? 'Completed',
                 'send_history' => $sendHistory,
             ]);
 
@@ -613,11 +802,13 @@ class FrappeAPIService
 
             if ($response->successful()) {
                 $responseData = $response->json();
-                $frappeProjectId = $responseData['data']['name'] ?? null;
+                $frappeProjectId = $responseData['data']['name'] ?? $project->erpnext_project_id;
 
-                // حفظ Frappe ID في قاعدة البيانات إذا كان مشروعاً جديداً
                 if (empty($project->erpnext_project_id) && $frappeProjectId) {
-                    $project->update(['erpnext_project_id' => $frappeProjectId]);
+                    $project->update([
+                        'erpnext_project_id' => $frappeProjectId,
+                        'frappe_project_id' => $frappeProjectId,
+                    ]);
                 }
 
                 Log::info('Project synced successfully on execution', [
@@ -644,20 +835,17 @@ class FrappeAPIService
                 ];
             }
 
-            // Handle "Project not found" (404/DoesNotExistError) during update
-            if ($response->status() === 404 && $project->erpnext_project_id) {
-                Log::warning('Project not found on Frappe server but exists locally. Clearing local ID and retrying as POST.', [
+            // Handle "Project not found" (404/DoesNotExistError) without creating a new record
+            if ($response->status() === 404) {
+                Log::error('Project not found on Frappe server during execution update.', [
                     'project_id' => $project->id,
                     'frappe_id' => $project->erpnext_project_id,
                 ]);
 
-                $project->update([
-                    'erpnext_project_id' => null,
-                    'frappe_project_id' => null,
-                ]);
-
-                // Recursive call (will now use POST)
-                return $this->sendProjectOnExecution($project, $sendHistory);
+                return [
+                    'success' => false,
+                    'message' => 'لم يتم العثور على سجل المشروع في ERPNext: '.$project->erpnext_project_id,
+                ];
             }
 
             throw new Exception('Frappe API error: '.$response->body());
@@ -704,6 +892,9 @@ class FrappeAPIService
     {
         $data = $this->prepareProjectData($project);
 
+        // Explicitly set Completed status on execution transition as required by business workflow
+        $data['status'] = 'Completed';
+
         // Add execution specific data
         $data['custom_is_execution'] = 1;
         $data['custom_execution_date'] = now()->toDateTimeString();
@@ -723,13 +914,21 @@ class FrappeAPIService
     private function mapProjectStatus(string $status): string
     {
         $statusMap = [
-            'draft' => 'Draft',
+            'draft' => 'Open',
+            'completed_draft' => 'Open',
+            'rolled_back_for_review' => 'Open',
             'submitted' => 'Open',
-            'approved' => 'Open',
-            'implementation' => 'In Progress',
-            'in_execution' => 'In Progress',
+            'pending_approval' => 'Open',
+            'financial_technical_review' => 'Open',
+            'internally_approved' => 'Open',
+            'final' => 'Open',
+            'awaiting_disbursement_plan' => 'Open',
+            'in_execution' => 'Completed',
+            'in_progress' => 'Completed',
+            'implementation' => 'Completed',
             'completed' => 'Completed',
-            'closed' => 'Closed',
+            'closed' => 'Completed',
+            'rejected' => 'Cancelled',
             'cancelled' => 'Cancelled',
         ];
 
@@ -1700,17 +1899,23 @@ class FrappeAPIService
         $result['local_entity'] = $entity;
         $result['entity_type'] = $entity->entity_type; // 'Company' or 'Department'
 
-        $this->ensureParentHierarchyExists($entity);
+        try {
+            $this->ensureParentHierarchyExists($entity);
 
-        if ($entity->entity_type === 'Company') {
-            $parentCompany = ($entity->parent && $entity->parent->entity_type === 'Company') ? $entity->parent->name : null;
-            [$found, $created] = $this->ensureCompanyInErpNext($entity->name, $parentCompany);
-        } else {
-            [$found, $created] = $this->ensureDepartmentInErpNext($entity);
+            if ($entity->entity_type === 'Company') {
+                $parentCompany = ($entity->parent && $entity->parent->entity_type === 'Company') ? $entity->parent->name : null;
+                [$found, $created] = $this->ensureCompanyInErpNext($entity->name, $parentCompany, $entity);
+            } else {
+                [$found, $created] = $this->ensureDepartmentInErpNext($entity);
+            }
+
+            $result['erpnext_found'] = $found;
+            $result['erpnext_created'] = $created;
+        } catch (\Throwable $e) {
+            Log::warning('resolveAndEnsureEntityInErpNext failed gracefully: '.$e->getMessage(), [
+                'entity_name' => $entityName,
+            ]);
         }
-
-        $result['erpnext_found'] = $found;
-        $result['erpnext_created'] = $created;
 
         return $result;
     }
@@ -1718,16 +1923,45 @@ class FrappeAPIService
     /**
      * التحقق من وجود الشركة في ERPNext وإنشاؤها إن لم توجد.
      */
-    private function ensureCompanyInErpNext(string $companyName, ?string $parentCompany = null): array
+    private function ensureCompanyInErpNext(string $companyName, ?string $parentCompany = null, ?InternalEntity $entity = null): array
     {
         try {
+            // 0. تحقق مسبق إذا كان المعرف محفوظاً محلياً
+            if ($entity && ! empty($entity->erpnext_id)) {
+                if ($this->checkDocExists('Company', $entity->erpnext_id)) {
+                    Log::info('Company already verified in ERPNext via erpnext_id', ['company' => $companyName, 'erpnext_id' => $entity->erpnext_id]);
+
+                    return [true, false];
+                }
+            }
+
+            // 1. البحث عبر company_name
             $response = $this->httpGet('Company', [
                 'filters' => json_encode([['company_name', '=', $companyName]]),
                 'limit_page_length' => 1,
             ]);
 
+            // احتياطي: البحث عبر name (المعرف الأساسي في ERPNext)
+            if ((! $response['success'] || empty($response['data'])) && ! empty($companyName)) {
+                $responseByName = $this->httpGet('Company', [
+                    'filters' => json_encode([['name', '=', $companyName]]),
+                    'limit_page_length' => 1,
+                ]);
+                if ($responseByName['success'] && ! empty($responseByName['data'])) {
+                    $response = $responseByName;
+                }
+            }
+
             if ($response['success'] && ! empty($response['data'])) {
-                Log::info('Company found in ERPNext', ['company' => $companyName]);
+                $foundName = $response['data'][0]['name'] ?? $companyName;
+                Log::info('Company found in ERPNext', ['company' => $companyName, 'erpnext_id' => $foundName]);
+
+                if ($entity && empty($entity->erpnext_id)) {
+                    $entity->updateQuietly([
+                        'erpnext_id' => $foundName,
+                        'erpnext_type' => 'Company',
+                    ]);
+                }
 
                 return [true, false];
             }
@@ -1745,7 +1979,15 @@ class FrappeAPIService
             $createResponse = $this->httpPost('Company', $payload);
 
             if ($createResponse['success']) {
-                Log::info('Company created in ERPNext', ['company' => $companyName, 'parent_company' => $parentCompany]);
+                $createdName = $createResponse['data']['name'] ?? $companyName;
+                Log::info('Company created in ERPNext', ['company' => $companyName, 'parent_company' => $parentCompany, 'erpnext_id' => $createdName]);
+
+                if ($entity) {
+                    $entity->updateQuietly([
+                        'erpnext_id' => $createdName,
+                        'erpnext_type' => 'Company',
+                    ]);
+                }
 
                 return [false, true];
             }
@@ -1775,13 +2017,42 @@ class FrappeAPIService
         $departmentName = $entity->name;
 
         try {
+            // 0. تحقق مسبق إذا كان المعرف محفوظاً محلياً
+            if (! empty($entity->erpnext_id)) {
+                if ($this->checkDocExists('Department', $entity->erpnext_id)) {
+                    Log::info('Department already verified in ERPNext via erpnext_id', ['department' => $departmentName, 'erpnext_id' => $entity->erpnext_id]);
+
+                    return [true, false];
+                }
+            }
+
+            // 1. البحث عبر department_name
             $response = $this->httpGet('Department', [
                 'filters' => json_encode([['department_name', '=', $departmentName]]),
                 'limit_page_length' => 1,
             ]);
 
+            // احتياطي: البحث عبر name (المعرف الأساسي)
+            if ((! $response['success'] || empty($response['data'])) && ! empty($departmentName)) {
+                $responseByName = $this->httpGet('Department', [
+                    'filters' => json_encode([['name', '=', $departmentName]]),
+                    'limit_page_length' => 1,
+                ]);
+                if ($responseByName['success'] && ! empty($responseByName['data'])) {
+                    $response = $responseByName;
+                }
+            }
+
             if ($response['success'] && ! empty($response['data'])) {
-                Log::info('Department found in ERPNext', ['department' => $departmentName]);
+                $foundName = $response['data'][0]['name'] ?? $departmentName;
+                Log::info('Department found in ERPNext', ['department' => $departmentName, 'erpnext_id' => $foundName]);
+
+                if (empty($entity->erpnext_id)) {
+                    $entity->updateQuietly([
+                        'erpnext_id' => $foundName,
+                        'erpnext_type' => 'Department',
+                    ]);
+                }
 
                 return [true, false];
             }
@@ -1806,7 +2077,13 @@ class FrappeAPIService
             $createResponse = $this->httpPost('Department', $payload);
 
             if ($createResponse['success']) {
-                Log::info('Department created in ERPNext', ['department' => $departmentName]);
+                $createdName = $createResponse['data']['name'] ?? $departmentName;
+                Log::info('Department created in ERPNext', ['department' => $departmentName, 'erpnext_id' => $createdName]);
+
+                $entity->updateQuietly([
+                    'erpnext_id' => $createdName,
+                    'erpnext_type' => 'Department',
+                ]);
 
                 return [false, true];
             }
@@ -1826,5 +2103,393 @@ class FrappeAPIService
 
             return [false, false];
         }
+    }
+
+    /**
+     * Check if a specific document exists in ERPNext
+     */
+    public function checkDocExists(string $doctype, string $name): bool
+    {
+        try {
+            $response = $this->client()->get($this->getEndpoint($doctype.'/'.urlencode($name)));
+
+            return $response->successful();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Ensure Supplier exists in ERPNext
+     */
+    public function ensureSupplierInErpNext(string $supplierName): bool
+    {
+        try {
+            if ($this->checkDocExists('Supplier', $supplierName)) {
+                return true;
+            }
+
+            $response = $this->httpPost('Supplier', [
+                'supplier_name' => $supplierName,
+                'supplier_group' => 'All Supplier Groups',
+                'supplier_type' => 'Company',
+                'country' => 'Yemen',
+            ]);
+
+            return (bool) ($response['success'] ?? false);
+        } catch (Exception $e) {
+            Log::warning("Could not auto-create Supplier '{$supplierName}' in ERPNext: ".$e->getMessage());
+
+            return false;
+        }
+    }
+
+    /**
+     * Find existing Payment Entry by reference number (Idempotency Check)
+     */
+    public function findPaymentEntryByReference(string $reference): ?array
+    {
+        try {
+            $response = $this->httpGet('Payment Entry', [
+                'filters' => json_encode([['reference_no', '=', $reference]]),
+                'fields' => json_encode(['name', 'docstatus', 'status', 'paid_amount', 'reference_no']),
+                'limit_page_length' => 1,
+            ]);
+
+            if ($response['success'] && ! empty($response['data'])) {
+                return $response['data'][0];
+            }
+
+            return null;
+        } catch (Exception $e) {
+            Log::error('Error checking existing Payment Entry by reference in ERPNext: '.$e->getMessage(), [
+                'reference' => $reference,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Dynamically resolve party_type and party for disbursement Payment Entry
+     */
+    public function resolveDisbursementParty(Project $project): array
+    {
+        $implEntity = $project->implementingEntities()->with(['internalEntity', 'authority'])->first();
+
+        $partyName = null;
+        $partyType = null;
+
+        if ($implEntity) {
+            if ($implEntity->authority_type === 'internal' && $implEntity->internalEntity) {
+                $entity = $implEntity->internalEntity;
+                $partyName = $entity->name;
+                if ($this->checkDocExists('Supplier', $partyName)) {
+                    $partyType = 'Supplier';
+                } elseif ($this->checkDocExists('Customer', $partyName)) {
+                    $partyType = 'Customer';
+                } else {
+                    $partyType = 'Supplier';
+                    $this->ensureSupplierInErpNext($partyName);
+                }
+            } elseif ($implEntity->authority) {
+                $partyName = $implEntity->authority->agency_name;
+                if ($this->checkDocExists('Supplier', $partyName)) {
+                    $partyType = 'Supplier';
+                } elseif ($this->checkDocExists('Customer', $partyName)) {
+                    $partyType = 'Customer';
+                } else {
+                    $partyType = 'Supplier';
+                    $this->ensureSupplierInErpNext($partyName);
+                }
+            }
+        }
+
+        if (! $partyName) {
+            if ($project->creatorEntity) {
+                $partyName = $project->creatorEntity->name;
+                $partyType = 'Supplier';
+                $this->ensureSupplierInErpNext($partyName);
+            } elseif ($project->authority) {
+                $partyName = $project->authority->agency_name;
+                $partyType = 'Supplier';
+                $this->ensureSupplierInErpNext($partyName);
+            }
+        }
+
+        if (! $partyName || ! $partyType) {
+            throw new Exception("تعذر تحديد الطرف المستفيد (Party) للمشروع '{$project->project_name}' في ERPNext. يرجى التأكد من ربط الجهة المنفذة أو المنشئة.");
+        }
+
+        return [
+            'party_type' => $partyType,
+            'party' => $partyName,
+        ];
+    }
+
+    /**
+     * Dynamically resolve accounts for disbursement Payment Entry
+     */
+    public function resolveDisbursementAccounts(Project $project, string $company): array
+    {
+        $paidFrom = config('external.erpnext.default_bank_account');
+        $paidTo = config('external.erpnext.default_payable_account');
+
+        if (! $paidFrom || ! $paidTo) {
+            try {
+                $compRes = $this->httpGet('Company', [
+                    'filters' => json_encode([['name', '=', $company]]),
+                    'fields' => json_encode(['default_bank_account', 'default_cash_account', 'default_payable_account']),
+                    'limit_page_length' => 1,
+                ]);
+                if ($compRes['success'] && ! empty($compRes['data'])) {
+                    $compData = $compRes['data'][0];
+                    $paidFrom = $paidFrom ?: ($compData['default_bank_account'] ?? $compData['default_cash_account'] ?? null);
+                    $paidTo = $paidTo ?: ($compData['default_payable_account'] ?? null);
+                }
+            } catch (Exception $e) {
+                Log::warning("Could not fetch company accounts for '{$company}': ".$e->getMessage());
+            }
+        }
+
+        if (! $paidFrom) {
+            $accRes = $this->httpGet('Account', [
+                'filters' => json_encode([
+                    ['company', '=', $company],
+                    ['account_type', 'in', ['Bank', 'Cash']],
+                    ['is_group', '=', 0],
+                ]),
+                'limit_page_length' => 1,
+            ]);
+            if ($accRes['success'] && ! empty($accRes['data'])) {
+                $paidFrom = $accRes['data'][0]['name'] ?? null;
+            }
+        }
+
+        if (! $paidTo) {
+            $accRes = $this->httpGet('Account', [
+                'filters' => json_encode([
+                    ['company', '=', $company],
+                    ['account_type', 'in', ['Payable']],
+                    ['is_group', '=', 0],
+                ]),
+                'limit_page_length' => 1,
+            ]);
+            if ($accRes['success'] && ! empty($accRes['data'])) {
+                $paidTo = $accRes['data'][0]['name'] ?? null;
+            }
+        }
+
+        if (! $paidFrom) {
+            throw new Exception("تعذر تحديد حساب البنك/الصندوق (Bank/Cash Account) للشركة '{$company}' في ERPNext. يرجى تهيئة الحساب في ERPNext أو إعدادات النظام.");
+        }
+
+        if (! $paidTo) {
+            throw new Exception("تعذر تحديد حساب الالتزامات الدائنة (Payable Account) للشركة '{$company}' في ERPNext. يرجى تهيئة الحساب في ERPNext أو إعدادات النظام.");
+        }
+
+        return [
+            'paid_from' => $paidFrom,
+            'paid_to' => $paidTo,
+        ];
+    }
+
+    /**
+     * Submit an existing Payment Entry in ERPNext
+     */
+    public function submitPaymentEntry(string $paymentEntryName): array
+    {
+        if (! (bool) config('external.erpnext.payment_entry_writes_enabled', false)) {
+            return [
+                'success' => false,
+                'error' => 'ERPNext Payment Entry write operations are disabled in configuration.',
+                'writes_disabled' => true,
+            ];
+        }
+
+        try {
+            $endpoint = $this->getEndpoint('Payment Entry/'.urlencode($paymentEntryName));
+            $response = $this->client()->put($endpoint, ['docstatus' => 1]);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'data' => $response->json('data'),
+                ];
+            }
+
+            Log::warning("Failed to submit Payment Entry '{$paymentEntryName}' in ERPNext", [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $response->json('exception') ?? $response->body(),
+            ];
+        } catch (Exception $e) {
+            Log::error("Exception submitting Payment Entry '{$paymentEntryName}': ".$e->getMessage());
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Verify Payment Entry is submitted (docstatus == 1) in ERPNext
+     */
+    public function verifyPaymentEntrySubmitted(string $paymentEntryName): bool
+    {
+        try {
+            $endpoint = $this->getEndpoint('Payment Entry/'.urlencode($paymentEntryName));
+            $response = $this->client()->get($endpoint);
+
+            if ($response->successful()) {
+                $docstatus = $response->json('data.docstatus');
+
+                return (int) $docstatus === 1;
+            }
+
+            return false;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Create a Draft Payment Entry (docstatus = 0) in ERPNext for a disbursement installment.
+     */
+    public function createDraftPaymentEntry(
+        ProjectDisbursementPlanDetail $detail,
+        ?string $reference = null,
+        ?float $amount = null,
+        ?string $remarks = null
+    ): array {
+        if (! (bool) config('external.erpnext.payment_entry_writes_enabled', false)) {
+            return [
+                'success' => false,
+                'payment_id' => null,
+                'docstatus' => 0,
+                'error' => 'ERPNext Payment Entry write operations are disabled in configuration.',
+                'writes_disabled' => true,
+            ];
+        }
+
+        $project = $detail->plan->project;
+        $reference = $reference ?: ($detail->erpnext_payment_reference ?: "DISB-P{$project->id}-D{$detail->id}-S{$detail->sequence_number}");
+        $amount = $amount !== null ? (float) $amount : (float) $detail->planned_amount;
+
+        // 1. Idempotency Check: lookup by reference first
+        $existing = $this->findPaymentEntryByReference($reference);
+        if ($existing) {
+            $docName = $existing['name'];
+            $isSubmitted = ((int) ($existing['docstatus'] ?? 0)) === 1;
+
+            return [
+                'success' => true,
+                'payment_id' => $docName,
+                'docstatus' => $isSubmitted ? 1 : 0,
+                'message' => $isSubmitted ? 'Existing Payment Entry already submitted in ERPNext' : 'Existing Draft Payment Entry found in ERPNext',
+            ];
+        }
+
+        // 2. Resolve Company
+        $company = null;
+        if ($project->creatorEntity) {
+            $company = $this->findParentCompanyName($project->creatorEntity);
+        }
+        $company = $company ?: config('external.erpnext.default_company');
+        if (empty($company)) {
+            throw new Exception("تعذر تحديد الشركة (Company) المعتمدة للمشروع '{$project->project_name}' في ERPNext. يرجى ضبط الشركة في الإعدادات أو ربط الجهة المنشئة.");
+        }
+
+        // 3. Resolve Party & Accounts
+        $partyData = $this->resolveDisbursementParty($project);
+        $accounts = $this->resolveDisbursementAccounts($project, $company);
+        $currency = config('external.erpnext.default_currency', 'YER');
+
+        // 4. Construct Payload (Draft: docstatus = 0)
+        $payload = [
+            'doctype' => 'Payment Entry',
+            'payment_type' => 'Pay',
+            'payment_order_status' => 'Initiated',
+            'posting_date' => now()->format('Y-m-d'),
+            'company' => $company,
+            'party_type' => $partyData['party_type'],
+            'party' => $partyData['party'],
+            'party_name' => $partyData['party'],
+            'paid_from' => $accounts['paid_from'],
+            'paid_to' => $accounts['paid_to'],
+            'paid_amount' => $amount,
+            'received_amount' => $amount,
+            'paid_from_account_currency' => $currency,
+            'paid_to_account_currency' => $currency,
+            'target_exchange_rate' => 1,
+            'reference_no' => $reference,
+            'reference_date' => now()->format('Y-m-d'),
+            'project' => $project->erpnext_project_id ?: $project->project_name,
+            'remarks' => $remarks ?: "صرف الدفعة رقم {$detail->sequence_number} للمشروع: {$project->project_name} - الآلية: {$detail->disbursement_clearance_mechanism}",
+            'docstatus' => 0,
+        ];
+
+        // 5. POST to ERPNext
+        $response = $this->httpPost('Payment Entry', $payload);
+
+        if (! ($response['success'] ?? false) || empty($response['data']['name'])) {
+            $errMsg = $response['body']['exception'] ?? ($response['body']['message'] ?? 'فشل إنشاء قيد الصرف في ERPNext');
+
+            return [
+                'success' => false,
+                'payment_id' => null,
+                'docstatus' => 0,
+                'error' => $errMsg,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'payment_id' => $response['data']['name'],
+            'docstatus' => 0,
+            'message' => 'تم إنشاء مسودة قيد الصرف بنجاح في ERPNext',
+        ];
+    }
+
+    /**
+     * Create and submit a Payment Entry in ERPNext for a disbursement installment (used for Installment 1 auto-disbursement)
+     */
+    public function createDisbursementPaymentEntry(ProjectDisbursementPlanDetail $detail): array
+    {
+        $draftResult = $this->createDraftPaymentEntry($detail);
+
+        if (! ($draftResult['success'] ?? false)) {
+            return $draftResult;
+        }
+
+        $paymentName = $draftResult['payment_id'];
+        if ((int) ($draftResult['docstatus'] ?? 0) === 1) {
+            return $draftResult;
+        }
+
+        // Submit Payment Entry
+        $submitResult = $this->submitPaymentEntry($paymentName);
+        $isSubmitted = ($submitResult['success'] ?? false) && $this->verifyPaymentEntrySubmitted($paymentName);
+
+        if ($isSubmitted) {
+            return [
+                'success' => true,
+                'payment_id' => $paymentName,
+                'docstatus' => 1,
+                'message' => 'تم إنشاء قيد الصرف واعتماده بنجاح في ERPNext',
+            ];
+        }
+
+        return [
+            'success' => false,
+            'payment_id' => $paymentName,
+            'docstatus' => 0,
+            'error' => 'تم إنشاء مسودة قيد الصرف ولكن فشل تعميدها (docstatus != 1) في ERPNext: '.($submitResult['error'] ?? 'خطأ في التعميد'),
+        ];
     }
 }

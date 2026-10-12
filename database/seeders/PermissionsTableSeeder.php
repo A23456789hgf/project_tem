@@ -658,6 +658,18 @@ class PermissionsTableSeeder extends Seeder
             ['name' => 'Reports Sidebar Index', 'slug' => 'reports.sidebar-index', 'module' => 'reports', 'type' => 'action'],
             ['name' => 'Reports Status.view', 'slug' => 'reports.status.view', 'module' => 'reports', 'type' => 'action'],
             ['name' => 'Reports View', 'slug' => 'reports.view', 'module' => 'reports', 'type' => 'page'],
+            ['name' => 'Material Requests View', 'slug' => 'reports.material_requests.view', 'module' => 'reports-erp-stock', 'type' => 'page'],
+            ['name' => 'Material Requests Print', 'slug' => 'reports.material_requests.print', 'module' => 'reports-erp-stock', 'type' => 'action'],
+            ['name' => 'Material Requests Export', 'slug' => 'reports.material_requests.export', 'module' => 'reports-erp-stock', 'type' => 'action'],
+            ['name' => 'Stock Entries View', 'slug' => 'reports.stock_entries.view', 'module' => 'reports-erp-stock', 'type' => 'page'],
+            ['name' => 'Stock Entries Print', 'slug' => 'reports.stock_entries.print', 'module' => 'reports-erp-stock', 'type' => 'action'],
+            ['name' => 'Stock Entries Export', 'slug' => 'reports.stock_entries.export', 'module' => 'reports-erp-stock', 'type' => 'action'],
+            ['name' => 'Stock Ledger View', 'slug' => 'reports.stock_ledger.view', 'module' => 'reports-erp-stock', 'type' => 'page'],
+            ['name' => 'Stock Ledger Print', 'slug' => 'reports.stock_ledger.print', 'module' => 'reports-erp-stock', 'type' => 'action'],
+            ['name' => 'Stock Ledger Export', 'slug' => 'reports.stock_ledger.export', 'module' => 'reports-erp-stock', 'type' => 'action'],
+            ['name' => 'Purchase Invoices View', 'slug' => 'reports.purchase_invoices.view', 'module' => 'reports-erp-stock', 'type' => 'page'],
+            ['name' => 'Purchase Invoices Print', 'slug' => 'reports.purchase_invoices.print', 'module' => 'reports-erp-stock', 'type' => 'action'],
+            ['name' => 'Purchase Invoices Export', 'slug' => 'reports.purchase_invoices.export', 'module' => 'reports-erp-stock', 'type' => 'action'],
 
             // Requests descend
             ['name' => 'Requests Descend Create', 'slug' => 'requests_descend.create', 'module' => 'requests_descend', 'type' => 'action'],
@@ -827,6 +839,7 @@ class PermissionsTableSeeder extends Seeder
 
             // Task
             ['name' => 'Task Attachment.upload', 'slug' => 'task.attachment.upload', 'module' => 'task', 'type' => 'action'],
+            ['name' => 'Task Assign Users', 'slug' => 'task.assign', 'module' => 'task', 'type' => 'action'],
             ['name' => 'Task Chat.reply', 'slug' => 'task.chat.reply', 'module' => 'task', 'type' => 'action'],
             ['name' => 'Task Chat.view', 'slug' => 'task.chat.view', 'module' => 'task', 'type' => 'action'],
             ['name' => 'Task Create', 'slug' => 'task.create', 'module' => 'task', 'type' => 'action'],
@@ -844,6 +857,16 @@ class PermissionsTableSeeder extends Seeder
             ['name' => 'Tasks Print', 'slug' => 'tasks.print', 'module' => 'tasks', 'type' => 'action'],
             ['name' => 'Tasks Search', 'slug' => 'tasks.search', 'module' => 'tasks', 'type' => 'action'],
             ['name' => 'Tasks Sidebar', 'slug' => 'tasks.sidebar', 'module' => 'tasks', 'type' => 'sidebar'],
+
+            // Task achievement reports
+            ['name' => 'Task Reports View', 'slug' => 'task_reports.view', 'module' => 'task', 'type' => 'page'],
+            ['name' => 'Task Reports Create', 'slug' => 'task_reports.create', 'module' => 'task', 'type' => 'action'],
+            ['name' => 'Task Reports Edit', 'slug' => 'task_reports.edit', 'module' => 'task', 'type' => 'action'],
+            ['name' => 'Task Reports Submit', 'slug' => 'task_reports.submit', 'module' => 'task', 'type' => 'action'],
+            ['name' => 'Task Reports Review', 'slug' => 'task_reports.review', 'module' => 'task', 'type' => 'action'],
+            ['name' => 'Task Reports View All', 'slug' => 'task_reports.view_all', 'module' => 'task', 'type' => 'action'],
+            ['name' => 'Task Reports Export', 'slug' => 'task_reports.export', 'module' => 'task', 'type' => 'action'],
+            ['name' => 'Task Reports Delete', 'slug' => 'task_reports.delete', 'module' => 'task', 'type' => 'action'],
 
             // Type entity
             ['name' => 'إنشاء نوع الجهات', 'slug' => 'type-entity.create', 'module' => 'type-entity', 'type' => 'action'],
@@ -933,6 +956,42 @@ class PermissionsTableSeeder extends Seeder
             ['name' => 'Villages Search', 'slug' => 'villages.search', 'module' => 'villages', 'type' => 'action'],
             ['name' => 'Villages Sidebar', 'slug' => 'villages.sidebar', 'module' => 'villages', 'type' => 'sidebar'],
             ['name' => 'Villages View', 'slug' => 'villages.view', 'module' => 'villages', 'type' => 'page'],
+
+            // Unified Project Requests
+            ['name' => 'Unified Project Requests Sidebar', 'slug' => 'project_requests.sidebar', 'module' => 'project_requests', 'type' => 'sidebar'],
+            ['name' => 'Unified Project Requests View', 'slug' => 'project_requests.view', 'module' => 'project_requests', 'type' => 'page'],
+            ['name' => 'Unified Project Requests Create', 'slug' => 'project_requests.create', 'module' => 'project_requests', 'type' => 'action'],
+            ['name' => 'Unified Project Requests Edit', 'slug' => 'project_requests.edit', 'module' => 'project_requests', 'type' => 'action'],
+            ['name' => 'Unified Project Requests Submit', 'slug' => 'project_requests.submit', 'module' => 'project_requests', 'type' => 'action'],
+            ['name' => 'Unified Project Requests Approve', 'slug' => 'project_requests.approve', 'module' => 'project_requests', 'type' => 'action'],
+            ['name' => 'Unified Project Requests Reject', 'slug' => 'project_requests.reject', 'module' => 'project_requests', 'type' => 'action'],
+            ['name' => 'Unified Project Requests Print', 'slug' => 'project_requests.print', 'module' => 'project_requests', 'type' => 'button'],
+
+            // Disbursement Plans
+            ['name' => 'عرض خطط الصرف في القائمة الجانبية', 'slug' => 'disbursements.sidebar', 'module' => 'disbursements', 'type' => 'sidebar'],
+            ['name' => 'عرض خطة الصرف', 'slug' => 'disbursements.view', 'module' => 'disbursements', 'type' => 'page'],
+            ['name' => 'إنشاء وتعديل خطة الصرف', 'slug' => 'disbursements.create', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'اعتماد خطة الصرف', 'slug' => 'disbursements.approve', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'إعادة محاولة الصرف', 'slug' => 'disbursements.retry', 'module' => 'disbursements', 'type' => 'button'],
+            ['name' => 'Disbursements Reject', 'slug' => 'disbursements.reject', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'Request next installment', 'slug' => 'disbursements.request', 'module' => 'disbursements', 'type' => 'action'],
+
+            // Payment Requests
+            ['name' => 'عرض طلبات الصرف', 'slug' => 'payments.view', 'module' => 'disbursements', 'type' => 'page'],
+            ['name' => 'تقديم طلب صرف', 'slug' => 'payments.create', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'اعتماد طلب صرف', 'slug' => 'payments.approve', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'رفض أو إلغاء طلب صرف', 'slug' => 'payments.reject', 'module' => 'disbursements', 'type' => 'action'],
+
+            // Clearance Requests
+            ['name' => 'عرض طلبات الإخلاء', 'slug' => 'clearances.view', 'module' => 'disbursements', 'type' => 'page'],
+            ['name' => 'تقديم طلب إخلاء', 'slug' => 'clearances.create', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'اعتماد طلب إخلاء', 'slug' => 'clearances.approve', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'رفض أو إلغاء طلب إخلاء', 'slug' => 'clearances.reject', 'module' => 'disbursements', 'type' => 'action'],
+
+            // Execution Reviews & Aggregations
+            ['name' => 'Submit financial justification', 'slug' => 'financial-justifications.submit', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'Review execution as entity manager', 'slug' => 'execution.manager-review', 'module' => 'disbursements', 'type' => 'action'],
+            ['name' => 'Aggregate installment execution for clearance', 'slug' => 'execution.aggregate-clearance', 'module' => 'disbursements', 'type' => 'action'],
         ];
 
         foreach ($permissions as $perm) {

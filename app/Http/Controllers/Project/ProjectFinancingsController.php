@@ -52,7 +52,8 @@ class ProjectFinancingsController extends Controller
 
             // جلب معرّفات أنواع التمويل التي تمثل (قروض، تمكين، محتوى)
             $empowermentTypes = FinancingType::where(function ($q) {
-                $q->where('name', 'like', '%قروض%')
+                $q->where('name', 'like', '%قرض%')
+                    ->orWhere('name', 'like', '%قروض%')
                     ->orWhere('name', 'like', '%تمكين%')
                     ->orWhere('name', 'like', '%محتوى%');
             })->pluck('id')->toArray();

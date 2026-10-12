@@ -556,26 +556,30 @@
 
                                 <div class="d-flex gap-4">
                                     <div class="form-check">
-                                        <input type="radio" name="assignment_type" value="user" checked>
-                                        <label>مستخدم</label>
+                                        @can('task.assign')
+                                        <input type="radio" name="assignment_type" value="user" {{ old('assignment_type', auth()->user()->can('task.assign') ? 'user' : 'entity') === 'user' ? 'checked' : '' }}>
+                                            <label>مستخدم</label>
+                                        @endcan
                                     </div>
 
                                     <div class="form-check">
-                                        <input type="radio" name="assignment_type" value="entity">
+                                        <input type="radio" name="assignment_type" value="entity" {{ old('assignment_type', auth()->user()->can('task.assign') ? 'user' : 'entity') === 'entity' ? 'checked' : '' }}>
                                         <label>جهة</label>
                                     </div>
                                 </div>
                             </div>
 
                             {{-- المستخدم --}}
-                            <div class="col-md-6" id="user_assignment_container">
-                                <label>إسناد إلى مستخدم</label>
-                                <select name="assigned_to[]" multiple class="form-select">
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}">{{ $user->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            @can('task.assign')
+                                <div class="col-md-6" id="user_assignment_container">
+                                    <label>إسناد إلى مستخدم</label>
+                                    <select name="assigned_to[]" multiple class="form-select">
+                                        @foreach($users as $user)
+                                            <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endcan
 
                             {{-- الجهة --}}
                             <div class="col-md-6 d-none" id="entity_assignment_container">
@@ -1056,7 +1060,8 @@
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     })
                     .then(r => r.json())
-                    .then(users => {
+                    .then(payload => {
+                        const users = Array.isArray(payload) ? payload : (payload.users || []);
                         entityUsersSelect.innerHTML = '';
                         if (users && users.length > 0) {
                             users.forEach(user => {

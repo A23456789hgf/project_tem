@@ -4,6 +4,7 @@ namespace App\Http;
 
 use App\Http\Middleware\AuditMiddleware;
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\CanAny;
 use App\Http\Middleware\CheckMainModulePermission;
 use App\Http\Middleware\CheckPermission;
 use App\Http\Middleware\CheckRole;
@@ -104,6 +105,7 @@ class Kernel extends HttpKernel
         'auth.session' => AuthenticateSession::class,
         'cache.headers' => SetCacheHeaders::class,
         'can' => Authorize::class,
+        'canany' => CanAny::class,
         'guest' => RedirectIfAuthenticated::class,
         'password.confirm' => RequirePassword::class,
         'precognitive' => HandlePrecognitiveRequests::class,

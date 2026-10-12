@@ -28,10 +28,12 @@ class DatabaseSeeder extends Seeder
             DashboardPermissionsSeeder::class,
             ChatPermissionSeeder::class,
             ReportsPermissionsSeeder::class,
+            ErpStockReportsPermissionsSeeder::class,
             SmsPermissionsSeeder::class,
             SyncTaskPermissionsSeeder::class,
             ValueChainsPermissionsSeeder::class,
             ParallelScopePermissionsSeeder::class,
+            DisbursementWorkflowPermissionsSeeder::class,
 
             // Super Admin
             SuperAdminSeeder::class,

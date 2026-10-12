@@ -72,6 +72,23 @@ class ProfileController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // ✅ مزامنة كلمة المرور مع ERPNext إذا كان المستخدم مالياً أو مرتبطاً
+        $erpSyncWarning = null;
+        try {
+            if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                $syncResult = app(\App\Services\ErpNextUserService::class)
+                    ->syncUser($user, 'password', null, $request->password);
+                if (! ($syncResult['success'] ?? false)) {
+                    $erpSyncWarning = 'تم تغيير كلمة المرور محلياً، ولكن تعذرت مزامنتها مع النظام المالي (ERPNext): '.($syncResult['error'] ?? 'خطأ في الاتصال').'.';
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('ERPNext sync error in ProfileController updatePassword: '.$e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
+            $erpSyncWarning = 'تم تغيير كلمة المرور محلياً، ولكن تعذر الاتصال بـ ERPNext.';
+        }
+
         AuditLogService::log(
             action: 'change_password',
             module: 'Profile',
@@ -80,7 +97,12 @@ class ProfileController extends Controller
             modelId: $user->id
         );
 
-        return back()->with('success', 'تم تغيير كلمة المرور بنجاح');
+        $response = back()->with('success', 'تم تغيير كلمة المرور بنجاح');
+        if ($erpSyncWarning) {
+            $response->with('warning', $erpSyncWarning);
+        }
+
+        return $response;
     }
 
     public function setupSignature(Request $request)

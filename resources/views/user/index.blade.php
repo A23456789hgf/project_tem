@@ -295,6 +295,23 @@
                             </select>
                         </div>
                         <div class="col-6 col-md-2 col-lg-2">
+                            <label for="organization_type" class="form-label">نوع الجهة</label>
+                            <select class="form-select auto-filter" id="organization_type" name="organization_type" onchange="this.form.submit()">
+                                <option value="">كل الأنواع</option>
+                                <option value="internal" @selected(request('organization_type') === 'internal')>داخلية</option>
+                                <option value="external" @selected(request('organization_type') === 'external')>خارجية</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2 col-lg-2">
+                            <label for="authority_id" class="form-label">الجهة الخارجية</label>
+                            <select class="form-select auto-filter" id="authority_id" name="authority_id" onchange="this.form.submit()">
+                                <option value="">كل الجهات الخارجية</option>
+                                @foreach($authorities as $authority)
+                                    <option value="{{ $authority->id }}" @selected((string) request('authority_id') === (string) $authority->id)>{{ $authority->agency_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2 col-lg-2">
                             <label for="status" class="form-label">الحالة</label>
                             <select class="form-select auto-filter" id="status" name="status" onchange="this.form.submit()">
                                 <option value="">كل الحالات</option>
@@ -361,6 +378,11 @@
                                         <span class="fw-bold text-dark text-truncate-custom" title="{{ $user->name }}">
                                             {{ $user->name }}
                                         </span>
+                                        @if($user->is_financial_user)
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle" title="مستخدم مالي مزامن مع ERPNext" style="font-size: 0.6rem; padding: 1px 4px;">
+                                                <i class="fas fa-coins me-1"></i> مالي
+                                            </span>
+                                        @endif
                                         @if($user->is_geographic_subset)
                                             <span class="badge-artistic badge-geo" title="نطاق جغرافي محدد">
                                                 <x-icon name="map-pin" size="8" />
@@ -377,8 +399,9 @@
                                     </span>
                                 </td>
                                 <td class="no-wrap">
-                                    <span class="text-dark text-truncate-custom d-block" title="{{ $user->entity->name ?? '' }}">
-                                        {{ $user->entity->name ?? 'ـ' }}
+                                    @php($organization = $user->organization())
+                                    <span class="text-dark text-truncate-custom d-block" title="{{ $organization['model']?->name ?? $organization['model']?->agency_name ?? '' }}">
+                                        {{ $organization['model']?->name ?? $organization['model']?->agency_name ?? 'ـ' }}
                                     </span>
                                 </td>
                                 <td class="text-center no-wrap">

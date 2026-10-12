@@ -4,6 +4,7 @@ namespace App\Scopes;
 
 use App\Models\User;
 use App\Services\SchemaCache;
+use App\Services\UserDataScopeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
@@ -62,12 +63,8 @@ class DomainScope implements Scope
 
         $module = $this->resolveModule($model);
 
-        if (in_array($module, ['internal-entities', 'internal_entities'])) {
-            return;
-        }
-
-        // تطبيق الفلترة الموحدة
-        $this->applyUnifiedFiltering($builder, $user, $module);
+        // تفويض الفلترة الموحدة المركزية إلى UserDataScopeService
+        app(UserDataScopeService::class)->applyScope($builder, $user, $module);
     }
 
     // =========================================================

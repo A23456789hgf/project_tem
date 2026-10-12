@@ -3,9 +3,10 @@
 namespace App\Exports;
 
 use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class ProjectTemplateExport implements WithMultipleSheets
+class ProjectTemplateExport implements Export, WithMultipleSheets
 {
     protected $projects;
 

@@ -29,6 +29,10 @@ class PermissionMatrixRegistry
             $contents = File::get($path);
             $json = self::extractJsonBlock($contents);
 
+            if ($json === '') {
+                return ['version' => 1, 'permissions' => []];
+            }
+
             $data = json_decode($json, true);
             if (! is_array($data)) {
                 return ['version' => 1, 'permissions' => []];
@@ -142,7 +146,7 @@ class PermissionMatrixRegistry
         $endPos = strpos($contents, self::END_MARKER);
 
         if ($startPos === false || $endPos === false || $endPos <= $startPos) {
-            return json_encode(['version' => 1, 'permissions' => []], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return '';
         }
 
         $afterStart = substr($contents, $startPos + strlen(self::START_MARKER));
@@ -156,7 +160,7 @@ class PermissionMatrixRegistry
         $firstBrace = strpos($block, '{');
         $lastBrace = strrpos($block, '}');
         if ($firstBrace === false || $lastBrace === false || $lastBrace <= $firstBrace) {
-            return json_encode(['version' => 1, 'permissions' => []], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            return '';
         }
 
         return substr($block, $firstBrace, $lastBrace - $firstBrace + 1);

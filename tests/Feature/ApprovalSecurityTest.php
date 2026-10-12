@@ -8,6 +8,7 @@ use App\Models\Authority;
 use App\Models\InternalEntity;
 use App\Models\Project;
 use App\Models\ProjectApproval;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\ApprovalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,10 +42,13 @@ class ApprovalSecurityTest extends TestCase
         ]);
 
         // Create a user for InternalEntity 999
+        $role = Role::firstOrCreate(['name' => 'Reviewer', 'full_access' => false]);
         $internalUser = User::factory()->create([
             'entity_id' => $internalEntity->id,
             'organization_type' => 'internal',
             'authority_id' => null,
+            'is_admin' => false,
+            'role_id' => $role->id,
         ]);
 
         // Create an active step for Authority 999 (External Scope)
@@ -75,10 +79,13 @@ class ApprovalSecurityTest extends TestCase
         $authorityA = Authority::forceCreate(['agency_name' => 'Auth A', 'is_active' => true]);
         $authorityB = Authority::forceCreate(['agency_name' => 'Auth B', 'is_active' => true]);
 
+        $role = Role::firstOrCreate(['name' => 'Reviewer', 'full_access' => false]);
         $userB = User::factory()->create([
             'entity_id' => null,
             'authority_id' => $authorityB->id,
             'organization_type' => 'external',
+            'is_admin' => false,
+            'role_id' => $role->id,
         ]);
 
         $project = Project::factory()->create();

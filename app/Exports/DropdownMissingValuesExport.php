@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
@@ -11,7 +12,7 @@ use Maatwebsite\Excel\Concerns\WithMultipleSheets;
  * Sheet 1: Summary of each missing value (project name, row, field, value)
  * Sheet 2: Full original rows of skipped projects, preserving Excel structure
  */
-class DropdownMissingValuesExport implements WithMultipleSheets
+class DropdownMissingValuesExport implements Export, WithMultipleSheets
 {
     use Exportable;
 

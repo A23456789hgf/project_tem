@@ -12,35 +12,41 @@
 
             <div class="d-flex gap-4">
                 <div class="form-check">
-                    <input type="radio" name="assignment_type" value="user" {{ (old('assignment_type', $task->assignment_type ?? 'user') == 'user') ? 'checked' : '' }}>
-                    <label>مستخدم</label>
+                    @can('task.assign')
+                        <input type="radio" name="assignment_type" value="user" {{ (old('assignment_type', auth()->user()->can('task.assign') ? ($task->assignment_type ?? 'user') : 'entity') == 'user') ? 'checked' : '' }}>
+                        <label>مستخدم</label>
+                    @endcan
                 </div>
 
                 <div class="form-check">
-                    <input type="radio" name="assignment_type" value="entity" {{ (old('assignment_type', $task->assignment_type ?? '') == 'entity') ? 'checked' : '' }}>
+                    <input type="radio" name="assignment_type" value="entity" {{ (old('assignment_type', auth()->user()->can('task.assign') ? ($task->assignment_type ?? 'user') : 'entity') == 'entity') ? 'checked' : '' }}>
                     <label>جهة</label>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6" id="user_assignment_container">
-            <label>إسناد إلى مستخدم</label>
-            <select name="assigned_to[]" multiple class="form-select">
-                @foreach($users as $user)
-                    <option value="{{ $user->id }}" {{ in_array($user->id, (array) old('assigned_to', $task->assignees->pluck('id')->all() ?? [])) ? 'selected' : '' }}>{{ $user->name }}</option>
-                @endforeach
-            </select>
-        </div>
+        @can('task.assign')
+            <div class="col-md-6" id="user_assignment_container">
+                <label>إسناد إلى مستخدم</label>
+                <select name="assigned_to[]" multiple class="form-select">
+                    @foreach($users as $user)
+                        <option value="{{ $user->id }}" {{ in_array($user->id, (array) old('assigned_to', $task->assignees->pluck('id')->all() ?? [])) ? 'selected' : '' }}>{{ $user->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        @endcan
 
         <div class="col-md-6 d-none" id="entity_assignment_container" data-preselected-users="{{ json_encode(old('assigned_to', isset($task) ? $task->assignees->pluck('id')->all() : [])) }}">
             <div class="mb-3">
                 <label class="form-label fw-bold">إسناد إلى جهة *</label>
                 <select id="assigned_entity_id" name="assigned_entity_id" class="form-select select2-enable"></select>
             </div>
-            <div class="mb-3 d-none" id="entity_users_container">
-                <label class="form-label fw-bold">المستخدمون المسؤولون في هذه الجهة</label>
-                <select id="entity_users_select" name="assigned_to[]" multiple class="form-select select2-enable"></select>
-            </div>
+            @can('task.assign')
+                <div class="mb-3 d-none" id="entity_users_container">
+                    <label class="form-label fw-bold">المستخدمون المسؤولون في هذه الجهة</label>
+                    <select id="entity_users_select" name="assigned_to[]" multiple class="form-select select2-enable"></select>
+                </div>
+            @endcan
         </div>
 
     </div>

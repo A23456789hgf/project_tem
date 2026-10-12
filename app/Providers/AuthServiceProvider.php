@@ -18,6 +18,10 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         'App\Models\Project' => 'App\Policies\ProjectPolicy',
         'App\Models\ProjectRequest' => 'App\Policies\ProjectRequestPolicy',
+        'App\Models\ProjectUnifiedRequest' => 'App\Policies\ProjectUnifiedRequestPolicy',
+        'App\Models\ProjectDisbursementPlan' => 'App\Policies\ProjectDisbursementPlanPolicy',
+        'App\Models\ProjectPaymentRequest' => 'App\Policies\ProjectPaymentRequestPolicy',
+        'App\Models\ProjectClearanceRequest' => 'App\Policies\ProjectClearanceRequestPolicy',
         'App\Models\Plan' => 'App\Policies\PlanPolicy',
         'App\Models\Correspondence' => 'App\Policies\CorrespondencePolicy',
         'reports' => 'App\Policies\ReportPolicy',
@@ -35,6 +39,7 @@ class AuthServiceProvider extends ServiceProvider
         'App\Models\ValueChainMember' => 'App\Policies\ValueChainMemberPolicy',
         'App\Models\ChainPlan' => 'App\Policies\ChainPlanPolicy',
         'App\Models\ProjectReferral' => 'App\Policies\ProjectReferralPolicy',
+        'App\Models\OrganizationLetterhead' => 'App\Policies\OrganizationLetterheadPolicy',
 
         // Configuration Models
         'App\Models\Association' => 'App\Policies\AssociationPolicy',
@@ -136,7 +141,7 @@ class AuthServiceProvider extends ServiceProvider
                     'exportPivot', 'exportComprehensive', 'viewDraft', 'review',
                     'viewExecution', 'createExecution', 'updateExecution', 'deleteExecution',
                     'export', 'updateStatus', 'duplicate', 'exportWord', 'completeData',
-                    'achievements', 'editEntity',
+                    'achievements', 'editEntity', 'retry', 'submit', 'requestNext',
                 ];
                 if (in_array($ability, $policyVerbs) && ! empty($args)) {
                     return null; // Continue to Policy logic

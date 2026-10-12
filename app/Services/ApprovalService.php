@@ -17,6 +17,7 @@ use App\Models\ProjectApproval;
 use App\Models\ProjectReferral;
 use App\Models\Stage;
 use App\Models\User;
+use App\Services\FinancialReview\WorkflowActorContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -28,8 +29,11 @@ class ApprovalService
 {
     protected EntityHierarchyService $entityHierarchyService;
 
-    public function __construct(EntityHierarchyService $entityHierarchyService)
-    {
+    public function __construct(
+        EntityHierarchyService $entityHierarchyService,
+        private OrganizationResolver $organizationResolver,
+        private ApprovalChainBuilder $approvalChainBuilder,
+    ) {
         $this->entityHierarchyService = $entityHierarchyService;
     }
 
@@ -52,16 +56,17 @@ class ApprovalService
         }
 
         // 2. Validate user belongs to creator entity/authority or is the creator or admin.
-        $projectOriginType = $project->getOriginType();
-        $originEntityId = $project->getOriginEntityId() ?? $user->entity_id;
-        $originAuthorityId = $project->getOriginAuthorityId() ?? $user->authority_id;
+        $projectOrganization = $this->organizationResolver->resolveProject($project);
+        $projectOriginType = $projectOrganization['type'];
+        $originEntityId = $projectOriginType === OrganizationResolver::INTERNAL ? $projectOrganization['id'] : null;
+        $originAuthorityId = $projectOriginType === OrganizationResolver::EXTERNAL ? $projectOrganization['id'] : null;
 
         if (! $user->isAdmin()) {
             $isCreatorUser = ($project->created_by_user_id === $user->id);
 
             if ($projectOriginType === 'external') {
                 // External project: user must be the creator OR belong to the same authority.
-                $belongsToOriginAuthority = ($originAuthorityId && $user->authority_id === $originAuthorityId);
+                $belongsToOriginAuthority = $this->organizationResolver->userBelongsTo($user, OrganizationResolver::EXTERNAL, $originAuthorityId);
 
                 if (! $isCreatorUser && ! $belongsToOriginAuthority) {
                     throw new UnauthorizedWorkflowActionException('فقط أعضاء الجهة الخارجية المنشئة للمشروع يمكنهم إغلاق المسودة وتقديم المشروع للاعتماد.');
@@ -79,14 +84,17 @@ class ApprovalService
 
         return DB::transaction(function () use ($project, $user, $projectOriginType, $originEntityId) {
             // 3. Resolve dynamic stages hierarchy
-            $stages = app(ApprovalChainBuilder::class)->buildChainForProject($project);
+            $stages = $this->approvalChainBuilder->buildChainForProject($project);
 
             if (empty($stages)) {
                 throw new InvalidWorkflowTransitionException('تعذر توليد مسار الاعتمادات للجهة المنشئة. يرجى التحقق من شجرة الجهات.');
             }
 
-            // 4. Remove any existing transient approval records for this project
-            ProjectApproval::where('project_id', $project->id)->delete();
+            // 4. Remove any existing transient approval records for this project (isolated from unified requests)
+            ProjectApproval::where('project_id', $project->id)
+                ->whereNull('workflow_request_id')
+                ->whereNull('unified_request_id')
+                ->delete();
 
             $createdApprovals = collect();
             $firstStage = $stages[0];
@@ -108,17 +116,26 @@ class ApprovalService
                     'status' => $isFirst ? ApprovalStepStatus::Pending->value : ApprovalStepStatus::Locked->value,
                     'is_active' => $isFirst,
                     'created_by' => $user->id,
+                    'submitted_by' => $user->id,
+                    'submitted_at' => Carbon::now(),
+                    'workflow_version' => 1,
                     // Legacy hardcoded fields (kept null or unused for new dynamic workflow)
                     'financial_review_status' => null,
                     'technical_review_status' => null,
                     'technical_reviewer_id' => null,
                     'financial_reviewer_id' => null,
-                    
+
                     // Unified Dynamic Fields
                     'assigned_user_id' => $responsibleUserId,
+                    'available_actions' => $stageData['available_actions'] ?? ['submit', 'approve', 'return', 'reject'],
+                    'required_attachments' => $stageData['required_attachments'] ?? null,
+                    'action_rules' => $stageData['action_rules'] ?? null,
+
+                    // ✅ الحقول الجديدة للربط بإعدادات المراحل
                     'stage_key' => $stageData['stage_key'] ?? null,
                     'stage_name' => $stageData['stage_name'] ?? null,
-                    'available_actions' => isset($stageData['available_actions']) ? (is_array($stageData['available_actions']) ? json_encode($stageData['available_actions']) : $stageData['available_actions']) : null,
+                    'is_final_stage' => (bool) ($stageData['is_final'] ?? false),
+                    'triggers_execution' => (bool) ($stageData['triggers_execution'] ?? false),
                 ]);
 
                 $createdApprovals->push($approval);
@@ -170,21 +187,32 @@ class ApprovalService
     /**
      * Get the single active approval step for the project
      */
-    public function getActiveStep(Project $project): ?ProjectApproval
+    public function getActiveStep(Project $project, bool $lockForUpdate = false): ?ProjectApproval
     {
-        return $project->projectApprovals()
-            ->where('is_active', true)
-            ->first() ?? (
-                $project->current_stage
-                    ? $project->projectApprovals()->where('drop', $project->current_stage)->first()
-                    : null
-            );
+        $query = $project->projectApprovals()
+            ->where('is_active', true);
+
+        if ($lockForUpdate) {
+            $query->lockForUpdate();
+        }
+
+        $step = $query->first();
+
+        if (! $step && $project->current_stage) {
+            $fallbackQuery = $project->projectApprovals()->where('drop', $project->current_stage);
+            if ($lockForUpdate) {
+                $fallbackQuery->lockForUpdate();
+            }
+            $step = $fallbackQuery->first();
+        }
+
+        return $step;
     }
 
     /**
      * Check if a user is authorized to perform actions on a specific approval step
      */
-    public function canUserActOnStep(User $user, ProjectApproval $step): bool
+    public function canUserActOnStep(User $user, ProjectApproval $step, ?string $action = null): bool
     {
         // 0. Administrator bypass: Admin can act on any step in any entity and phase
         if (method_exists($user, 'isAdmin') && $user->isAdmin()) {
@@ -204,7 +232,10 @@ class ApprovalService
                 return false;
             }
             if ($step->entity_id && (int) $user->entity_id !== (int) $step->entity_id) {
-                return false;
+                $allowedEntityIds = $user->entity_id ? InternalEntity::getAllChildrenIds((int) $user->entity_id) : [];
+                if (! in_array((int) $step->entity_id, $allowedEntityIds, true)) {
+                    return false;
+                }
             }
         }
 
@@ -224,9 +255,12 @@ class ApprovalService
                 // Fallback check for alternate permission names
                 $alternateMap = [
                     'approvals.technical-review' => ['reviews.technical', 'approvals.technical'],
-                    'approvals.financial-review' => ['reviews.financial', 'approvals.financial'],
+                    'approvals.financial-review' => ['reviews.financial', 'approvals.financial', 'financial-review.read', 'financial-review.update', 'financial-review.approve', 'financial-review.reject', 'financial-review.return'],
                     'approvals.approve' => ['projects.approve', 'approvals.stage-approve'],
                 ];
+                if ($action !== null && in_array($action, ['read', 'update', 'approve', 'reject', 'return'], true)) {
+                    $alternateMap['approvals.financial-review'][] = 'financial-review.'.$action;
+                }
                 $alternates = $alternateMap[$requiredPermission] ?? [];
                 $hasAlt = false;
                 foreach ($alternates as $alt) {
@@ -242,15 +276,15 @@ class ApprovalService
         }
         // Unified dynamic stage logic with legacy fallback
         $assignedId = $step->assigned_user_id;
-        
-        if (!$assignedId) {
+
+        if (! $assignedId) {
             $stageIdentifier = $step->stage_key ?? $step->phase;
             if ($stageIdentifier === 'technical_review') {
                 $assignedId = $step->technical_reviewer_id ?? $step->technical_review_user_id;
             } elseif ($stageIdentifier === 'financial_review') {
                 $assignedId = $step->financial_reviewer_id ?? $step->financial_review_user_id;
             } else {
-                $assignedId = $step->technical_reviewer_id ?? clone $step->financial_reviewer_id ?? null;
+                $assignedId = $step->technical_reviewer_id ?? $step->financial_reviewer_id ?? null;
             }
         }
 
@@ -283,21 +317,41 @@ class ApprovalService
      * @throws InvalidWorkflowTransitionException
      * @throws UnauthorizedWorkflowActionException
      */
-    public function approveActiveStep(Project $project, User $user, ?string $notes = null, ?string $attachment = null): array
+    public function approveActiveStep(Project $project, User $user, ?string $notes = null, ?string $attachment = null, ?int $expectedApprovalId = null): array
     {
-        return DB::transaction(function () use ($project, $user, $notes, $attachment) {
-            $activeStep = $this->getActiveStep($project);
+        return DB::transaction(function () use ($project, $user, $notes, $attachment, $expectedApprovalId) {
+            $activeStep = $this->getActiveStep($project, true);
 
             if (! $activeStep || ! $activeStep->isActive()) {
                 throw new InvalidWorkflowTransitionException('لا يمكن تنفيذ الاعتماد؛ لا توجد مرحلة نشطة لهذا المشروع.');
             }
 
-            if (! $this->canUserActOnStep($user, $activeStep)) {
+            if ($expectedApprovalId !== null && (int) $activeStep->id !== (int) $expectedApprovalId) {
+                throw new InvalidWorkflowTransitionException('المرحلة المحددة لم تعد المرحلة النشطة للمشروع.');
+            }
+
+            if (! $this->canUserActOnStep($user, $activeStep, 'approve')) {
                 throw new UnauthorizedWorkflowActionException('ليس لديك الصلاحية لاعتماد هذه المرحلة.');
             }
 
             if (! $activeStep->hasAction('approve')) {
                 throw new UnauthorizedWorkflowActionException('إجراء الاعتماد غير متاح في هذه المرحلة.');
+            }
+
+            // Validate mandatory attachments for this step
+            $missing = $activeStep->getMissingRequiredAttachments();
+            if (! empty($missing)) {
+                $missingLabels = collect($missing)->pluck('label')->implode('، ');
+                throw new WorkflowValidationException('المرفقات الإلزامية التالية مطلوبة لاعتماد هذه المرحلة: '.$missingLabels);
+            }
+
+            // Validate action rules
+            $approveRule = $activeStep->getActionRule('approve');
+            if (! empty($approveRule['notes_required']) && empty(trim($notes ?? ''))) {
+                throw new WorkflowValidationException('الملاحظات مطلوبة لإتمام الاعتماد في هذه المرحلة.');
+            }
+            if (! empty($approveRule['min_notes_length']) && mb_strlen(trim($notes ?? '')) < (int) $approveRule['min_notes_length']) {
+                throw new WorkflowValidationException("طول الملاحظات يجب ألا يقل عن {$approveRule['min_notes_length']} أحرف.");
             }
 
             $timestamp = Carbon::now();
@@ -321,8 +375,10 @@ class ApprovalService
                 'technical_review_status' => (($activeStep->stage_key ?? $activeStep->phase) === 'technical_review') ? 'approved' : $activeStep->technical_review_status,
             ]);
 
-            // 2. Find next step in chain
+            // 2. Find next step in chain (isolated from unified requests)
             $nextStep = ProjectApproval::where('project_id', $project->id)
+                ->whereNull('workflow_request_id')
+                ->whereNull('unified_request_id')
                 ->where('step_order', $fromStageOrder + 1)
                 ->first();
 
@@ -359,21 +415,75 @@ class ApprovalService
                 ];
             }
 
-            // 3. No next step -> Root Stage Approval completed -> FINAL APPROVAL!
+            // =================================================================
+            // 3. No next step -> check if it's the final stage
+            // =================================================================
 
-            // Validate constraint #10 before moving to in_execution
-            $isInternal = $activeStep->approver_scope === 'internal';
-            $isMinistryRoot = $activeStep->entity && ($activeStep->entity->is_ministry_root || (bool) $activeStep->is_ministry_root);
-            $isApprovalPhase = $activeStep->phase === 'stage_approval' || $activeStep->phase === 'APPROVAL';
+            // ✅ المنطق الجديد: نستخدم is_final_stage أولاً
+            $isExplicitFinal = (bool) $activeStep->is_final_stage;
+            $triggersExecution = (bool) $activeStep->triggers_execution;
 
-            if ($isInternal && $isMinistryRoot && $isApprovalPhase) {
-                $project->update([
+            // ⚠️ Legacy fallback للبيانات القديمة التي لا تحتوي على الحقول الجديدة
+            // نستخدمه فقط إذا لم تكن الحقول الجديدة مُفعّلة على هذه المرحلة
+            $isLegacyFinal = ! $isExplicitFinal
+                && ! $triggersExecution
+                && $activeStep->approver_scope === 'internal'
+                && $activeStep->entity
+                && ($activeStep->entity->is_ministry_root || (bool) $activeStep->is_ministry_root)
+                && ($activeStep->phase === 'stage_approval' || $activeStep->phase === 'APPROVAL');
+
+            if ($isExplicitFinal || $isLegacyFinal) {
+
+                // ✅ دخول التنفيذ (إما مباشرة أو عبر خطة الصرف)
+                if ($project->uses_disbursement_workflow) {
+                    $project->update([
+                        'status' => ProjectStatus::AwaitingDisbursementPlan->value,
+                        'approval_status' => 'approved',
+                        'current_stage' => null,
+                        'current_stage_order' => null,
+                        'completed_at' => $timestamp,
+                    ]);
+
+                    $this->logActivity($project, 'approved_to_disbursement_plan', [
+                        'user_id' => $user->id,
+                        'from_stage_name' => $fromStageName,
+                        'from_stage_order' => $fromStageOrder,
+                        'to_stage_name' => 'مرحلة خطة الصرف (Awaiting Disbursement Plan)',
+                        'to_stage_order' => $fromStageOrder + 1,
+                        'notes' => 'اكتملت جميع مراحل الاعتماد بنجاح — تم نقل المشروع لمرحلة إعداد واعتماد خطة الصرف قبل البدء بالتنفيذ.',
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'is_final' => true,
+                        'approved_step' => $activeStep,
+                        'next_step' => null,
+                        'project_status' => ProjectStatus::AwaitingDisbursementPlan->value,
+                        'message' => 'تم اكتمال دورة الاعتمادات بالكامل ونقل المشروع إلى مرحلة إعداد واعتماد خطة الصرف.',
+                    ];
+                }
+
+                // دخول التنفيذ المباشر
+                $projectUpdate = [
                     'status' => ProjectStatus::InExecution->value,
                     'approval_status' => 'approved',
                     'current_stage' => null,
                     'current_stage_order' => null,
                     'completed_at' => $timestamp,
-                ]);
+                ];
+
+                // ✅ إضافة الحقول الاختيارية فقط إذا كانت موجودة في جدول projects
+                if (Schema::hasColumn('projects', 'entered_execution_at')) {
+                    $projectUpdate['entered_execution_at'] = $timestamp;
+                }
+                if (Schema::hasColumn('projects', 'final_approved_by')) {
+                    $projectUpdate['final_approved_by'] = $user->id;
+                }
+                if (Schema::hasColumn('projects', 'final_approved_at')) {
+                    $projectUpdate['final_approved_at'] = $timestamp;
+                }
+
+                $project->update($projectUpdate);
 
                 $this->logActivity($project, 'approved_to_implementation', [
                     'user_id' => $user->id,
@@ -382,9 +492,10 @@ class ApprovalService
                     'to_stage_name' => 'مرحلة التنفيذ (In Execution)',
                     'to_stage_order' => $fromStageOrder + 1,
                     'notes' => 'اكتملت جميع مراحل الاعتماد بنجاح — تم نقل المشروع لمرحلة التنفيذ.',
+                    'action_details' => $notes,
                 ]);
 
-                // Safely trigger sync
+                // ✅ مزامنة آمنة مع الأنظمة الخارجية
                 $this->safelySyncProjectOnExecution($project);
 
                 return [
@@ -395,10 +506,14 @@ class ApprovalService
                     'project_status' => ProjectStatus::InExecution->value,
                     'message' => 'تم اكتمال دورة الاعتمادات بالكامل ونقل المشروع إلى مرحلة التنفيذ.',
                 ];
-            } else {
-                // If it doesn't meet the conditions, it's a configuration error since there are no more steps.
-                throw new InvalidWorkflowTransitionException('فشل النقل لمرحلة التنفيذ: يجب أن تنتهي سلسلة الاعتمادات بمرحلة اعتماد نهائية (APPROVAL) من قبل وزارة جذرية (Ministry Root) تابعة للجهات الداخلية.');
             }
+
+            // لا توجد مرحلة تالية AND ليست نهائية → خطأ في الإعداد
+            throw new InvalidWorkflowTransitionException(
+                'فشل النقل لمرحلة التنفيذ: يجب تحديد مرحلة نهائية (is_final_stage = true) في إعدادات المراحل، '.
+                'أو أن تكون المرحلة الأخيرة اعتماداً وزارياً (Ministry Root / stage_approval). '.
+                'يرجى ضبط المرحلة النهائية من مركز الاعتمادات.'
+            );
         });
     }
 
@@ -413,21 +528,25 @@ class ApprovalService
      * @throws InvalidWorkflowTransitionException
      * @throws UnauthorizedWorkflowActionException
      */
-    public function rejectActiveStep(Project $project, User $user, string $reason, ?string $attachment = null): ProjectApproval
+    public function rejectActiveStep(Project $project, User $user, string $reason, ?string $attachment = null, ?int $expectedApprovalId = null): ProjectApproval
     {
         $trimmedReason = trim($reason);
         if (empty($trimmedReason) || mb_strlen($trimmedReason) < 10) {
             throw new WorkflowValidationException('سبب الرفض إلزامي ويجب ألا يقل عن 10 أحرف.');
         }
 
-        return DB::transaction(function () use ($project, $user, $trimmedReason, $attachment) {
-            $activeStep = $this->getActiveStep($project);
+        return DB::transaction(function () use ($project, $user, $trimmedReason, $attachment, $expectedApprovalId) {
+            $activeStep = $this->getActiveStep($project, true);
 
             if (! $activeStep || ! $activeStep->isActive()) {
                 throw new InvalidWorkflowTransitionException('لا يمكن تنفيذ الرفض؛ لا توجد مرحلة نشطة لهذا المشروع.');
             }
 
-            if (! $this->canUserActOnStep($user, $activeStep)) {
+            if ($expectedApprovalId !== null && (int) $activeStep->id !== (int) $expectedApprovalId) {
+                throw new InvalidWorkflowTransitionException('المرحلة المحددة لم تعد المرحلة النشطة للمشروع.');
+            }
+
+            if (! $this->canUserActOnStep($user, $activeStep, 'reject')) {
                 throw new UnauthorizedWorkflowActionException('ليس لديك الصلاحية لرفض المشروع في هذه المرحلة.');
             }
 
@@ -453,8 +572,10 @@ class ApprovalService
                 'financial_reviewer_id' => null,
             ]);
 
-            // Freeze future steps
+            // Freeze future steps (isolated from unified requests)
             ProjectApproval::where('project_id', $project->id)
+                ->whereNull('workflow_request_id')
+                ->whereNull('unified_request_id')
                 ->where('step_order', '>', $activeStep->step_order)
                 ->update([
                     'status' => ApprovalStepStatus::Locked->value,
@@ -504,21 +625,25 @@ class ApprovalService
      * @throws InvalidWorkflowTransitionException
      * @throws UnauthorizedWorkflowActionException
      */
-    public function requestCompletion(Project $project, User $user, string $notes, ReturnTarget $target, ?string $attachment = null): array
+    public function requestCompletion(Project $project, User $user, string $notes, ReturnTarget $target, ?string $attachment = null, ?int $expectedApprovalId = null): array
     {
         $trimmedNotes = trim($notes);
         if (empty($trimmedNotes) || mb_strlen($trimmedNotes) < 10) {
             throw new WorkflowValidationException('ملاحظات طلب الاستكمال إلزامية ومفصلة (10 أحرف على الأقل).');
         }
 
-        return DB::transaction(function () use ($project, $user, $trimmedNotes, $target, $attachment) {
-            $activeStep = $this->getActiveStep($project);
+        return DB::transaction(function () use ($project, $user, $trimmedNotes, $target, $attachment, $expectedApprovalId) {
+            $activeStep = $this->getActiveStep($project, true);
 
             if (! $activeStep || ! $activeStep->isActive()) {
                 throw new InvalidWorkflowTransitionException('لا يمكن طلب استكمال؛ لا توجد مرحلة نشطة لهذا المشروع.');
             }
 
-            if (! $this->canUserActOnStep($user, $activeStep)) {
+            if ($expectedApprovalId !== null && (int) $activeStep->id !== (int) $expectedApprovalId) {
+                throw new InvalidWorkflowTransitionException('المرحلة المحددة لم تعد المرحلة النشطة للمشروع.');
+            }
+
+            if (! $this->canUserActOnStep($user, $activeStep, 'return')) {
                 throw new UnauthorizedWorkflowActionException('ليس لديك الصلاحية لطلب استكمال في هذه المرحلة.');
             }
 
@@ -571,8 +696,10 @@ class ApprovalService
                 ];
             }
 
-            // Mode B: Return to Previous Step
+            // Mode B: Return to Previous Step (isolated from unified requests)
             $previousStep = ProjectApproval::where('project_id', $project->id)
+                ->whereNull('workflow_request_id')
+                ->whereNull('unified_request_id')
                 ->where('step_order', $fromStageOrder - 1)
                 ->first();
 
@@ -657,16 +784,22 @@ class ApprovalService
         }
 
         return DB::transaction(function () use ($project, $user, $notes, $attachment) {
-            // Find the step that requested action
+            // Find the step that requested action (isolated from unified requests)
             $targetStep = ProjectApproval::where('project_id', $project->id)
+                ->whereNull('workflow_request_id')
+                ->whereNull('unified_request_id')
                 ->whereIn('status', [ApprovalStepStatus::NeedAction->value, 'requires_action', 'need_action'])
                 ->latest('updated_at')
                 ->first()
                 ?? ProjectApproval::where('project_id', $project->id)
+                    ->whereNull('workflow_request_id')
+                    ->whereNull('unified_request_id')
                     ->whereNotNull('returned_to_step_order')
                     ->latest('updated_at')
                     ->first()
                 ?? ProjectApproval::where('project_id', $project->id)
+                    ->whereNull('workflow_request_id')
+                    ->whereNull('unified_request_id')
                     ->orderBy('step_order')
                     ->first();
 
@@ -831,6 +964,14 @@ class ApprovalService
 
         $userId = Auth::id() ?? $data['user_id'] ?? $project->created_by_user_id ?? $project->created_by ?? 1;
 
+        $extraMetadata = [
+            'performed_by' => $userId,
+            'ip_address' => request()->ip(),
+        ];
+        if ($actor = WorkflowActorContext::get()) {
+            $extraMetadata = array_merge($extraMetadata, array_filter($actor));
+        }
+
         return ProjectActivityHistory::create([
             'project_id' => $project->id,
             'user_id' => $userId,
@@ -841,14 +982,11 @@ class ApprovalService
             'to_stage_name' => $data['to_stage_name'] ?? null,
             'notes' => $data['notes'] ?? null,
             'action_details' => $data['action_details'] ?? null,
-            'metadata' => array_merge($metadata, [
-                'performed_by' => $userId,
-                'ip_address' => request()->ip(),
-            ]),
+            'metadata' => array_merge($metadata, $extraMetadata),
         ]);
     }
 
-    private function safelySyncProjectOnExecution(Project $project): void
+    public function safelySyncProjectOnExecution(Project $project): void
     {
         try {
             if (class_exists(ProjectService::class)) {
@@ -1044,5 +1182,29 @@ class ApprovalService
     public function createProjectApprovalStages(Project $project): Collection
     {
         return collect();
+    }
+
+    /**
+     * Upload an attachment required for a specific workflow stage.
+     */
+    public function uploadStepAttachment(ProjectApproval $step, User $user, string $attachmentKey, $file): array
+    {
+        $path = $file->store('approvals/attachments', 'public');
+        $uploaded = $step->uploaded_attachments ?? [];
+        $uploaded[$attachmentKey] = [
+            'path' => $path,
+            'original_name' => method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : basename($path),
+            'mime_type' => method_exists($file, 'getClientMimeType') ? $file->getClientMimeType() : null,
+            'size' => method_exists($file, 'getSize') ? $file->getSize() : null,
+            'uploaded_by' => $user->id,
+            'uploaded_at' => Carbon::now()->toDateTimeString(),
+        ];
+
+        $step->update([
+            'uploaded_attachments' => $uploaded,
+            'attachment' => $path,
+        ]);
+
+        return $uploaded[$attachmentKey];
     }
 }

@@ -11,6 +11,7 @@ use App\Models\InternalEntity;
 use App\Models\Project;
 use App\Models\User;
 use App\Scopes\DomainScope;
+use App\Services\DocumentLetterheadService;
 use App\Services\NotificationService;
 use App\Traits\HandlesDataVisibility;
 use Endroid\QrCode\QrCode;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
@@ -413,11 +415,18 @@ class CorrespondenceController extends Controller
         // جلب سجل الحركة الكامل
         $movements = $correspondence->getFullThreadTimeline();
 
+        // حل الترويسة الرسمية الخاصة بالجهة المصدرة للمراسلة
+        $letterheadData = app(DocumentLetterheadService::class)->resolveFor($correspondence);
+        $letterhead = $letterheadData->letterhead;
+
         $pdfData = [
             'correspondence' => $correspondence,
             'movements' => $movements,
             'qrCodeData' => $qrCodeData,
-            'logoPath' => public_path('images/logo.png'),
+            'letterhead' => $letterhead,
+            'letterheadData' => $letterheadData,
+            'logoPath' => $letterheadData->logoAbsolutePath ?? public_path('images/logo.png'),
+            'logoBase64' => $letterheadData->logoBase64,
             'printDate' => now()->format('Y-m-d H:i'),
         ];
 
@@ -1180,8 +1189,16 @@ class CorrespondenceController extends Controller
             'attachments.*' => 'nullable|file|max:10240',
             'return_date' => 'nullable|date|after_or_equal:today',
             'confidential' => 'nullable|boolean',
-            'referral_id' => 'nullable|exists:correspondence_referrals,id',
-            'forwarding_id' => 'nullable|exists:correspondence_forwardings,id',
+            'referral_id' => [
+                'nullable',
+                Rule::exists('correspondence_referrals', 'id')
+                    ->where('correspondence_id', $correspondence->id),
+            ],
+            'forwarding_id' => [
+                'nullable',
+                Rule::exists('correspondence_forwardings', 'id')
+                    ->where('correspondence_id', $correspondence->id),
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -1688,7 +1705,7 @@ class CorrespondenceController extends Controller
     public function updateReferralStatus(Request $request, $referralId)
     {
         $referral = CorrespondenceReferral::findOrFail($referralId);
-        $this->authorize('view', $referral->correspondence);
+        $this->authorize('updateReferralStatus', $referral->correspondence);
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:pending,in_progress,completed,cancelled',
             'notes' => 'nullable|string',
@@ -1799,7 +1816,7 @@ class CorrespondenceController extends Controller
     public function updateReplyStatus(Request $request, $replyId)
     {
         $reply = CorrespondenceReply::findOrFail($replyId);
-        $this->authorize('view', $reply->correspondence);
+        $this->authorize('updateReplyStatus', $reply->correspondence);
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:sent,delivered,acknowledged,cancelled',
         ]);
@@ -1876,7 +1893,7 @@ class CorrespondenceController extends Controller
     public function restore($id)
     {
         $correspondence = Correspondence::withTrashed()->findOrFail($id);
-        $this->authorize('update', $correspondence);
+        $this->authorize('restore', $correspondence);
         $user = Auth::user();
 
         // التحقق من الصلاحية للاستعادة

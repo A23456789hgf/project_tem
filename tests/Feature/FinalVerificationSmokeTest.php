@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\EntityResponsibilityType;
 use App\Models\Authority;
 use App\Models\AuthorityApprovalRoute;
 use App\Models\AuthorityApprovalStage;
@@ -43,20 +44,20 @@ class FinalVerificationSmokeTest extends TestCase
         $this->userAuthBApp = User::create(['user_id' => 'uba', 'phone' => '118', 'username' => 'authb_app', 'name' => 'AuthB App', 'email' => 'authb_app@example.com', 'password' => 'password', 'authority_id' => $this->authorityB->id, 'organization_type' => 'external', 'responsibility' => 'ENTITY_APPROVER', 'status' => 'Active']);
 
         // Set up Ministry Stages
-        EntityApprovalStage::create(['entity_id' => $this->ministry->id, 'stage' => 'technical_review', 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userMinistryTech->id]);
-        EntityApprovalStage::create(['entity_id' => $this->ministry->id, 'stage' => 'financial_review', 'stage_order' => 2, 'is_active' => true, 'responsible_user_id' => $this->userMinistryFin->id]);
-        EntityApprovalStage::create(['entity_id' => $this->ministry->id, 'stage' => 'approval', 'stage_order' => 3, 'is_active' => true, 'responsible_user_id' => $this->userMinistryApp->id]);
+        EntityApprovalStage::create(['entity_id' => $this->ministry->id, 'stage' => EntityResponsibilityType::TechnicalReview->value, 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userMinistryTech->id]);
+        EntityApprovalStage::create(['entity_id' => $this->ministry->id, 'stage' => EntityResponsibilityType::FinancialReview->value, 'stage_order' => 2, 'is_active' => true, 'responsible_user_id' => $this->userMinistryFin->id]);
+        EntityApprovalStage::create(['entity_id' => $this->ministry->id, 'stage' => EntityResponsibilityType::Approval->value, 'stage_order' => 3, 'is_active' => true, 'responsible_user_id' => $this->userMinistryApp->id]);
 
         // Set up Governorate Stages
-        EntityApprovalStage::create(['entity_id' => $this->governorate->id, 'stage' => 'approval', 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userGovApp->id]);
+        EntityApprovalStage::create(['entity_id' => $this->governorate->id, 'stage' => EntityResponsibilityType::Approval->value, 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userGovApp->id]);
 
         // Set up Authority A Stages
-        AuthorityApprovalStage::create(['authority_id' => $this->authorityA->id, 'stage' => 'technical_review', 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userAuthATech->id]);
-        AuthorityApprovalStage::create(['authority_id' => $this->authorityA->id, 'stage' => 'financial_review', 'stage_order' => 2, 'is_active' => true, 'responsible_user_id' => $this->userAuthAFin->id]);
-        AuthorityApprovalStage::create(['authority_id' => $this->authorityA->id, 'stage' => 'approval', 'stage_order' => 3, 'is_active' => true, 'responsible_user_id' => $this->userAuthAApp->id]);
+        AuthorityApprovalStage::create(['authority_id' => $this->authorityA->id, 'stage' => EntityResponsibilityType::TechnicalReview->value, 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userAuthATech->id]);
+        AuthorityApprovalStage::create(['authority_id' => $this->authorityA->id, 'stage' => EntityResponsibilityType::FinancialReview->value, 'stage_order' => 2, 'is_active' => true, 'responsible_user_id' => $this->userAuthAFin->id]);
+        AuthorityApprovalStage::create(['authority_id' => $this->authorityA->id, 'stage' => EntityResponsibilityType::Approval->value, 'stage_order' => 3, 'is_active' => true, 'responsible_user_id' => $this->userAuthAApp->id]);
 
         // Set up Authority B Stages
-        AuthorityApprovalStage::create(['authority_id' => $this->authorityB->id, 'stage' => 'approval', 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userAuthBApp->id]);
+        AuthorityApprovalStage::create(['authority_id' => $this->authorityB->id, 'stage' => EntityResponsibilityType::Approval->value, 'stage_order' => 1, 'is_active' => true, 'responsible_user_id' => $this->userAuthBApp->id]);
 
     }
 
@@ -64,7 +65,7 @@ class FinalVerificationSmokeTest extends TestCase
     {
         AuthorityApprovalRoute::create(['authority_id' => $this->authorityA->id, 'destination_type' => 'ministry', 'is_active' => true]);
 
-        $builder = new ApprovalChainBuilder;
+        $builder = app(ApprovalChainBuilder::class);
         $chain = $builder->buildExternalChain($this->authorityA->id);
 
         $this->assertCount(6, $chain);
@@ -112,7 +113,7 @@ class FinalVerificationSmokeTest extends TestCase
             'is_active' => true,
         ]);
 
-        $builder = new ApprovalChainBuilder;
+        $builder = app(ApprovalChainBuilder::class);
         $chain = $builder->buildExternalChain($this->authorityB->id);
 
         // Authority B (App) -> Authority A (Tech, Fin, App) -> Ministry (Tech, Fin, App)

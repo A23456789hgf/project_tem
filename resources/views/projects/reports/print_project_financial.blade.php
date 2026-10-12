@@ -7,6 +7,7 @@
     
     <link rel="stylesheet" href="{{ asset('css/libs/bootstrap.rtl.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/libs/font-awesome.all.min.css') }}">
+    <x-letterhead-styles :letterhead="$letterhead" />
 
     <style>
         @page {
@@ -107,20 +108,25 @@
 </head>
 <body>
 
-    <!-- أزرار الإجراءات للطباعة -->
-    <div class="no-print mb-3 text-start">
-        <button onclick="window.print();" class="btn btn-primary btn-sm fw-bold">
-            <i class="fas fa-print me-1"></i> طباعة التقرير
-        </button>
-        <button onclick="window.close();" class="btn btn-secondary btn-sm me-2">
-            <i class="fas fa-times me-1"></i> إغلاق
-        </button>
+    <!-- أزرار الإجراءات للطباعة ومحدد الترويسة -->
+    <div class="no-print mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <x-letterhead-selector :currentLetterhead="$letterhead" />
+        <div>
+            <button onclick="window.print();" class="btn btn-primary btn-sm fw-bold">
+                <i class="fas fa-print me-1"></i> طباعة التقرير
+            </button>
+            <button onclick="window.close();" class="btn btn-secondary btn-sm me-2">
+                <i class="fas fa-times me-1"></i> إغلاق
+            </button>
+        </div>
     </div>
 
-    <!-- ترويسة التقرير -->
+    <!-- ترويسة الجهة الرسمية -->
+    <x-letterhead-header :letterhead="$letterhead" customTitle="تقرير الوضع المالي للمشروع" :documentNumber="$project->form_number" />
+
+    <!-- معلومات التقرير السريعة -->
     <div class="report-header d-flex justify-content-between align-items-center">
         <div>
-            <div class="report-title">تقرير الوضع المالي للمشروع</div>
             <div class="report-meta">
                 <span>اسم المشروع: <strong>{{ $project->project_name }}</strong></span> | 
                 <span>كود ERPNext: <strong>{{ $project->erpnext_project_id ?? $project->frappe_project_name ?? '-' }}</strong></span> | 
@@ -315,7 +321,8 @@
                 <p>__________________</p>
             </div>
         </div>
-    </div>
+    <!-- تذييل التقرير الرسمي -->
+    <x-letterhead-footer :letterhead="$letterhead" documentName="تقرير الوضع المالي للمشروع" />
 
 </body>
 </html>

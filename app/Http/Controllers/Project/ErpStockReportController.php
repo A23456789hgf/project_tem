@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Project;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Services\ErpNextService;
 use App\Services\ErpNextReportService;
+use App\Services\ErpNextService;
+use Illuminate\Http\Request;
 
 class ErpStockReportController extends Controller
 {
     protected $erpNextService;
+
     protected $erpNextReportService;
 
     public function __construct(ErpNextService $erpNextService, ErpNextReportService $erpNextReportService)
@@ -24,7 +25,7 @@ class ErpStockReportController extends Controller
 
         $filters = $this->buildResourceFilters($request, [
             'docstatus' => 1,
-            'status' => 'Pending'
+            'status' => 'Pending',
         ]);
 
         $limit = $request->input('limit', 20);
@@ -38,7 +39,7 @@ class ErpStockReportController extends Controller
             'order_by' => 'transaction_date desc',
         ];
 
-        if (!empty($filters)) {
+        if (! empty($filters)) {
             $params['filters'] = json_encode($filters);
         }
 
@@ -49,13 +50,13 @@ class ErpStockReportController extends Controller
             // We'll assume if count == limit, there might be more.
         } catch (\Exception $e) {
             $data = [];
-            session()->flash('error', 'Error fetching Material Requests from ERPNext: ' . $e->getMessage());
+            session()->flash('error', 'Error fetching Material Requests from ERPNext: '.$e->getMessage());
         }
 
         if ($request->ajax()) {
             return response()->json([
                 'data' => $data,
-                'hasMore' => count($data) == $limit
+                'hasMore' => count($data) == $limit,
             ]);
         }
 
@@ -65,10 +66,11 @@ class ErpStockReportController extends Controller
     public function materialRequestItems(Request $request, $name)
     {
         $this->authorize('reports.material_requests.view');
-        
+
         try {
-            $response = $this->erpNextService->get('/api/resource/Material Request/' . urlencode($name));
+            $response = $this->erpNextService->get('/api/resource/Material Request/'.urlencode($name));
             $data = $response['data'] ?? [];
+
             return response()->json($data['items'] ?? []);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -81,11 +83,11 @@ class ErpStockReportController extends Controller
             'reports.material_requests.view',
             'reports.stock_entries.view',
             'reports.stock_ledger.view',
-            'reports.purchase_invoices.view'
+            'reports.purchase_invoices.view',
         ])) {
             abort(403, 'Unauthorized action.');
         }
-        
+
         $type = $request->input('type'); // Company, Warehouse, Item, Project, Cost Center, Supplier, Currency
         $search = $request->input('q', '');
         $page = $request->input('page', 1);
@@ -93,12 +95,12 @@ class ErpStockReportController extends Controller
         $limit_start = ($page - 1) * $limit;
 
         $allowedTypes = ['Company', 'Warehouse', 'Item', 'Project', 'Cost Center', 'Supplier', 'Currency'];
-        if (!in_array($type, $allowedTypes)) {
+        if (! in_array($type, $allowedTypes)) {
             return response()->json(['error' => 'Invalid type'], 400);
         }
 
         $filters = [];
-        if (!empty($search)) {
+        if (! empty($search)) {
             $filters[] = ['name', 'like', "%{$search}%"];
         }
 
@@ -113,29 +115,29 @@ class ErpStockReportController extends Controller
         $params = [
             'fields' => '["name"]',
             'limit_page_length' => $limit,
-            'limit_start' => $limit_start
+            'limit_start' => $limit_start,
         ];
 
-        if (!empty($filters)) {
+        if (! empty($filters)) {
             $params['filters'] = json_encode($filters);
         }
 
         try {
-            $response = $this->erpNextService->get('/api/resource/' . urlencode($type), $params);
+            $response = $this->erpNextService->get('/api/resource/'.urlencode($type), $params);
             $items = $response['data'] ?? [];
-            
-            $results = array_map(function($item) {
+
+            $results = array_map(function ($item) {
                 return [
                     'id' => $item['name'],
-                    'text' => $item['name']
+                    'text' => $item['name'],
                 ];
             }, $items);
 
             return response()->json([
                 'results' => $results,
                 'pagination' => [
-                    'more' => count($items) == $limit
-                ]
+                    'more' => count($items) == $limit,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -148,7 +150,7 @@ class ErpStockReportController extends Controller
 
         $filters = $this->buildResourceFilters($request, [
             'docstatus' => 1,
-            'stock_entry_type' => 'Material Issue'
+            'stock_entry_type' => 'Material Issue',
         ]);
 
         $limit = $request->input('limit', 20);
@@ -162,7 +164,7 @@ class ErpStockReportController extends Controller
             'order_by' => 'posting_date desc',
         ];
 
-        if (!empty($filters)) {
+        if (! empty($filters)) {
             $params['filters'] = json_encode($filters);
         }
 
@@ -174,14 +176,14 @@ class ErpStockReportController extends Controller
             }
         } catch (\Exception $e) {
             $data = [];
-            \Log::error('ERPNext Stock Entry Error: ' . $e->getMessage());
+            \Log::error('ERPNext Stock Entry Error: '.$e->getMessage());
             session()->flash('error', $e->getMessage());
         }
 
         if ($request->ajax()) {
             return response()->json([
                 'data' => $data,
-                'hasMore' => count($data) == $limit
+                'hasMore' => count($data) == $limit,
             ]);
         }
 
@@ -191,16 +193,18 @@ class ErpStockReportController extends Controller
     public function stockEntryItems(Request $request, $name)
     {
         $this->authorize('reports.stock_entries.view');
-        
+
         try {
-            $response = $this->erpNextService->get('/api/resource/Stock Entry/' . urlencode($name));
+            $response = $this->erpNextService->get('/api/resource/Stock Entry/'.urlencode($name));
             if (isset($response['exc_type']) && $response['exc_type'] === 'PermissionError') {
                 throw new \Exception('تعذر عرض التفاصيل بسبب عدم توفر صلاحية القراءة لحساب التكامل في ERPNext.');
             }
             $data = $response['data'] ?? [];
+
             return response()->json($data['items'] ?? []);
         } catch (\Exception $e) {
-            \Log::error('ERPNext Stock Entry Items Error: ' . $e->getMessage());
+            \Log::error('ERPNext Stock Entry Items Error: '.$e->getMessage());
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -224,12 +228,13 @@ class ErpStockReportController extends Controller
 
         if ($request->from_date > $request->to_date) {
             session()->flash('error', 'تاريخ البداية يجب أن يكون قبل أو يساوي تاريخ النهاية.');
+
             return view('projects.reports.stock.stock_ledger', compact('data', 'columns', 'total', 'request'));
         }
 
         $filters = [];
         $allowedFilters = ['company', 'warehouse', 'item_code', 'project', 'batch_no', 'voucher_no', 'from_date', 'to_date', 'include_uom'];
-        
+
         foreach ($allowedFilters as $field) {
             if ($request->filled($field)) {
                 $val = $request->input($field);
@@ -253,15 +258,15 @@ class ErpStockReportController extends Controller
                     throw new \Exception('تعذر تشغيل تقرير سجل المخزون بسبب عدم توفر الصلاحية المطلوبة في ERPNext.');
                 }
                 $errorMessage = $response['_server_messages'] ?? $response['exc_type'];
-                throw new \Exception('خطأ في جلب بيانات سجل المخزون من ERPNext: ' . $errorMessage);
+                throw new \Exception('خطأ في جلب بيانات سجل المخزون من ERPNext: '.$errorMessage);
             }
 
             if (isset($response['message'])) {
                 $columns = $response['message']['columns'] ?? [];
                 $result = $response['message']['result'] ?? [];
-                
+
                 $collection = collect($result)->filter(function ($row) {
-                    return !empty($row) && (isset($row['item_code']) || isset($row['posting_date']) || isset($row['voucher_no']));
+                    return ! empty($row) && (isset($row['item_code']) || isset($row['posting_date']) || isset($row['voucher_no']));
                 });
 
                 $total = $collection->count();
@@ -269,21 +274,20 @@ class ErpStockReportController extends Controller
             }
 
         } catch (\Exception $e) {
-            \Log::error('ERPNext Stock Ledger Error: ' . $e->getMessage());
+            \Log::error('ERPNext Stock Ledger Error: '.$e->getMessage());
             session()->flash('error', $e->getMessage());
         }
 
         return view('projects.reports.stock.stock_ledger', compact('data', 'columns', 'total', 'request'));
     }
 
-
     private function buildResourceFilters(Request $request, array $defaultFilters = [])
     {
         $filters = [];
-        
+
         // DocStatus
         if ($request->has('docstatus') && $request->docstatus !== '') {
-            $filters[] = ['docstatus', '=', (int)$request->docstatus];
+            $filters[] = ['docstatus', '=', (int) $request->docstatus];
         } elseif (isset($defaultFilters['docstatus'])) {
             $filters[] = ['docstatus', '=', $defaultFilters['docstatus']];
         }
@@ -298,7 +302,7 @@ class ErpStockReportController extends Controller
         if ($request->filled('material_request_type')) {
             $filters[] = ['material_request_type', '=', $request->material_request_type];
         }
-        
+
         if ($request->filled('stock_entry_type')) {
             $filters[] = ['stock_entry_type', '=', $request->stock_entry_type];
         }
@@ -308,7 +312,7 @@ class ErpStockReportController extends Controller
         }
 
         $dateField = request()->routeIs('*.material_requests') ? 'transaction_date' : 'posting_date';
-        
+
         if ($request->filled('from_date')) {
             $filters[] = [$dateField, '>=', $request->from_date];
         }

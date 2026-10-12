@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Project;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Services\ErpNextService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class PurchaseInvoiceController extends Controller
@@ -22,10 +22,10 @@ class PurchaseInvoiceController extends Controller
 
         // Build server-side filters
         $filters = [];
-        
+
         // DocStatus: 0 (Draft), 1 (Submitted), 2 (Cancelled)
         if ($request->has('docstatus') && $request->docstatus !== '') {
-            $filters[] = ['docstatus', '=', (int)$request->docstatus];
+            $filters[] = ['docstatus', '=', (int) $request->docstatus];
         }
 
         if ($request->filled('status')) {
@@ -47,7 +47,7 @@ class PurchaseInvoiceController extends Controller
         if ($request->filled('from_date')) {
             $filters[] = ['posting_date', '>=', $request->from_date];
         }
-        
+
         if ($request->filled('to_date')) {
             $filters[] = ['posting_date', '<=', $request->to_date];
         }
@@ -58,7 +58,7 @@ class PurchaseInvoiceController extends Controller
         } elseif ($outstanding === 'paid') {
             $filters[] = ['outstanding_amount', '=', 0];
         }
-        
+
         if ($request->filled('bill_no')) {
             $filters[] = ['bill_no', 'like', "%{$request->bill_no}%"];
         }
@@ -66,7 +66,7 @@ class PurchaseInvoiceController extends Controller
         if ($request->filled('name')) {
             $filters[] = ['name', 'like', "%{$request->name}%"];
         }
-        
+
         if ($request->filled('currency')) {
             $filters[] = ['currency', '=', $request->currency];
         }
@@ -83,7 +83,7 @@ class PurchaseInvoiceController extends Controller
             'order_by' => 'posting_date desc',
         ];
 
-        if (!empty($filters)) {
+        if (! empty($filters)) {
             $params['filters'] = json_encode($filters);
         }
 
@@ -91,7 +91,7 @@ class PurchaseInvoiceController extends Controller
             $response = $this->erpNextService->get('/api/resource/Purchase Invoice', $params);
             $data = $response['data'] ?? [];
         } catch (\Exception $e) {
-            Log::error('ERPNext Purchase Invoices Error: ' . $e->getMessage());
+            Log::error('ERPNext Purchase Invoices Error: '.$e->getMessage());
             $data = [];
             session()->flash('error', $e->getMessage());
         }
@@ -102,10 +102,11 @@ class PurchaseInvoiceController extends Controller
     public function purchaseInvoiceItems(Request $request, $name)
     {
         $this->authorize('reports.purchase_invoices.view');
-        
+
         try {
-            $response = $this->erpNextService->get('/api/resource/Purchase Invoice/' . urlencode($name));
+            $response = $this->erpNextService->get('/api/resource/Purchase Invoice/'.urlencode($name));
             $data = $response['data'] ?? [];
+
             return response()->json($data['items'] ?? []);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

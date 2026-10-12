@@ -39,7 +39,7 @@
                     <div class="col-lg-3 col-md-6">
                         <div class="p-3 rounded-4 bg-white border shadow-sm h-100">
                             <label class="d-block small text-muted fw-bold mb-1">الجهة المقدمة</label>
-                            <div class="fw-bold text-dark">{{ $plan->submittingEntity->name }}</div>
+                            <div class="fw-bold text-dark">{{ $plan->submitting_organization_name }}</div>
                         </div>
                     </div>
                     <div class="col-lg-3 col-md-6">

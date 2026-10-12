@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Models\SystemSetting;
 use App\Scopes\DomainScope;
 use App\Services\SchemaCache;
+use App\Services\UserDataScopeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -53,72 +54,9 @@ trait HasModelVisibility
             return $query;
         }
 
-        // Resolve module name
-
-        // Resolve module name
         $module = $module ?? $this->getTable();
-        $scopeService = new DomainScope;
-        $module = $scopeService->resolveModule($this);
 
-        if (in_array($module, ['internal-entities', 'internal_entities'])) {
-            return $query;
-        }
-
-        // 3. Resolve base scopes from the user model (centralized logic)
-        $adminScope = $user->getModuleAdminScope($module);
-        $geoScope = $user->getModuleGeoScope($module);
-
-        // 4. Matrix "All" Access Priority — geo-linked entities are unrestricted.
-        // Exception: entity modules still apply admin scope to central entities (NULL geo).
-        if ($geoScope === 'all') {
-            $isEntityModule = in_array($module, ['authorities', 'internal-entities']);
-            if ($isEntityModule && $adminScope !== 'all') {
-                $table = $this->getTable();
-                if ($adminScope === 'none') {
-                    return $query->where(function ($q) use ($table) {
-                        $q->whereNotNull("{$table}.governorate_id")
-                            ->orWhereNotNull("{$table}.directorate_id");
-                    });
-                } else {
-                    return $query->where(function ($q) use ($table, $user, $adminScope, $scopeService) {
-                        $q->where(function ($geo) use ($table) {
-                            $geo->whereNotNull("{$table}.governorate_id")
-                                ->orWhereNotNull("{$table}.directorate_id");
-                        })->orWhere(function ($c) use ($table, $user, $adminScope, $scopeService) {
-                            $c->whereNull("{$table}.governorate_id")
-                                ->whereNull("{$table}.directorate_id");
-                            $scopeService->applyCentralEntityAdminScope($c, $user, $adminScope, $table);
-                        });
-                    });
-                }
-            }
-
-            return $query;
-        }
-
-        // 5. Strict Domain Enforcement for non-central users (if not 'all')
-        $isCoreDomainModel = in_array($module, ['governorates', 'directorates', 'authorities', 'internal-entities']);
-        if ($isCoreDomainModel && ! $user->isCentralUser()) {
-            if ($geoScope === 'none') {
-                return $query->whereRaw('0=1');
-            }
-            $scopeService->applyStrictDomainConstraint($query, $user, $module);
-
-            return $query;
-        }
-
-        if ($adminScope === 'none' && $geoScope === 'none') {
-            return $query->whereRaw('0=1');
-        }
-
-        // 6. Apply filters (Centralized logic from DomainScope)
-        return $query->where(function ($q) use ($scopeService, $user, $module, $adminScope, $geoScope) {
-            if (in_array($module, ['projects', 'planning', 'correspondence'])) {
-                $scopeService->applyEntityBasedScope($q, $user, $module, $adminScope, $geoScope);
-            } else {
-                $scopeService->applyGenericScope($q, $user, $module, $adminScope, $geoScope);
-            }
-        });
+        return app(UserDataScopeService::class)->applyScope($query, $user, $module);
     }
 
     /**
@@ -293,27 +231,46 @@ trait HasModelVisibility
             case 'own_entity':
                 if ($module === 'correspondence') {
                     $query->where(function ($sub) use ($user) {
-                        $sub->where('sender_entity_id', $user->entity_id)
-                            ->orWhere('recipient_entity_id', $user->entity_id);
+                        if ($user->isExternal()) {
+                            $sub->where('sender_authority_id', $user->authority_id)
+                                ->orWhere('recipient_authority_id', $user->authority_id);
+                        } else {
+                            $sub->where('sender_entity_id', $user->entity_id)
+                                ->orWhere('recipient_entity_id', $user->entity_id);
+                        }
                     });
                 } elseif ($entityCol) {
-                    $query->where($entityCol, $user->entity_id);
+                    $val = $user->isExternal() ? $user->authority_id : $user->entity_id;
+                    $query->where($entityCol, $val);
                 } else {
                     $query->whereRaw('0=1');
                 }
                 break;
 
             case 'parent':
-                $accessibleEntityIds = $this->getChildEntityIds($user->entity_id);
-                if ($module === 'correspondence') {
-                    $query->where(function ($sub) use ($accessibleEntityIds) {
-                        $sub->whereIn('sender_entity_id', $accessibleEntityIds)
-                            ->orWhereIn('recipient_entity_id', $accessibleEntityIds);
-                    });
-                } elseif ($entityCol) {
-                    $query->whereIn($entityCol, $accessibleEntityIds);
+                if ($user->isExternal()) {
+                    if ($module === 'correspondence') {
+                        $query->where(function ($sub) use ($user) {
+                            $sub->where('sender_authority_id', $user->authority_id)
+                                ->orWhere('recipient_authority_id', $user->authority_id);
+                        });
+                    } elseif ($entityCol) {
+                        $query->where($entityCol, $user->authority_id);
+                    } else {
+                        $query->whereRaw('0=1');
+                    }
                 } else {
-                    $query->whereRaw('0=1');
+                    $accessibleEntityIds = $this->getChildEntityIds($user->entity_id);
+                    if ($module === 'correspondence') {
+                        $query->where(function ($sub) use ($accessibleEntityIds) {
+                            $sub->whereIn('sender_entity_id', $accessibleEntityIds)
+                                ->orWhereIn('recipient_entity_id', $accessibleEntityIds);
+                        });
+                    } elseif ($entityCol) {
+                        $query->whereIn($entityCol, $accessibleEntityIds);
+                    } else {
+                        $query->whereRaw('0=1');
+                    }
                 }
                 break;
 
@@ -343,17 +300,23 @@ trait HasModelVisibility
      */
     protected function detectEntityColumn(string $table, string $module): ?string
     {
+        $user = auth()->user();
+        $isExternal = $user && $user->isExternal();
+
         if ($module === 'correspondence') {
-            return 'sender_entity_id';
+            return $isExternal ? 'sender_authority_id' : 'sender_entity_id';
         }
         if ($module === 'planning') {
-            return 'submitting_entity_id';
+            return $isExternal ? 'submitting_authority_id' : 'submitting_entity_id';
         }
         if ($module === 'internal_entities' || $module === 'authorities') {
             return 'id';
         }
 
-        $candidates = ['internal_entity_id', 'entity_id', 'submitting_entity_id', 'sender_entity_id', 'created_by_entity'];
+        $candidates = $isExternal
+            ? ['authority_id', 'submitting_authority_id', 'sender_authority_id', 'creator_authority_id', 'assigned_authority_id']
+            : ['internal_entity_id', 'entity_id', 'submitting_entity_id', 'sender_entity_id', 'created_by_entity', 'assigned_entity_id'];
+
         foreach ($candidates as $col) {
             if (SchemaCache::hasColumn($table, $col)) {
                 return $col;

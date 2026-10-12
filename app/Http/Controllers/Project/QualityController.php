@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Project;
 
+use App\Exports\QualityExport;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Project\Services\ProjectService;
 use App\Models\Project;
 use App\Models\ProjectQuality;
+use App\Services\QualityReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,36 +17,47 @@ class QualityController extends Controller
 {
     protected ProjectService $projectService;
 
-    public function __construct(ProjectService $projectService)
+    protected QualityReportService $qualityReportService;
+
+    public function __construct(ProjectService $projectService, QualityReportService $qualityReportService)
     {
         $this->projectService = $projectService;
+        $this->qualityReportService = $qualityReportService;
     }
 
     /**
      * عرض لوحة جودة جميع المشاريع (صفحة الفهرس)
      * يتم استخدامها عبر route('projects.quality.index')
+     *
+     * ⚠️ ملاحظة:
+     * خطأ LazyLoadingViolationException الخاص بـ [createdBy] بيحصل جوه
+     * QualityReportService::getReportData() عند سطر ~93.
+     * الإصلاح لازم يكون هناك عن طريق إضافة ->with('createdBy')
+     * للـ Query الخاص بالمشاريع قبل الرجوع.
      */
     public function index(Request $request)
     {
-        $query = $this->projectService->getProjects($request, null, null, [], true, true)
-            ->with([
-                'preliminaryActivities.procedures.executions',
-                'executiveActivities.actions.executions',
-                'executiveFinancialSummaries',
-                'qualityRecords',
-            ]);
+        $reportData = $this->qualityReportService->getReportData($request);
 
-        $projects = $query->paginate(15)->withQueryString();
+        $projects = $reportData['projects_data'];
+        $kpis = $reportData['kpis'];
+        $charts = $reportData['charts'];
 
-        $projectsQualityStats = [];
-        foreach ($projects as $project) {
-            $preliminaryQuality = $this->calculatePreliminaryQuality($project);
-            $executiveQuality = $this->calculateExecutiveQuality($project);
-            $projectsQualityStats[$project->id] = $this->calculateStatistics($preliminaryQuality, $executiveQuality);
-        }
+        return view('projects.quality.dashboard', compact('projects', 'kpis', 'charts'));
+    }
 
-        // ✅ التعديل هنا: استخدام dashboard.blade.php لعرض لوحة التحكم لجميع المشاريع
-        return view('projects.quality.dashboard', compact('projects', 'projectsQualityStats'));
+    public function print(Request $request)
+    {
+        $reportData = $this->qualityReportService->getReportData($request);
+
+        return view('projects.quality.print', $reportData);
+    }
+
+    public function export(Request $request)
+    {
+        $reportData = $this->qualityReportService->getReportData($request);
+
+        return QualityExport::export($reportData);
     }
 
     /**
@@ -56,6 +69,10 @@ class QualityController extends Controller
         $this->projectService->authorizeProjectAccess($project);
 
         $project->load([
+            // ✅ منع lazy loading على العلاقات المستخدمة في الـ blade
+            'createdBy',
+            'creatorEntity',
+
             // الأنشطة التحضيرية مع الإجراءات
             'preliminaryActivities.procedures' => function ($query) {
                 $query->with([
@@ -89,7 +106,6 @@ class QualityController extends Controller
         // حساب الإحصائيات الموجزة
         $statistics = $this->calculateStatistics($preliminaryQuality, $executiveQuality);
 
-        // ✅ التعديل هنا: استخدام index.blade.php لعرض تفاصيل جودة مشروع واحد
         return view('projects.quality.index', compact(
             'project',
             'preliminaryQuality',
@@ -110,7 +126,7 @@ class QualityController extends Controller
                 $execution = $procedure->executions->first();
 
                 if (! $execution) {
-                    continue; // تخطي إذا لم توجد بيانات تنفيذ
+                    continue;
                 }
 
                 $qualityData[] = [
@@ -147,7 +163,7 @@ class QualityController extends Controller
                 $execution = $action->executions->first();
 
                 if (! $execution) {
-                    continue; // تخطي إذا لم توجد بيانات تنفيذ
+                    continue;
                 }
 
                 $qualityData[] = [

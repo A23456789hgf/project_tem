@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\ActivityAssignmentController;
 use App\Http\Controllers\Admin\EntityApprovalStageController;
+use App\Http\Controllers\Admin\LetterheadController;
 use App\Http\Controllers\Admin\UIShowcaseController;
 use App\Http\Controllers\Api\ErpUomController;
 use App\Http\Controllers\Approval\ApprovalCenterController;
 use App\Http\Controllers\Approval\ConsultationCenterController;
+use App\Http\Controllers\Approval\ProjectWorkflowRequestController;
 use App\Http\Controllers\AssociationController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -49,13 +51,21 @@ use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\Project\EmpowermentBeneficiaryController;
 use App\Http\Controllers\Project\EmpowermentProjectController;
 use App\Http\Controllers\Project\ERPNextFinancialReportController;
+use App\Http\Controllers\Project\ErpStockReportController;
 use App\Http\Controllers\Project\ExecutionController;
 use App\Http\Controllers\Project\ExecutiveActivitiesController;
 use App\Http\Controllers\Project\ProjectAchievementController;
 use App\Http\Controllers\Project\ProjectApprovalController;
+use App\Http\Controllers\Project\ProjectClearanceRequestController;
+use App\Http\Controllers\Project\ProjectDisbursementPlanController;
 use App\Http\Controllers\Project\ProjectDocumentController;
+use App\Http\Controllers\Project\ProjectEntityOptionsController;
+use App\Http\Controllers\Project\ProjectFinancingImportController;
 use App\Http\Controllers\Project\ProjectImportController;
+use App\Http\Controllers\Project\ProjectPaymentRequestController;
 use App\Http\Controllers\Project\ProjectSupervisingAuthoritiesController;
+use App\Http\Controllers\Project\ProjectUnifiedRequestController;
+use App\Http\Controllers\Project\PurchaseInvoiceController;
 use App\Http\Controllers\Project\QualityController;
 use App\Http\Controllers\Project\ReportsController;
 use App\Http\Controllers\ProjectCardController;
@@ -77,6 +87,7 @@ use App\Http\Controllers\SubRouterController;
 use App\Http\Controllers\SuggestionController;
 use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\TargetCategoryController;
+use App\Http\Controllers\TaskAchievementReportController;
 use App\Http\Controllers\TaskActivityController;
 use App\Http\Controllers\TaskAttachmentController;
 use App\Http\Controllers\TaskController;
@@ -133,19 +144,21 @@ Route::get('/check-session', [AuthController::class, 'checkSession'])->middlewar
 // Routes للزوار (غير مسجلين الدخول)
 // ============================================
 Route::middleware('guest')->group(function () {
-    // SMS Debug Route
-    Route::get('/resend-sms-temp', function () {
-        $user = User::find(32);
-        if ($user) {
-            $smsService = app(SmppSmsService::class);
-            $message = 'تم انشاء مستخدم  في نظام متابعة المشاريع برقمك '.$user->user_id.' وكلمة مرور 123456  عليك الدخول https://project.mafwr.gov.ye/ وقم بتغيرها';
-            $result = $smsService->sendSMS($user->id, $user->phone, $message, 'manual_retry_user_registered');
+    if (app()->environment('local')) {
+        // SMS Debug Route
+        Route::get('/resend-sms-temp', function () {
+            $user = User::find(32);
+            if ($user) {
+                $smsService = app(SmppSmsService::class);
+                $message = 'تم انشاء مستخدم  في نظام متابعة المشاريع برقمك '.$user->user_id.' وكلمة مرور 123456  عليك الدخول https://project.mafwr.gov.ye/ وقم بتغيرها';
+                $result = $smsService->sendSMS($user->id, $user->phone, $message, 'manual_retry_user_registered');
 
-            return response()->json($result);
-        }
+                return response()->json($result);
+            }
 
-        return 'User not found';
-    });
+            return 'User not found';
+        });
+    }
 
     // Routes المصادقة
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -183,6 +196,14 @@ Route::middleware('guest')->group(function () {
                     'password' => bcrypt($password),
                 ])->setRememberToken(Str::random(60));
                 $user->save();
+
+                if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                    try {
+                        app(\App\Services\ErpNextUserService::class)->syncUser($user, 'password', null, $password);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::error('ERPNext sync error in reset-password route: '.$e->getMessage(), ['user_id' => $user->id]);
+                    }
+                }
             }
         );
 
@@ -191,36 +212,38 @@ Route::middleware('guest')->group(function () {
             : back()->withErrors(['email' => [__($status)]]);
     })->middleware('guest')->name('password.update');
 
-    // Debug Route
-    Route::get('/debug-auth', function () {
-        try {
-            $username = 'MAFWRPRO0003';
-            $user = User::withoutGlobalScopes()
-                ->where(function ($query) use ($username) {
-                    $query->where('username', $username)
-                        ->orWhere('email', $username)
-                        ->orWhere('user_id', $username);
-                })->first();
+    if (app()->environment('local')) {
+        // Debug Route
+        Route::get('/debug-auth', function () {
+            try {
+                $username = 'MAFWRPRO0003';
+                $user = User::withoutGlobalScopes()
+                    ->where(function ($query) use ($username) {
+                        $query->where('username', $username)
+                            ->orWhere('email', $username)
+                            ->orWhere('user_id', $username);
+                    })->first();
 
-            if ($user) {
+                if ($user) {
+                    return [
+                        'found' => true,
+                        'username' => $user->username,
+                        'user_id' => $user->user_id,
+                        'status' => $user->status,
+                        'password_check_123456' => Hash::check('123456', $user->password),
+                    ];
+                }
+
                 return [
-                    'found' => true,
-                    'username' => $user->username,
-                    'user_id' => $user->user_id,
-                    'status' => $user->status,
-                    'password_check_123456' => Hash::check('123456', $user->password),
+                    'found' => false,
+                    'message' => 'User not found',
+                    'first_5_users' => User::withoutGlobalScopes()->limit(5)->get(['username', 'user_id']),
                 ];
+            } catch (Exception $e) {
+                return ['error' => $e->getMessage()];
             }
-
-            return [
-                'found' => false,
-                'message' => 'User not found',
-                'first_5_users' => User::withoutGlobalScopes()->limit(5)->get(['username', 'user_id']),
-            ];
-        } catch (Exception $e) {
-            return ['error' => $e->getMessage()];
-        }
-    });
+        });
+    }
 });
 
 // ============================================
@@ -342,80 +365,82 @@ Route::middleware('auth')->group(function () {
             }
         })->name('test.import');
 
-        // Debug Scope Route
-        Route::get('/debug-scope/{username}', function (string $username) {
-            $user = User::where('username', $username)
-                ->orWhere('email', $username)
-                ->first();
+        if (app()->environment('local')) {
+            // Debug Scope Route
+            Route::get('/debug-scope/{username}', function (string $username) {
+                $user = User::where('username', $username)
+                    ->orWhere('email', $username)
+                    ->first();
 
-            if (! $user) {
-                return response()->json(['error' => "User '{$username}' not found"], 404);
-            }
+                if (! $user) {
+                    return response()->json(['error' => "User '{$username}' not found"], 404);
+                }
 
-            $user->load('role');
-            $geoScope = $user->getModuleGeoScope('projects');
-            $adminScope = $user->getModuleAdminScope('projects');
-            $govId = $user->getAssignedGovernorateId();
-            $dirId = $user->getAssignedDirectorateId();
+                $user->load('role');
+                $geoScope = $user->getModuleGeoScope('projects');
+                $adminScope = $user->getModuleAdminScope('projects');
+                $govId = $user->getAssignedGovernorateId();
+                $dirId = $user->getAssignedDirectorateId();
 
-            $roleData = [
-                'id' => $user->role?->id,
-                'name' => $user->role?->name,
-                'full_access' => $user->role?->full_access,
-                'module_scopes_raw' => $user->role?->module_scopes,
-                'module_geo_scopes_raw' => $user->role?->module_geo_scopes,
-            ];
+                $roleData = [
+                    'id' => $user->role?->id,
+                    'name' => $user->role?->name,
+                    'full_access' => $user->role?->full_access,
+                    'module_scopes_raw' => $user->role?->module_scopes,
+                    'module_geo_scopes_raw' => $user->role?->module_geo_scopes,
+                ];
 
-            try {
-                Illuminate\Support\Facades\DB::enableQueryLog();
-                $query = Project::visibleToUser($user)->toSql();
-                $bindings = Project::visibleToUser($user)->getBindings();
-                $count = Project::visibleToUser($user)->count();
-                $logs = Illuminate\Support\Facades\DB::getQueryLog();
-                Illuminate\Support\Facades\DB::disableQueryLog();
-            } catch (Throwable $e) {
-                $query = 'ERROR: '.$e->getMessage();
-                $bindings = [];
-                $count = null;
-                $logs = [];
-            }
+                try {
+                    Illuminate\Support\Facades\DB::enableQueryLog();
+                    $query = Project::visibleToUser($user)->toSql();
+                    $bindings = Project::visibleToUser($user)->getBindings();
+                    $count = Project::visibleToUser($user)->count();
+                    $logs = Illuminate\Support\Facades\DB::getQueryLog();
+                    Illuminate\Support\Facades\DB::disableQueryLog();
+                } catch (Throwable $e) {
+                    $query = 'ERROR: '.$e->getMessage();
+                    $bindings = [];
+                    $count = null;
+                    $logs = [];
+                }
 
-            $govName = null;
-            if ($govId) {
-                $govName = Governorate::find($govId)?->name;
-            }
+                $govName = null;
+                if ($govId) {
+                    $govName = Governorate::find($govId)?->name;
+                }
 
-            return response()->json([
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username ?? $user->email,
-                    'name' => $user->name,
-                    'governorate_id' => $user->governorate_id,
-                    'directorate_id' => $user->directorate_id,
-                    'entity_id' => $user->entity_id,
-                    'isAdmin' => $user->isAdmin(),
-                    'isCentralUser' => $user->isCentralUser(),
-                    'isGeographicUser' => $user->isGeographicUser(),
-                ],
-                'resolved' => [
-                    'geoScope' => $geoScope,
-                    'adminScope' => $adminScope,
-                    'govId' => $govId,
-                    'govName' => $govName,
-                    'dirId' => $dirId,
-                ],
-                'role' => $roleData,
-                'query' => [
-                    'sql' => $query,
-                    'bindings' => $bindings,
-                    'project_count_visible' => $count,
-                ],
-                'queryLog' => array_map(fn ($l) => [
-                    'sql' => $l['query'],
-                    'bindings' => $l['bindings'],
-                ], array_slice($logs, -3)),
-            ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        })->name('debug.scope');
+                return response()->json([
+                    'user' => [
+                        'id' => $user->id,
+                        'username' => $user->username ?? $user->email,
+                        'name' => $user->name,
+                        'governorate_id' => $user->governorate_id,
+                        'directorate_id' => $user->directorate_id,
+                        'entity_id' => $user->entity_id,
+                        'isAdmin' => $user->isAdmin(),
+                        'isCentralUser' => $user->isCentralUser(),
+                        'isGeographicUser' => $user->isGeographicUser(),
+                    ],
+                    'resolved' => [
+                        'geoScope' => $geoScope,
+                        'adminScope' => $adminScope,
+                        'govId' => $govId,
+                        'govName' => $govName,
+                        'dirId' => $dirId,
+                    ],
+                    'role' => $roleData,
+                    'query' => [
+                        'sql' => $query,
+                        'bindings' => $bindings,
+                        'project_count_visible' => $count,
+                    ],
+                    'queryLog' => array_map(fn ($l) => [
+                        'sql' => $l['query'],
+                        'bindings' => $l['bindings'],
+                    ], array_slice($logs, -3)),
+                ], 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            })->name('debug.scope');
+        }
     });
 
     // ========================================
@@ -487,29 +512,35 @@ Route::middleware('auth')->group(function () {
     // ========================================
     Route::prefix('projects/reports')->name('projects.reports.')->group(function () {
         // Shared Lookup (Controller handles canAny authorization)
-        Route::get('/material-requests/api/lookup', [App\Http\Controllers\Project\ErpStockReportController::class, 'apiLookup'])->name('material_requests.api_lookup');
+        Route::get('/material-requests/api/lookup', [ErpStockReportController::class, 'apiLookup'])->name('material_requests.api_lookup');
 
         // طلبات المواد
         Route::middleware('can:reports.material_requests.view')->group(function () {
-            Route::get('/material-requests', [App\Http\Controllers\Project\ErpStockReportController::class, 'materialRequests'])->name('material_requests');
-            Route::get('/material-requests/items/{name}', [App\Http\Controllers\Project\ErpStockReportController::class, 'materialRequestItems'])->name('material_requests.items');
+            Route::get('/material-requests', [ErpStockReportController::class, 'materialRequests'])->name('material_requests');
+        });
+        Route::middleware('can:reports.material_requests.view_details')->group(function () {
+            Route::get('/material-requests/items/{name}', [ErpStockReportController::class, 'materialRequestItems'])->name('material_requests.items');
         });
 
         // صرف المواد
         Route::middleware('can:reports.stock_entries.view')->group(function () {
-            Route::get('/stock-entries', [App\Http\Controllers\Project\ErpStockReportController::class, 'stockEntries'])->name('stock_entries');
-            Route::get('/stock-entries/items/{name}', [App\Http\Controllers\Project\ErpStockReportController::class, 'stockEntryItems'])->name('stock_entries.items');
+            Route::get('/stock-entries', [ErpStockReportController::class, 'stockEntries'])->name('stock_entries');
+        });
+        Route::middleware('can:reports.stock_entries.view_details')->group(function () {
+            Route::get('/stock-entries/items/{name}', [ErpStockReportController::class, 'stockEntryItems'])->name('stock_entries.items');
         });
 
         // سجل المخزون
         Route::middleware('can:reports.stock_ledger.view')->group(function () {
-            Route::get('/stock-ledger', [App\Http\Controllers\Project\ErpStockReportController::class, 'stockLedger'])->name('stock_ledger');
+            Route::get('/stock-ledger', [ErpStockReportController::class, 'stockLedger'])->name('stock_ledger');
         });
 
         // فواتير الشراء
         Route::middleware('can:reports.purchase_invoices.view')->group(function () {
-            Route::get('/purchase-invoices', [App\Http\Controllers\Project\PurchaseInvoiceController::class, 'purchaseInvoices'])->name('purchase_invoices');
-            Route::get('/purchase-invoices/items/{name}', [App\Http\Controllers\Project\PurchaseInvoiceController::class, 'purchaseInvoiceItems'])->name('purchase_invoices.items');
+            Route::get('/purchase-invoices', [PurchaseInvoiceController::class, 'purchaseInvoices'])->name('purchase_invoices');
+        });
+        Route::middleware('can:reports.purchase_invoices.view_details')->group(function () {
+            Route::get('/purchase-invoices/items/{name}', [PurchaseInvoiceController::class, 'purchaseInvoiceItems'])->name('purchase_invoices.items');
         });
     });
 
@@ -520,9 +551,44 @@ Route::middleware('auth')->group(function () {
         // القائمة الرئيسية
         Route::get('/', [ProjectController::class, 'index'])->name('index')->middleware('can:projects.view');
         Route::get('/create', [ProjectController::class, 'create'])->name('create')->middleware('can:projects.create');
+        Route::get('/entity-options', [ProjectEntityOptionsController::class, '__invoke'])
+            ->name('entity-options');
 
         // الموازنات (ERPNext Budget DocType)
         Route::get('/budgets', [BudgetWebController::class, 'index'])->name('budgets.index')->middleware('can:projects.view');
+        // قائمة خطط الصرف العامة (Disbursement Plans General Listing)
+        Route::get('/disbursement-plans', [ProjectDisbursementPlanController::class, 'index'])->name('disbursement-plans.index')->middleware('can:disbursements.view');
+
+        // إدارة طلبات المشاريع الموحدة (Unified Project Requests Management System)
+        Route::prefix('requests')->name('requests.')->group(function () {
+            Route::get('/', [ProjectUnifiedRequestController::class, 'index'])->name('index');
+            Route::get('/create', [ProjectUnifiedRequestController::class, 'create'])->name('create');
+            Route::post('/', [ProjectUnifiedRequestController::class, 'store'])->name('store');
+            Route::get('/entity-users', [ProjectUnifiedRequestController::class, 'getEntityUsers'])->name('entity-users');
+            Route::get('/project-financials/{project}', [ProjectUnifiedRequestController::class, 'getProjectFinancials'])->name('project-financials');
+
+            Route::get('/{unifiedRequest}', [ProjectUnifiedRequestController::class, 'show'])->name('show')->whereNumber('unifiedRequest');
+            Route::get('/{unifiedRequest}/edit', [ProjectUnifiedRequestController::class, 'edit'])->name('edit')->whereNumber('unifiedRequest');
+            Route::put('/{unifiedRequest}', [ProjectUnifiedRequestController::class, 'update'])->name('update')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/confirm-draft', [ProjectUnifiedRequestController::class, 'confirmDraft'])->name('confirm-draft')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/revert-draft', [ProjectUnifiedRequestController::class, 'revertToDraft'])->name('revert-draft')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/submit', [ProjectUnifiedRequestController::class, 'submit'])->name('submit')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/approve', [ProjectUnifiedRequestController::class, 'approve'])->name('approve')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/reject', [ProjectUnifiedRequestController::class, 'reject'])->name('reject')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/steps/approve', [ProjectUnifiedRequestController::class, 'approveStep'])->name('steps.approve')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/steps/reject', [ProjectUnifiedRequestController::class, 'rejectStep'])->name('steps.reject')->whereNumber('unifiedRequest');
+            Route::post('/{unifiedRequest}/steps/return', [ProjectUnifiedRequestController::class, 'returnStep'])->name('steps.return')->whereNumber('unifiedRequest');
+            Route::get('/{unifiedRequest}/print', [ProjectUnifiedRequestController::class, 'print'])->name('print')->whereNumber('unifiedRequest');
+        });
+
+        // توافق الروابط السابقة وإعادة التوجيه إلى النظام الموحد
+        Route::get('/payment-requests', function () {
+            return redirect()->route('projects.requests.index', ['type' => 'payment'], 301);
+        })->name('payment-requests.index');
+        Route::get('/clearance-requests', function () {
+            return redirect()->route('projects.requests.index', ['type' => 'clearance'], 301);
+        })->name('clearance-requests.index');
+
         Route::post('/', [ProjectController::class, 'store'])->name('store')->middleware('can:projects.create');
         Route::put('/{project}/update-entity', [ProjectController::class, 'updateEntity'])->name('update-entity')->middleware('can:projects.edit');
         Route::post('/bulk-destroy', [ProjectController::class, 'bulkDestroy'])->name('bulk-destroy')->middleware('can:projects.delete');
@@ -565,6 +631,8 @@ Route::middleware('auth')->group(function () {
         });
 
         // الجودة
+        Route::get('/quality/print', [QualityController::class, 'print'])->name('quality.print')->middleware('can:quality.view');
+        Route::get('/quality/export', [QualityController::class, 'export'])->name('quality.export')->middleware('can:quality.view');
         Route::get('/quality', [QualityController::class, 'index'])->name('quality.index')->middleware('can:quality.view');
         Route::prefix('/{project}/quality')->name('quality.')->middleware('can:quality.view')->group(function () {
             Route::get('/', [QualityController::class, 'show'])->name('show');
@@ -576,6 +644,7 @@ Route::middleware('auth')->group(function () {
 
         // CRUD المشاريع
         Route::get('/{project}', [ProjectController::class, 'show'])->name('show')->middleware('can:projects.view-details');
+        Route::get('/{project}/expenses', [ProjectController::class, 'expenses'])->name('expenses')->middleware('can:projects.view-details');
         Route::get('/{project}/complete-data', [ProjectController::class, 'completeData'])->name('complete-data')->middleware('can:projects.edit');
         Route::get('/{project}/edit', [ProjectController::class, 'edit'])->name('edit')->middleware('can:projects.edit');
         Route::put('/{project}', [ProjectController::class, 'update'])->name('update')->middleware('can:projects.edit');
@@ -587,7 +656,8 @@ Route::middleware('auth')->group(function () {
 
         // المهام (Tasks)
         Route::get('/api/tasks/organizations', [TaskController::class, 'getOrganizations'])->name('api.tasks.organizations');
-        Route::get('/api/entities/{entityId}/users', [TaskController::class, 'getEntityUsers'])->name('api.entities.users');
+        Route::get('/api/tasks/users-by-scope', [TaskController::class, 'getUsersByScope'])->name('api.tasks.users-by-scope')->middleware('can:task.assign');
+        Route::get('/api/entities/{entityId}/users', [TaskController::class, 'getEntityUsers'])->name('api.entities.users')->middleware('can:task.assign');
         Route::prefix('{project}/tasks')->as('tasks.')->group(function () {
             Route::get('/', [TaskController::class, 'index'])->name('index');
             Route::post('/', [TaskController::class, 'store'])->name('store');
@@ -619,6 +689,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/{project}/export/word', function (Project $project) {
             return redirect()->route('projects.export-pdf', $project->id)->with('info', 'تصدير Word غير متاح حالياً، تم تحويلك إلى تصدير PDF.');
         })->name('export-word')->middleware('can:projects.export');
+
+        // استيراد تمويل المشاريع
+        Route::prefix('financings/import')->name('financings.import.')->group(function () {
+            Route::get('/form', [ProjectFinancingImportController::class, 'showImportForm'])->name('form');
+            Route::get('/template', [ProjectFinancingImportController::class, 'downloadTemplate'])->name('template');
+            Route::match(['get', 'post'], '/preview', [ProjectFinancingImportController::class, 'previewImport'])->name('preview');
+            Route::match(['get', 'post'], '/process', [ProjectFinancingImportController::class, 'processImport'])->name('process');
+            Route::post('/export-unmatched', [ProjectFinancingImportController::class, 'exportUnmatched'])->name('export-unmatched');
+        });
 
         // استيراد المشاريع
         Route::get('/import/form', [ProjectImportController::class, 'showImportForm'])->name('import')->middleware('can:projects.import');
@@ -673,6 +752,37 @@ Route::middleware('auth')->group(function () {
         Route::get('/export/pdf', [ProjectController::class, 'exportAllProjectsPdf'])->name('export-pdf-all')->middleware('can:projects.export');
         Route::get('/export/pivot', [ProjectController::class, 'exportAllProjectsPivot'])->name('export-pivot-all')->middleware('can:projects.export');
 
+        // خطة الصرف للمشروع (Project Disbursement Plan)
+        Route::prefix('{project}/disbursement-plan')->name('disbursement-plan.')->middleware('auth')->group(function () {
+            Route::get('/create', [ProjectDisbursementPlanController::class, 'create'])->name('create')->middleware('can:disbursements.create');
+            Route::post('/', [ProjectDisbursementPlanController::class, 'store'])->name('store')->middleware('can:disbursements.create');
+            Route::get('/', [ProjectDisbursementPlanController::class, 'show'])->name('show')->middleware('can:disbursements.view');
+            Route::post('/approve', [ProjectDisbursementPlanController::class, 'approve'])->name('approve')->middleware('can:disbursements.approve');
+            Route::post('/details/{detail}/retry-disbursement', [ProjectDisbursementPlanController::class, 'retryDisbursement'])->name('retry-disbursement')->middleware('can:disbursements.retry');
+
+            // طلبات الصرف (Payment Requests)
+            Route::prefix('payments')->name('payments.')->middleware('auth')->group(function () {
+                Route::get('/', [ProjectPaymentRequestController::class, 'index'])->name('index')->middleware('can:payments.view');
+                Route::get('/create/{detail}', [ProjectPaymentRequestController::class, 'create'])->name('create')->middleware('can:payments.create');
+                Route::post('/store/{detail}', [ProjectPaymentRequestController::class, 'store'])->name('store')->middleware('can:payments.create');
+                Route::get('/{paymentRequest}', [ProjectPaymentRequestController::class, 'show'])->name('show')->middleware('can:payments.view');
+                Route::post('/{paymentRequest}/approve', [ProjectPaymentRequestController::class, 'approve'])->name('approve')->middleware('can:payments.approve');
+                Route::post('/{paymentRequest}/reject', [ProjectPaymentRequestController::class, 'reject'])->name('reject')->middleware('can:payments.reject');
+                Route::post('/{paymentRequest}/cancel', [ProjectPaymentRequestController::class, 'cancel'])->name('cancel')->middleware('can:payments.reject');
+            });
+
+            // طلبات الإخلاء (Clearance Requests)
+            Route::prefix('clearances')->name('clearances.')->middleware('auth')->group(function () {
+                Route::get('/', [ProjectClearanceRequestController::class, 'index'])->name('index')->middleware('can:clearances.view');
+                Route::get('/create/{detail}', [ProjectClearanceRequestController::class, 'create'])->name('create')->middleware('can:clearances.create');
+                Route::post('/store/{detail}', [ProjectClearanceRequestController::class, 'store'])->name('store')->middleware('can:clearances.create');
+                Route::get('/{clearanceRequest}', [ProjectClearanceRequestController::class, 'show'])->name('show')->middleware('can:clearances.view');
+                Route::post('/{clearanceRequest}/approve', [ProjectClearanceRequestController::class, 'approve'])->name('approve')->middleware('can:clearances.approve');
+                Route::post('/{clearanceRequest}/reject', [ProjectClearanceRequestController::class, 'reject'])->name('reject')->middleware('can:clearances.reject');
+                Route::post('/{clearanceRequest}/cancel', [ProjectClearanceRequestController::class, 'cancel'])->name('cancel')->middleware('can:clearances.reject');
+            });
+        });
+
         // التنفيذ والجدولة
         Route::get('/{project}/execution', [ProjectController::class, 'execution'])->name('execution')->middleware('can:projects.execute');
         Route::get('/{project}/schedule', [ProjectController::class, 'schedule'])->name('schedule')->middleware('can:projects.schedule');
@@ -680,6 +790,10 @@ Route::middleware('auth')->group(function () {
         // التنفيذ (Execution)
         Route::middleware('can:execution.view')->group(function () {
             Route::post('/{project}/execution/save', [ExecutionController::class, 'store'])->name('execution.store')->middleware('can:execution.edit');
+            Route::post('/{project}/execution/financial-justification', [ExecutionController::class, 'storeFinancialJustification'])->name('execution.financial-justification')->middleware('can:execution.edit');
+            Route::post('/{project}/execution/{type}/{execution}/manager-review', [ExecutionController::class, 'managerReview'])->name('execution.manager-review')->middleware('can:execution.manager-review');
+            Route::post('/{project}/installments/{detail}/aggregate', [ExecutionController::class, 'aggregateInstallment'])->name('execution.aggregate-installment')->middleware('can:execution.aggregate-clearance');
+            Route::post('/{project}/installments/{detail}/request-next', [ExecutionController::class, 'submitNextInstallment'])->name('execution.request-next-installment')->middleware('can:disbursements.request');
             Route::put('/{project}/execution/{execution}', [ExecutionController::class, 'update'])->name('execution.update')->middleware('can:execution.edit');
             Route::delete('/{project}/execution/{execution}', [ExecutionController::class, 'destroy'])->name('execution.destroy')->middleware('can:execution.delete');
             Route::delete('/{project}/execution/{execution}/technical-document', [ExecutionController::class, 'deleteTechnicalDocument'])->name('execution.delete-technical')->middleware('can:execution.edit');
@@ -789,8 +903,24 @@ Route::middleware('auth')->group(function () {
     // ========================================
     Route::group(['prefix' => 'approvals', 'as' => 'approvals.', 'middleware' => ['can:approvals.view']], function () {
         Route::get('/', [ApprovalCenterController::class, 'index'])->name('index');
+        Route::get('/requests/{workflowRequest}', [ProjectWorkflowRequestController::class, 'show'])->name('workflow-requests.show');
+        Route::post('/requests/{workflowRequest}/approve', [ProjectWorkflowRequestController::class, 'approve'])->name('workflow-requests.approve')->middleware('can:approvals.approve');
+        Route::post('/requests/{workflowRequest}/reject', [ProjectWorkflowRequestController::class, 'reject'])->name('workflow-requests.reject')->middleware('can:approvals.reject');
         Route::get('/referrals/{referral}', [ApprovalCenterController::class, 'showReferral'])->name('referral.show');
         Route::post('/referrals/{referral}/respond', [ApprovalCenterController::class, 'respondReferral'])->name('referral.respond');
+
+        // Central Workflow Configuration Routes
+        Route::prefix('configurations')->name('configurations.')->group(function () {
+            Route::patch('/{stage}/toggle', [EntityApprovalStageController::class, 'toggleActive'])->name('toggle');
+            Route::get('/eligible-users', [EntityApprovalStageController::class, 'eligibleUsers'])->name('eligible-users');
+            Route::get('/', [EntityApprovalStageController::class, 'index'])->name('index');
+            Route::get('/create', [EntityApprovalStageController::class, 'create'])->name('create');
+            Route::post('/', [EntityApprovalStageController::class, 'store'])->name('store');
+            Route::get('/{stage}/edit', [EntityApprovalStageController::class, 'edit'])->name('edit');
+            Route::put('/{stage}', [EntityApprovalStageController::class, 'update'])->name('update');
+            Route::delete('/{stage}', [EntityApprovalStageController::class, 'destroy'])->name('destroy');
+        });
+
         Route::get('/{project}', [ApprovalCenterController::class, 'show'])->name('show');
         Route::post('/{project}/approve', [ProjectApprovalController::class, 'approve'])->name('approve')->middleware(['can:approvals.approve', 'require_signature']);
         Route::post('/{project}/reject', [ProjectApprovalController::class, 'reject'])->name('reject')->middleware('can:approvals.reject');
@@ -868,18 +998,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/edit', [CorrespondenceController::class, 'edit'])->name('edit')->middleware('can:correspondence.edit');
         Route::put('/{id}', [CorrespondenceController::class, 'update'])->name('update')->middleware('can:correspondence.edit');
         Route::delete('/{id}', [CorrespondenceController::class, 'destroy'])->name('destroy')->middleware('can:correspondence.delete');
-        Route::post('/{id}/restore', [CorrespondenceController::class, 'restore'])->name('restore')->middleware('can:correspondence.delete');
+        Route::post('/{id}/restore', [CorrespondenceController::class, 'restore'])->name('restore')->middleware('can:correspondence.restore');
         Route::post('/{id}/reply', [CorrespondenceController::class, 'storeReply'])->name('reply')->middleware('can:correspondence.reply');
         Route::post('/{id}/referral', [CorrespondenceController::class, 'storeReferral'])->name('referral')->middleware('can:correspondence.referral');
         Route::post('/{id}/forward', [CorrespondenceController::class, 'storeForward'])->name('forward')->middleware('can:correspondence.forward');
-        Route::post('/referrals/{referralId}/update-status', [CorrespondenceController::class, 'updateReferralStatus'])->name('referrals.update-status')->middleware('can:correspondence.view');
+        Route::post('/referrals/{referralId}/update-status', [CorrespondenceController::class, 'updateReferralStatus'])->name('referrals.update-status')->middleware('can:correspondence.referral');
         Route::post('/{id}/close', [CorrespondenceController::class, 'close'])->name('close')->middleware('can:correspondence.close');
         Route::get('/{id}/download/{type}/{index}', [CorrespondenceController::class, 'downloadAttachment'])->name('download')->middleware('can:correspondence.view');
         Route::get('/{id}/movement-log', [CorrespondenceController::class, 'getMovementLog'])->name('movement-log')->middleware('can:correspondence.view');
         Route::get('/{id}/print', [CorrespondenceController::class, 'print'])->name('print')->middleware('can:correspondence.print');
         Route::get('/{id}/preview', [CorrespondenceController::class, 'preview'])->name('preview')->middleware('can:correspondence.print');
         Route::get('/api/search-projects', [CorrespondenceController::class, 'searchProjects'])->name('search-projects');
-        Route::put('/referrals/{referral}/update-status', [CorrespondenceController::class, 'updateReferralStatus'])->name('referral.update-status');
+        Route::put('/referrals/{referral}/update-status', [CorrespondenceController::class, 'updateReferralStatus'])->name('referral.update-status')->middleware('can:correspondence.referral');
     });
 
     // ========================================
@@ -1004,9 +1134,26 @@ Route::middleware('auth')->group(function () {
         Route::get('/tasks/chain-project-activities', [TaskController::class, 'getChainProjectActivities'])->name('tasks.chain_project_activities');
         Route::get('/tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
     });
+    Route::post('/tasks/{task}/discussions', [TaskDiscussionController::class, 'storeGeneral'])->name('tasks.discussions.store')->middleware('can:task.chat.reply');
+    Route::post('/tasks/{task}/memos', [TaskMemoController::class, 'storeGeneral'])->name('tasks.memos.store')->middleware('can:task.memo.create');
+    Route::post('/tasks/{task}/memos/{memo}/sign', [TaskMemoController::class, 'signGeneral'])->name('tasks.memos.sign')->middleware('can:task.memo.sign');
+    Route::delete('/tasks/{task}/memos/{memo}', [TaskMemoController::class, 'destroyGeneral'])->name('tasks.memos.destroy')->middleware('can:task.memo.delete');
     Route::put('/tasks/{task}', [TaskController::class, 'updateGlobal'])->name('tasks.updateGlobal')->middleware('can:task.edit');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroyGlobal'])->name('tasks.destroyGlobal')->middleware('can:task.delete');
     Route::post('/tasks/{task}/stop', [TaskController::class, 'stopGlobalTask'])->name('tasks.stopGlobal')->middleware('can:task.edit');
+
+    Route::prefix('/tasks/{task}/achievement-reports')->name('tasks.achievement-reports.')->group(function () {
+        Route::get('/', [TaskAchievementReportController::class, 'index'])->name('index');
+        Route::get('/create', [TaskAchievementReportController::class, 'create'])->name('create');
+        Route::get('/{report}/edit', [TaskAchievementReportController::class, 'edit'])->name('edit');
+        Route::put('/{report}', [TaskAchievementReportController::class, 'update'])->name('update');
+        Route::post('/{report}/attachments', [TaskAchievementReportController::class, 'uploadAttachment'])->name('attachments.store');
+        Route::get('/{report}/attachments/{attachment}', [TaskAchievementReportController::class, 'downloadAttachment'])->name('attachments.download');
+        Route::get('/{report}', [TaskAchievementReportController::class, 'show'])->name('show');
+        Route::get('/{report}/print', [TaskAchievementReportController::class, 'print'])->name('print');
+        Route::get('/{report}/pdf', [TaskAchievementReportController::class, 'pdf'])->name('pdf');
+    });
+    Route::get('/task-achievement-reports', [TaskAchievementReportController::class, 'reportIndex'])->name('tasks.achievement-reports.index-all')->middleware('can:task_reports.view');
 
     // ========================================
     // طباعة المهام
@@ -1149,7 +1296,7 @@ Route::middleware('auth')->group(function () {
     // API للمواقع والجهات (API Locations & Entities)
     // ========================================
     Route::group([], function () {
-        Route::get('/api/entities/{entityId}/users', [TaskController::class, 'getEntityUsers'])->name('api.entities.users');
+        Route::get('/api/entities/{entityId}/users', [TaskController::class, 'getEntityUsers'])->name('api.entities.users')->middleware('can:task.assign');
         Route::get('/get-directorates-by-sub-area/{subAreaId}', [SubAreaController::class, 'getDirectorates']);
         Route::get('/api/directorates/all', [DirectorateController::class, 'getAllDirectorates']);
         Route::get('/api/directorates/{governorateId}', [DirectorateController::class, 'getByGovernorate']);
@@ -1408,6 +1555,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/users/{user}/activity-log', [UserController::class, 'userActivityLog'])->name('users.activity-log');
         Route::get('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.resetPassword')->middleware('can:users.reset-password');
         Route::post('/users/{user}/reset-password', [UserController::class, 'updatePassword'])->name('users.updatePassword')->middleware('can:users.reset-password');
+        Route::post('/users/{user}/retry-erpnext-sync', [UserController::class, 'retryErpNextSync'])->name('users.retryErpNextSync')->middleware('can:users.edit');
+    });
+
+    // ========================================
+    // إدارة الترويسات وإعدادات الطباعة (Letterhead Management)
+    // ========================================
+    Route::middleware(['can:letterheads.view'])->group(function () {
+        Route::get('/letterheads/options', [LetterheadController::class, 'getOptions'])->name('letterheads.options');
+        Route::get('/letterheads/effective/{type}/{id}', [LetterheadController::class, 'getEffective'])->name('letterheads.effective');
+        Route::post('/letterheads/preview', [LetterheadController::class, 'preview'])->name('letterheads.preview');
+        Route::post('/letterheads/bulk-update', [LetterheadController::class, 'bulkUpdate'])->name('letterheads.bulk-update');
+        Route::post('/letterheads/copy-settings', [LetterheadController::class, 'copySettings'])->name('letterheads.copy-settings');
+        Route::post('/letterheads/hierarchical-default', [LetterheadController::class, 'setHierarchicalDefault'])->name('letterheads.hierarchical-default');
+        Route::post('/letterheads/{letterhead}/set-default', [LetterheadController::class, 'setDefault'])->name('letterheads.set-default');
+        Route::resource('letterheads', LetterheadController::class);
     });
 
     // ========================================
@@ -1509,101 +1671,224 @@ Route::middleware('auth')->group(function () {
     // ========================================
     // أداء النظام - Debug
     // ========================================
-    Route::get('/debug-perf-measure', function () {
-        $user = User::first();
-        if (! $user) {
-            return response()->json(['error' => 'No users found in database.']);
-        }
-        Auth::login($user);
+    if (app()->environment('local')) {
+        Route::get('/debug-perf-measure', function () {
+            $user = User::first();
+            if (! $user) {
+                return response()->json(['error' => 'No users found in database.']);
+            }
+            Auth::login($user);
 
-        DB::flushQueryLog();
-        DB::enableQueryLog();
-        try {
-            app(HomeController::class)->index();
-            $dashboardQueries = DB::getQueryLog();
-        } catch (Throwable $e) {
-            $dashboardQueries = [['error' => $e->getMessage()]];
-        }
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            try {
+                app(HomeController::class)->index();
+                $dashboardQueries = DB::getQueryLog();
+            } catch (Throwable $e) {
+                $dashboardQueries = [['error' => $e->getMessage()]];
+            }
 
-        DB::flushQueryLog();
-        DB::enableQueryLog();
-        try {
-            app(ActivityAssignmentController::class)->myAssignments();
-            $assignmentsQueries = DB::getQueryLog();
-        } catch (Throwable $e) {
-            $assignmentsQueries = [['error' => $e->getMessage()]];
-        }
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            try {
+                app(ActivityAssignmentController::class)->myAssignments();
+                $assignmentsQueries = DB::getQueryLog();
+            } catch (Throwable $e) {
+                $assignmentsQueries = [['error' => $e->getMessage()]];
+            }
 
-        DB::flushQueryLog();
-        DB::enableQueryLog();
-        try {
-            request()->merge(['per_page' => 15]);
-            app(UserController::class)->index(request());
-            $usersQueries = DB::getQueryLog();
-        } catch (Throwable $e) {
-            $usersQueries = [['error' => $e->getMessage()]];
-        }
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            try {
+                request()->merge(['per_page' => 15]);
+                app(UserController::class)->index(request());
+                $usersQueries = DB::getQueryLog();
+            } catch (Throwable $e) {
+                $usersQueries = [['error' => $e->getMessage()]];
+            }
 
-        return response()->json([
-            'user' => $user->name.' (ID: '.$user->id.')',
-            'dashboard' => [
-                'count' => count($dashboardQueries),
-                'queries' => array_map(fn ($q) => $q['query'] ?? $q, $dashboardQueries),
-            ],
-            'my-assignments' => [
-                'count' => count($assignmentsQueries),
-                'queries' => array_map(fn ($q) => $q['query'] ?? $q, $assignmentsQueries),
-            ],
-            'users' => [
-                'count' => count($usersQueries),
-                'queries' => array_map(fn ($q) => $q['query'] ?? $q, $usersQueries),
-            ],
-        ]);
+            return response()->json([
+                'user' => $user->name.' (ID: '.$user->id.')',
+                'dashboard' => [
+                    'count' => count($dashboardQueries),
+                    'queries' => array_map(fn ($q) => $q['query'] ?? $q, $dashboardQueries),
+                ],
+                'my-assignments' => [
+                    'count' => count($assignmentsQueries),
+                    'queries' => array_map(fn ($q) => $q['query'] ?? $q, $assignmentsQueries),
+                ],
+                'users' => [
+                    'count' => count($usersQueries),
+                    'queries' => array_map(fn ($q) => $q['query'] ?? $q, $usersQueries),
+                ],
+            ]);
+        });
+    }
+
+    Route::get('projects-achievements', [ProjectAchievementController::class, 'listAll'])
+        ->name('projects.achievements.all')
+        ->middleware('can:projects.view');
+
+    Route::get('/execution-tracking', [ExecutionController::class, 'trackingIndex'])
+        ->name('execution.tracking')
+        ->middleware('can:execution.view');
+
+    // Routes for AJAX requests
+    Route::get('/directorates/by-governorate', [UserController::class, 'getDirectoratesByGovernorate'])
+        ->name('directorates.by-governorate');
+
+    Route::get('/entities/get-geo', [UserController::class, 'getEntityGeographicScope'])
+        ->name('entities.get-geo');
+
+    Route::post('/projects/{project}/duplicate', [ProjectController::class, 'duplicate'])
+        ->name('projects.duplicate')
+        ->middleware('can:projects.create');
+
+    Route::get('/directorates', [DirectorateController::class, 'index'])
+        ->name('directorates.index')
+        ->middleware('can:directorates.view');
+
+    // مسار إنجازات المشاريع
+    Route::get('/projects/{project}/achievements', [ProjectAchievementController::class, 'index'])
+        ->name('projects.achievements.index')
+        ->middleware('can:projects.view');
+
+    Route::get('/projects/{project}/achievements/print', [ProjectAchievementController::class, 'print'])
+        ->name('projects.achievements.print')
+        ->middleware('can:projects.print');
+
+    Route::get('/projects/{project}/achievements/{achievement}', [ProjectAchievementController::class, 'show'])
+        ->name('projects.achievements.show')
+        ->middleware('can:projects.view');
+
+    Route::get('/projects/{project}/achievements/{achievement}/print', [ProjectAchievementController::class, 'printSingle'])
+        ->name('projects.achievements.print-single')
+        ->middleware('can:projects.print');
+
+    Route::post('/switch-scope', function (Request $request) {
+        session(['selected_administrative_scope_id' => $request->scope_id]);
+        Cache::forget('projects_hijri_years_'.$request->old_scope);
+
+        return back();
     });
+
+    Route::post('/log-js-error', function (Request $request) {
+        Log::error('JS Error: '.$request->input('message').' at '.$request->input('url').':'.$request->input('line'));
+
+        return response()->json(['status' => 'logged']);
+    })->middleware('throttle:60,1');
+
+    Route::delete('/authorities/bulk-destroy', [AuthorityController::class, 'bulkDestroy'])
+        ->name('authorities.bulk.destroy')
+        ->middleware('can:authorities.delete');
+
+    Route::get('authorities/import/template', [AuthorityController::class, 'downloadTemplate'])
+        ->name('authorities.import.template')
+        ->middleware('can:authorities.import');
+
+    Route::get('/authorities/export', [AuthorityController::class, 'export'])
+        ->name('authorities.export')
+        ->middleware('can:authorities.export');
+
+    Route::delete('internal-entities/bulk', [InternalEntityController::class, 'bulkDestroy'])
+        ->name('internal-entities.bulk.destroy')
+        ->middleware('can:internal-entities.delete');
+
+    // مسارات استيراد التمويلات
+    Route::get('/projects/financings/import', [ProjectFinancingImportController::class, 'showImportForm'])
+        ->name('projects.financings.import.form')
+        ->middleware('can:projects.import');
+
+    Route::get('/projects/financings/import/template', [ProjectFinancingImportController::class, 'downloadTemplate'])
+        ->name('projects.financings.import.template')
+        ->middleware('can:projects.import');
+
+    Route::match(['get', 'post'], '/projects/financings/import/preview', [ProjectFinancingImportController::class, 'previewImport'])
+        ->name('projects.financings.import.preview')
+        ->middleware('can:projects.import');
+
+    Route::match(['get', 'post'], '/projects/financings/import/process', [ProjectFinancingImportController::class, 'processImport'])
+        ->name('projects.financings.import.process')
+        ->middleware('can:projects.import');
+
+    Route::post('/projects/financings/import/export-unmatched', [ProjectFinancingImportController::class, 'exportUnmatched'])
+        ->name('projects.financings.import.export-unmatched')
+        ->middleware('can:projects.import');
 });
-Route::middleware(['auth'])->get('projects-achievements', [ProjectAchievementController::class, 'listAll'])->name('projects.achievements.all');
-Route::get('/execution-tracking', [ExecutionController::class, 'trackingIndex'])->name('execution.tracking')->middleware('can:execution.view');
 
-// Routes for AJAX requests
-Route::get('/directorates/by-governorate', [UserController::class, 'getDirectoratesByGovernorate'])
-    ->name('directorates.by-governorate');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
-Route::get('/entities/get-geo', [UserController::class, 'getEntityGeographicScope'])
-    ->name('entities.get-geo');
-Route::post(
-    '/projects/{project}/duplicate',
-    [ProjectController::class, 'duplicate']
-)->name('projects.duplicate')->middleware('can:projects.create');
-Route::get('/directorates', [DirectorateController::class, 'index'])->name('directorates.index');
-// مسار إنجازات المشاريع
-Route::get('/projects/{project}/achievements', [ProjectAchievementController::class, 'index'])->name('projects.achievements.index')->middleware('can:projects.view');
-Route::get('/projects/{project}/achievements/print', [ProjectAchievementController::class, 'print'])->name('projects.achievements.print')->middleware('can:projects.print');
-Route::get('/projects/{project}/achievements/{achievement}', [ProjectAchievementController::class, 'show'])->name('projects.achievements.show')->middleware('can:projects.view');
-Route::get('/projects/{project}/achievements/{achievement}/print', [ProjectAchievementController::class, 'printSingle'])->name('projects.achievements.print-single')->middleware('can:projects.print');
-
-Route::post('/switch-scope', function (Request $request) {
-    session(['selected_administrative_scope_id' => $request->scope_id]);
-    // اختياري: مسح الكاش الخاص بالنطاق السابق
-    Cache::forget('projects_hijri_years_'.$request->old_scope);
-
-    return back();
+Route::get('/', function () {
+    return redirect()->route('login');
 });
 
-Route::post('/log-js-error', function (Request $request) {
-    Log::error('JS Error: '.$request->input('message').' at '.$request->input('url').':'.$request->input('line'));
+// ═══════════════════════════════════════════════════════════════════
+//  مجموعة الأدمن — Admin Routes
+// ═══════════════════════════════════════════════════════════════════
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['web', 'auth', 'role:Admin'])
+    ->group(function () {
 
-    return response()->json(['status' => 'logged']);
-});
-Route::delete('/authorities/bulk-destroy',
-    [AuthorityController::class, 'bulkDestroy']
-)->name('authorities.bulk.destroy');
-Route::get('authorities/import/template',
-    [AuthorityController::class, 'downloadTemplate']
-)->name('authorities.import.template');
-Route::get('/authorities/export',
-    [AuthorityController::class, 'export']
-)->name('authorities.export');
+        // ───────────────────────────────────────────────────────────
+        //  مسارات مراحل الاعتماد — Entity Approval Stages
+        //  Base: /admin/entity-stages
+        //  Name: admin.entity-stages.*
+        // ───────────────────────────────────────────────────────────
+        Route::prefix('entity-stages')
+            ->name('entity-stages.')
+            ->group(function () {
 
-// Add bulk delete route
-Route::delete('internal-entities/bulk', [InternalEntityController::class, 'bulkDestroy'])
-    ->name('internal-entities.bulk.destroy');
+                // ─────────────── ثابتة أولاً (Static Routes) ───────────────
+
+                // GET /admin/entity-stages            → قائمة كل الجهات ومراحلها
+                Route::get('/', [EntityApprovalStageController::class, 'index'])
+                    ->name('index');
+
+                // GET /admin/entity-stages/create     → نموذج إنشاء مسار
+                Route::get('/create', [EntityApprovalStageController::class, 'create'])
+                    ->name('create');
+
+                // POST /admin/entity-stages           → حفظ مسار جديد
+                Route::post('/', [EntityApprovalStageController::class, 'store'])
+                    ->name('store');
+
+                // GET /admin/entity-stages/eligible-users  → AJAX: المستخدمون المتاحون
+                Route::get('/eligible-users', [EntityApprovalStageController::class, 'eligibleUsers'])
+                    ->name('eligible-users');
+
+                // GET /admin/entity-stages/available-actions → AJAX: الإجراءات المتاحة
+                Route::get('/available-actions', [EntityApprovalStageController::class, 'availableActions'])
+                    ->name('available-actions');
+
+                // ─────────────── ديناميكية (Dynamic Routes) ───────────────
+                // ⚠️ ترتيبها مهم — الأكثر تحديداً أولاً
+
+                // GET /admin/entity-stages/{entity}/edit   → نموذج التعديل
+                // {entity} = internal entity ID  أو authority ID (حسب tab)
+                Route::get('/{entity}/edit', [EntityApprovalStageController::class, 'edit'])
+                    ->name('edit');
+
+                // PUT /admin/entity-stages/{entity}        → تحديث المسار
+                Route::put('/{entity}', [EntityApprovalStageController::class, 'update'])
+                    ->name('update');
+
+                // DELETE /admin/entity-stages/{entity}/destroy-path → حذف كل مراحل جهة
+                // ⚠️ يجب أن يسبق /{stage} في الترتيب
+                Route::delete('/{entity}/destroy-path', [EntityApprovalStageController::class, 'destroyEntityPath'])
+                    ->name('destroy-path');
+
+                // PATCH /admin/entity-stages/{stage}/toggle-active → تشغيل/إيقاف مرحلة
+                Route::patch('/{stage}/toggle-active', [EntityApprovalStageController::class, 'toggleActive'])
+                    ->name('toggle-active');
+
+                // DELETE /admin/entity-stages/{stage}      → حذف مرحلة واحدة
+                // ⚠️ آخر route في المجموعة — عام جداً
+                Route::delete('/{stage}', [EntityApprovalStageController::class, 'destroy'])
+                    ->name('destroy');
+            });
+    });

@@ -1,0 +1,94 @@
+/* ==========================================================================
+   GLOBAL SYSTEM ADAPTATION RULES (Core Tokens & Typography)
+   ========================================================================== */
+
+/* Proportional Typography Scale */
+:root {
+  --text-xs: 0.65rem;
+  --text-xs--line-height: 0.95rem;
+
+  --text-sm: 0.75rem;
+  --text-sm--line-height: 1.1rem;
+
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.3rem;
+
+  --text-lg: 1rem;
+  --text-lg--line-height: 1.45rem;
+
+  --text-xl: 1.125rem;
+  --text-xl--line-height: 1.6rem;
+
+  --text-2xl: 1.25rem;
+  --text-2xl--line-height: 1.75rem;
+}
+
+.sovereign-layout {
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  min-height: 100vh;
+}
+
+/* Global Typography Extracted from React */
+.sovereign-layout h1, .sovereign-layout h2, .sovereign-layout h3, 
+.sovereign-layout h4, .sovereign-layout h5, .sovereign-layout h6 {
+  color: var(--theme-text);
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+}
+
+.sovereign-layout .text-muted {
+  color: var(--theme-text-muted);
+}
+
+/* Custom Scrollbars to match React */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Gold Shimmer & Effects */
+@keyframes subtle-gold-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, var(--theme-gold-light) 0%, var(--theme-gold) 50%, var(--theme-gold-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border-glow {
+  box-shadow: 0 0 15px -3px var(--theme-gold-glow);
+}
+
+.gold-bg-accent {
+  background-color: var(--theme-gold) !important;
+  color: var(--theme-primary-dark) !important;
+}

@@ -1,12 +1,24 @@
 {{-- resources/views/projects/tasks/partials/task_card.blade.php --}}
 
 <div class="task-card status-{{ $task->status }}"
-    onclick="window.location='{{ $task->project_id ? route('projects.tasks.show', [$task->project_id, $task->id]) : '#' }}'"
+    onclick="window.location='{{ $task->project_id ? route('projects.tasks.show', [$task->project_id, $task->id]) : route('tasks.show', $task->id) }}'"
     style="cursor: pointer;">
 
     {{-- Card Header: Title + Print --}}
     <div class="d-flex justify-content-between align-items-start gap-2">
         <h6 class="card-title flex-grow-1">{{ $task->title }}</h6>
+        @can('task.view', $task)
+            <a href="{{ $task->project_id ? route('projects.tasks.show', [$task->project_id, $task->id]) : route('tasks.show', $task->id) }}"
+                class="action-btn action-btn-view" onclick="event.stopPropagation()" title="عرض تفاصيل المهمة" aria-label="عرض تفاصيل المهمة">
+                <i class="fas fa-eye"></i>
+            </a>
+        @endcan
+        @if($task->isStandaloneGeneralTask() && auth()->user()->hasPermission('task_reports.create') && $task->assignees->contains('id', auth()->id()) && $task->achievementReports->firstWhere('user_id', auth()->id())?->status !== 'submitted')
+            <a href="{{ route('tasks.achievement-reports.create', $task) }}" class="action-btn action-btn-view"
+                onclick="event.stopPropagation()" title="إضافة تقرير إنجاز" aria-label="إضافة تقرير إنجاز">
+                <i class="fas fa-file-circle-plus"></i>
+            </a>
+        @endif
         @can('task.view', $task)
             <a href="{{ $task->project_id ? route('projects.tasks.print', [$task->project_id, $task->id]) : route('tasks.print', $task->id) }}"
                 target="_blank" class="card-print-btn" onclick="event.stopPropagation()" title="طباعة المهمة">

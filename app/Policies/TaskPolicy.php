@@ -21,7 +21,7 @@ class TaskPolicy
      */
     public function view(User $user, Task $task): bool
     {
-        return $user->hasPermission('task.view', $task->project);
+        return $user->hasPermission('task.view', $task);
     }
 
     /**
@@ -37,7 +37,7 @@ class TaskPolicy
      */
     public function update(User $user, Task $task): bool
     {
-        return $user->hasPermission('task.edit', $task->project);
+        return $user->hasPermission('task.edit', $task);
     }
 
     /**
@@ -45,6 +45,6 @@ class TaskPolicy
      */
     public function delete(User $user, Task $task): bool
     {
-        return $user->hasPermission('task.delete', $task->project);
+        return $user->hasPermission('task.delete', $task);
     }
 }

@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تقرير إنجازات المشروع | {{ $project->project_name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <x-letterhead-styles :letterhead="$letterhead ?? null" />
     <style>
         :root {
-            --primary: #1e3a5f;
+            --primary: {{ $letterhead?->primary_color ?? '#1e3a5f' }};
             --primary-light: #e8f0f8;
             --gold: #c9a961;
             --gold-dark: #a8843f;
@@ -334,6 +334,7 @@
 </head>
 <body>
 <div class="print-container">
+    <x-letterhead-selector :currentLetterhead="$letterhead ?? null" />
 
     {{-- ===== REPORT HEADER ===== --}}
     <div class="report-header">
@@ -346,13 +347,16 @@
             <div class="report-title">تقرير إنجازات المشروع</div>
             <div class="report-subtitle">{{ $project->project_name }}</div>
             <div class="report-meta">
+                {{ $letterhead?->organization_name ?? 'الجمهورية اليمنية' }} &nbsp;|&nbsp;
                 رقم النموذج: {{ $project->form_number ?? 'ـ' }} &nbsp;|&nbsp;
                 تاريخ التقرير: {{ now()->format('Y/m/d') }} م
             </div>
         </div>
         <div class="header-logo">
-            {{-- Logo placeholder --}}
-            <div style="width:60px;height:60px;border:2px solid var(--gold);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:8pt;text-align:center;">شعار<br>الجهة</div>
+            @php
+                $achievementLogoUrl = !empty($letterhead?->logo_path) ? asset('storage/' . $letterhead->logo_path) : asset('images/logo.png');
+            @endphp
+            <img src="{{ $achievementLogoUrl }}" alt="Logo" style="max-width:70px;max-height:70px;object-fit:contain;">
         </div>
     </div>
 

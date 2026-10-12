@@ -326,7 +326,41 @@
 
 @section('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function() {
+        const quickPlanForm = document.getElementById('quickDisbursementPlanForm');
+        if (quickPlanForm) {
+            const modal = new bootstrap.Modal(document.getElementById('quickDisbursementPlanModal'));
+            modal.show();
+            quickPlanForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                const formData = new FormData(quickPlanForm);
+                const firstInstallment = Number(formData.get('details[0][planned_amount]'));
+                const projectCost = Number({{ (float) ($project->cost?->total_cost ?? 0) }});
+                if (!Number.isFinite(firstInstallment) || firstInstallment <= 0 || firstInstallment > projectCost) {
+                    if (window.Swal) { await Swal.fire('Check installment amount', 'The first installment must be greater than zero and no more than the project cost.', 'warning'); }
+                    else { alert('The first installment must be greater than zero and no more than the project cost.'); }
+                    return;
+                }
+                if (firstInstallment < projectCost) {
+                    formData.append('details[1][planned_amount]', (projectCost - firstInstallment).toFixed(2));
+                    formData.append('details[1][funding_source_id]', formData.get('details[0][funding_source_id]'));
+                    formData.append('details[1][disbursement_clearance_mechanism]', formData.get('details[0][disbursement_clearance_mechanism]'));
+                }
+                const response = await fetch(quickPlanForm.action, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: formData,
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    if (window.Swal) { await Swal.fire('Unable to save plan', result.message || 'Please review the form.', 'error'); }
+                    else { alert(result.message || 'Unable to save plan.'); }
+                    return;
+                }
+                window.location.href = "{{ route('projects.disbursement-plan.show', $project) }}";
+            });
+        }
+
         // Tab Persistence
         const activeTab = localStorage.getItem('activeExecutionTab');
         if (activeTab) {
@@ -608,6 +642,106 @@
 </div>
 
 <div class="container-fluid px-4 pb-5">
+
+    @if($project->uses_disbursement_workflow)
+        @if($executionWorkflowMessage !== null)
+            <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-3" role="alert">
+                <div>{{ $executionWorkflowMessage }}</div>
+                @if(!$project->disbursementPlan && $project->status !== 'awaiting_disbursement_plan' && auth()->user()->hasPermission('disbursements.create', $project))
+                    <a href="{{ route('projects.disbursement-plan.create', $project) }}" class="btn btn-warning fw-bold">
+                        {{ __('Create Disbursement Plan') }}
+                    </a>
+                @endif
+            </div>
+        @endif
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: #fff;">
+            <div class="card-body p-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom border-white-50 pb-3">
+                    <div>
+                        <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold mb-1"><i class="fas fa-coins me-1"></i> Project Disbursement</span>
+                        <h5 class="fw-bold mb-0 text-white">Installment execution balance</h5>
+                    </div>
+                    @if($project->disbursementPlan && auth()->user()->hasPermission('disbursements.view', $project))
+                        <a href="{{ route('projects.disbursement-plan.show', $project) }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm text-dark btn-sm">View disbursement plan</a>
+                    @else
+                        @if($project->status !== 'awaiting_disbursement_plan' && auth()->user()->hasPermission('disbursements.create', $project))
+                            <a href="{{ route('projects.disbursement-plan.create', $project) }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm text-dark btn-sm">Create disbursement plan</a>
+                        @endif
+                    @endif
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-3"><div class="p-3 rounded-3" style="background: rgba(255,255,255,.1);"><div class="small text-white-50 mb-1">Total project amount</div><div class="fs-4 fw-bold">{{ number_format($project->cost->total_cost ?? 0, 2) }}</div></div></div>
+                    <div class="col-md-3"><div class="p-3 rounded-3" style="background: rgba(255,255,255,.1);"><div class="small text-white-50 mb-1">Current disbursed installment</div><div class="fs-6">{{ $currentInstallment ? 'Installment #'.$currentInstallment->sequence_number : 'No active installment' }}</div><div class="fs-4 fw-bold text-success">{{ number_format((float) ($currentInstallment?->disbursed_amount ?? 0), 2) }}</div></div></div>
+                    <div class="col-md-3"><div class="p-3 rounded-3" style="background: rgba(255,255,255,.1);"><div class="small text-white-50 mb-1">Spent from current installment</div><div class="fs-6">{{ $currentInstallment ? 'Installment #'.$currentInstallment->sequence_number : 'No active installment' }}</div><div class="fs-4 fw-bold text-info">{{ number_format($currentInstallmentSpent, 2) }}</div></div></div>
+                    <div class="col-md-3"><div class="p-3 rounded-3" style="background: rgba(255,255,255,.1);"><div class="small text-white-50 mb-1">Remaining current installment balance</div><div class="fs-6">{{ $currentInstallment ? 'Installment #'.$currentInstallment->sequence_number : 'No active installment' }}</div><div class="fs-4 fw-bold text-warning">{{ number_format($project->available_for_execution, 2) }}</div></div></div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+        @if($currentInstallment)
+            @php
+                $installmentExecutions = $project->projectExecutions->where('disbursement_plan_detail_id', $currentInstallment->id)
+                    ->map(fn ($row) => $row->setAttribute('workflow_type', 'executive'))
+                    ->concat($project->preliminaryProcedureExecutions->where('disbursement_plan_detail_id', $currentInstallment->id)
+                        ->map(fn ($row) => $row->setAttribute('workflow_type', 'preliminary')));
+            @endphp
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center"><h6 class="mb-0">Installment execution review</h6>
+                    @if($currentInstallment->status === 'disbursed' && $currentInstallmentSpent >= (float) $currentInstallment->disbursed_amount - 0.01 && auth()->user()->hasPermission('execution.aggregate-clearance', $project))
+                        <form method="POST" action="{{ route('projects.execution.aggregate-installment', [$project, $currentInstallment]) }}">@csrf<button class="btn btn-sm btn-primary">Aggregate for clearance</button></form>
+                    @endif
+                </div>
+                <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Entry</th><th>Spent</th><th>Review state</th><th>Return note</th><th>Manager action</th></tr></thead>
+                    <tbody>
+                    @forelse($installmentExecutions as $execution)
+                        <tr>
+                            <td>{{ $execution->workflow_type === 'executive' ? ($execution->action?->action ?? 'Executive activity') : ($execution->procedure?->procedure_name ?? 'Preliminary procedure') }} #{{ $execution->id }}</td>
+                            <td>{{ number_format((float) $execution->amount_spent, 2) }}</td>
+                            <td>{{ str($execution->workflow_review_status ?? 'awaiting_manager_review')->replace('_', ' ')->title() }}</td>
+                            <td>{{ $execution->workflow_return_note ?: '—' }}</td>
+                            <td>
+                                @if(auth()->user()->hasPermission('execution.manager-review', $project) && in_array($execution->workflow_review_status, ['awaiting_manager_review', 'resubmitted'], true))
+                                    <div class="d-flex gap-1">
+                                        <form method="POST" action="{{ route('projects.execution.manager-review', [$project, $execution->workflow_type, $execution->id]) }}">@csrf<input type="hidden" name="action" value="approve"><button class="btn btn-sm btn-success">Approve</button></form>
+                                        <form method="POST" action="{{ route('projects.execution.manager-review', [$project, $execution->workflow_type, $execution->id]) }}" class="d-flex gap-1">@csrf<input type="hidden" name="action" value="return"><input class="form-control form-control-sm" name="notes" required minlength="5" placeholder="Required changes"><button class="btn btn-sm btn-warning">Return</button></form>
+                                    </div>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center text-muted py-3">No execution entries are linked to this installment yet.</td></tr>
+                    @endforelse
+                    </tbody>
+                </table></div>
+            </div>
+        @endif
+
+    @if($project->uses_disbursement_workflow && $project->status === 'awaiting_disbursement_plan' && !$project->disbursementPlan && auth()->user()->hasPermission('disbursements.create', $project))
+        <div class="modal fade" id="quickDisbursementPlanModal" tabindex="-1" aria-labelledby="quickDisbursementPlanModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+                <form id="quickDisbursementPlanForm" action="{{ route('projects.disbursement-plan.store', $project) }}" method="POST">
+                    @csrf
+                    <div class="modal-header"><h5 class="modal-title" id="quickDisbursementPlanModalLabel">Create project disbursement plan</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label">Project ID</label><input class="form-control" value="{{ $project->form_number ?: $project->id }}" readonly></div>
+                            <div class="col-md-6"><label class="form-label">Total project cost</label><input class="form-control" value="{{ number_format((float) ($project->cost?->total_cost ?? 0), 2, '.', '') }}" readonly></div>
+                            <div class="col-md-6"><label class="form-label">First proposed installment amount</label><input class="form-control" type="number" name="details[0][planned_amount]" min="0.01" max="{{ (float) ($project->cost?->total_cost ?? 0) }}" step="0.01" value="{{ (float) ($project->cost?->total_cost ?? 0) }}" required></div>
+                            <div class="col-md-6"><label class="form-label">Funding source</label><select class="form-select" name="details[0][funding_source_id]" required><option value="">Select source</option>@foreach($fundingSources as $source)<option value="{{ $source->id }}" @selected((int) ($project->financings->first()?->funding_source_id ?? 0) === (int) $source->id)>{{ $source->name }}</option>@endforeach</select></div>
+                            <div class="col-md-6"><label class="form-label">Clearance mechanism</label><select class="form-select" name="details[0][disbursement_clearance_mechanism]" required><option value="">Select mechanism</option><option value="advance">Advance</option><option value="reimbursement">Reimbursement</option><option value="direct_payment">Direct payment</option></select></div>
+                            <div class="col-12"><div class="alert alert-info mb-0">If the first installment is below total project cost, the remaining balance will be added as a final installment with the same funding source and clearance mechanism.</div></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer"><a class="btn btn-outline-secondary me-auto" href="{{ route('projects.disbursement-plan.create', $project) }}">Open full plan page</a><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save draft and review plan</button></div>
+                </form>
+            </div></div>
+        </div>
+    @endif
 
     {{-- Stats Grid --}}
     <div class="stats-grid">

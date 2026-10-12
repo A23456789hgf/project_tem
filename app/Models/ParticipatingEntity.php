@@ -32,7 +32,7 @@ class ParticipatingEntity extends Model
      */
     public function authority(): BelongsTo
     {
-        return $this->belongsTo(Authority::class);
+        return $this->belongsTo(Authority::class)->withoutGlobalScope('active_only');
     }
 
     /**
@@ -40,7 +40,7 @@ class ParticipatingEntity extends Model
      */
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Authority::class, 'parent_id');
+        return $this->belongsTo(Authority::class, 'parent_id')->withoutGlobalScope('active_only');
     }
 
     /**
@@ -48,7 +48,7 @@ class ParticipatingEntity extends Model
      */
     public function internalEntity(): BelongsTo
     {
-        return $this->belongsTo(InternalEntity::class, 'internal_entity_id');
+        return $this->belongsTo(InternalEntity::class, 'internal_entity_id')->withoutGlobalScope('active_only');
     }
 
     /**
@@ -56,7 +56,7 @@ class ParticipatingEntity extends Model
      */
     public function parentInternalEntity(): BelongsTo
     {
-        return $this->belongsTo(InternalEntity::class, 'parent_id');
+        return $this->belongsTo(InternalEntity::class, 'parent_id')->withoutGlobalScope('active_only');
     }
 
     /**

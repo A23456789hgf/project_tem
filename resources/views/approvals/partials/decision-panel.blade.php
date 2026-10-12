@@ -201,6 +201,33 @@
                     <label class="form-label fw-semibold small text-dark">ملاحظات الاعتماد (اختياري):</label>
                     <textarea name="notes" class="form-control" rows="3" placeholder="أدخل أي ملاحظات فنية أو توصيات..." {{ !$canActOnActiveStep ? 'disabled' : '' }}></textarea>
                 </div>
+                @if($activeStep && !empty($activeStep->required_attachments))
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <label class="form-label small fw-bold text-dark mb-2">
+                            <i class="fas fa-paperclip text-primary me-1"></i> المرفقات المطلوبة في هذه المرحلة:
+                        </label>
+                        <ul class="list-unstyled mb-0">
+                            @foreach($activeStep->required_attachments as $reqAtt)
+                                @php
+                                    $isUploaded = isset($activeStep->uploaded_attachments[$reqAtt['key']]);
+                                @endphp
+                                <li class="d-flex align-items-center justify-content-between py-1 border-bottom small">
+                                    <span>
+                                        <i class="fas {{ $isUploaded ? 'fa-check-circle text-success' : (!empty($reqAtt['required']) ? 'fa-exclamation-circle text-danger' : 'fa-circle text-muted') }} me-1"></i>
+                                        {{ $reqAtt['label'] }}
+                                        @if(!empty($reqAtt['required'])) <span class="badge bg-danger-subtle text-danger px-1">إلزامي</span> @endif
+                                    </span>
+                                    @if($isUploaded)
+                                        <span class="badge bg-success-subtle text-success">تم الرفع</span>
+                                    @else
+                                        <span class="badge bg-warning-subtle text-warning">بانتظار الرفع</span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 <div class="mb-3">
                     <label class="form-label fw-semibold small text-dark">مرفق الاعتماد (اختياري):</label>
                     <input type="file" name="attachment" class="form-control form-control-sm" {{ !$canActOnActiveStep ? 'disabled' : '' }}>
@@ -359,6 +386,17 @@
             </form>
         </div>
 
+    @elseif($project->status === 'awaiting_disbursement_plan' || $project->status === \App\Enums\ProjectStatus::AwaitingDisbursementPlan->value)
+        <div class="alert alert-warning border-0 rounded-4 p-4 text-center mb-0 shadow-sm" style="background-color: #fff8e6; border: 1px solid #ffd591 !important;">
+            <i class="fas fa-file-invoice-dollar fs-1 text-warning mb-2 d-block"></i>
+            <strong class="d-block text-dark fs-5 mb-1">المشروع بانتظار خطة الصرف</strong>
+            <p class="small text-muted mb-3">
+                اكتملت جميع مراحل الاعتماد الوزاري بنجاح. يلزم إعداد واعتماد خطة الصرف وجدولة الدفعات وصرف الدفعة الأولى قبل بدء التنفيذ الفعلي.
+            </p>
+            <a href="{{ route('projects.disbursement-plan.create', $project) }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm">
+                <i class="fas fa-coins me-1"></i> إعداد واعتماد خطة الصرف
+            </a>
+        </div>
     @elseif(in_array($project->status, ['in_execution', 'in_progress', 'completed'], true))
         <div class="alert alert-success border-0 rounded-4 p-4 text-center mb-0">
             <i class="fas fa-check-double fs-3 text-success mb-2 d-block"></i>

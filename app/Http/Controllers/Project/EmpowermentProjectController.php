@@ -7,6 +7,7 @@ use App\Http\Controllers\Project\Services\ProjectService;
 use App\Models\EmpowermentBeneficiary; // تم إضافة الموديل لغرض التحقق والتزامن
 use App\Models\EmpowermentProject;
 use App\Models\FinancingType;
+use App\Models\Project;
 use Illuminate\Http\Request;
 
 class EmpowermentProjectController extends Controller
@@ -25,6 +26,30 @@ class EmpowermentProjectController extends Controller
     public function index(Request $request)
     {
         $scopedProjectQuery = $this->projectService->getProjects($request, null, null, [], true, true)->select('projects.id');
+
+        // شبكة أمان تلقائية: مزامنة فورية لأي مشروع تمويله قرض/تمكين ولم يُدرج بعد في جدول التمكين
+        $unsyncedProjectIds = Project::whereIn('id', (clone $scopedProjectQuery))
+            ->whereHas('financings', function ($q) {
+                $q->whereHas('financingType', function ($ft) {
+                    $ft->where('name', 'like', '%قرض%')
+                        ->orWhere('name', 'like', '%قروض%')
+                        ->orWhere('name', 'like', '%تمكين%')
+                        ->orWhere('name', 'like', '%محتوى%');
+                })->orWhereHas('fundingSource', function ($fs) {
+                    $fs->where('name', 'like', '%قرض%')
+                        ->orWhere('name', 'like', '%قروض%')
+                        ->orWhere('name', 'like', '%تمكين%')
+                        ->orWhere('name', 'like', '%محتوى%');
+                });
+            })
+            ->whereDoesntHave('empowermentProject')
+            ->pluck('id');
+
+        if ($unsyncedProjectIds->isNotEmpty()) {
+            foreach (Project::whereIn('id', $unsyncedProjectIds)->get() as $unsyncedProj) {
+                $this->projectService->syncProjectToEmpowermentDepartment($unsyncedProj);
+            }
+        }
 
         $query = EmpowermentProject::with('project', 'processor')
             ->whereIn('project_id', $scopedProjectQuery)
@@ -96,7 +121,8 @@ class EmpowermentProjectController extends Controller
         // ─── مزامنة تلقائية لمبلغ (القروض/التمكين/المحتوى) إذا وجد اختلاف ───
         if ($proj) {
             $empowermentFinancingTypeIds = FinancingType::where(function ($q) {
-                $q->where('name', 'like', '%قروض%')
+                $q->where('name', 'like', '%قرض%')
+                    ->orWhere('name', 'like', '%قروض%')
                     ->orWhere('name', 'like', '%تمكين%')
                     ->orWhere('name', 'like', '%محتوى%');
             })->pluck('id')->toArray();

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Entity;
 use App\Models\Permission;
 use App\Models\Role;
-use App\Models\Entity;
 use App\Services\PermissionAuditService;
 use Illuminate\Support\Facades\Log;
 
@@ -54,36 +54,36 @@ class PermissionsReportController extends Controller
             'moduleStats'
         ));
     }
-/**
- * Validate that all expected entities are fetched.
- * Logs a warning if the fetched count is lower than expected.
- */
-private function validateEntitiesFetched(): void
-{
-    $expected = config('app.expected_entities') ?? 0;
-    if ($expected === 0 && class_exists(Entity::class)) {
-        $expected = Entity::count();
+
+    /**
+     * Validate that all expected entities are fetched.
+     * Logs a warning if the fetched count is lower than expected.
+     */
+    private function validateEntitiesFetched(): void
+    {
+        $expected = config('app.expected_entities') ?? 0;
+        if ($expected === 0 && class_exists(Entity::class)) {
+            $expected = Entity::count();
+        }
+
+        // TODO: replace with actual source if entities are fetched from external service
+        $fetched = Entity::count();
+
+        if ($expected > 0 && $fetched < $expected) {
+            Log::warning('Ubuntu – عدم جلب جميع الجهات', [
+                'expected' => $expected,
+                'fetched' => $fetched,
+                'route' => request()->fullUrl(),
+                'user_id' => auth()->id(),
+                'controller' => self::class,
+                'possible_cause' => [
+                    'case_sensitive_paths',
+                    'env_mismatch',
+                    'network_firewall',
+                ],
+            ]);
+        }
     }
-
-    // TODO: replace with actual source if entities are fetched from external service
-    $fetched = Entity::count();
-
-    if ($expected > 0 && $fetched < $expected) {
-        Log::warning('Ubuntu – عدم جلب جميع الجهات', [
-            'expected' => $expected,
-            'fetched'  => $fetched,
-            'route'    => request()->fullUrl(),
-            'user_id'  => auth()->id(),
-            'controller'=> self::class,
-            'possible_cause' => [
-                'case_sensitive_paths',
-                'env_mismatch',
-                'network_firewall',
-            ],
-        ]);
-    }
-}
-
 
     public function autoRegister(PermissionAuditService $auditService)
     {

@@ -337,7 +337,7 @@
                         <tr>
                             <th class="text-center no-wrap">#</th>
                             <th class="text-center no-wrap">رقم الخطة</th>
-                            <th class="no-wrap">الأولوية</th>
+                            <th class="no-wrap">الفترة / الأولوية</th>
                             <th class="no-wrap">الجهة المقدمة</th>
                             <th class="no-wrap hide-lg">بواسطة</th>
                             <th class="text-center no-wrap">التاريخ</th>
@@ -355,12 +355,18 @@
                                 </td>
                                 <td class="no-wrap">
                                     <span class="badge-artistic badge-role">
-                                        {{ $plan->priority->priority ?? 'ـ' }}
+                                        @if($plan->start_date_g && $plan->end_date_g)
+                                            {{ \Carbon\Carbon::parse($plan->start_date_g)->format('Y/m/d') }} - {{ \Carbon\Carbon::parse($plan->end_date_g)->format('Y/m/d') }}
+                                        @elseif(is_object($plan->priority))
+                                            {{ $plan->priority->priority ?? $plan->priority->name ?? 'ـ' }}
+                                        @else
+                                            {{ $plan->priority ?? 'ـ' }}
+                                        @endif
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="fw-bold text-dark text-truncate-custom d-block" title="{{ $plan->submittingEntity->name ?? '' }}">
-                                        {{ $plan->submittingEntity->name ?? 'ـ' }}
+                                    <span class="fw-bold text-dark text-truncate-custom d-block" title="{{ $plan->submitting_organization_name ?? '' }}">
+                                        {{ $plan->submitting_organization_name ?? 'ـ' }}
                                     </span>
                                 </td>
                                 <td class="no-wrap hide-lg">

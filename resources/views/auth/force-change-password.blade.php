@@ -223,9 +223,16 @@
                 </div>
 
                 <!-- نموذج تغيير كلمة المرور الإجبارية -->
-                @can('password.change.edit')
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 <form method="POST" action="{{ route('password.change.update') }}" id="changePasswordForm">
-                @endcan
                     @csrf
 
                     <!-- كلمة المرور الحالية -->
@@ -241,6 +248,9 @@
                                 <i class="fas fa-eye-slash eye-closed d-none"></i>
                             </button>
                         </div>
+                        @error('current_password')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <!-- كلمة المرور الجديدة -->
@@ -248,7 +258,7 @@
                         <label for="password">كلمة المرور الجديدة</label>
                         <div class="input-wrapper" dir="ltr">
                             <input id="password" type="password" name="password" class="custom-form-control" required
-                                placeholder="••••••••" dir="rtl" minlength="8" style="padding-left: 3rem;">
+                                placeholder="••••••••" dir="rtl" style="padding-left: 3rem;">
                             <button type="button" class="btn-toggle-password"
                                 onclick="togglePasswordField('password', this)">
                                 <i class="fas fa-eye eye-open"></i>
@@ -256,6 +266,9 @@
                             </button>
                         </div>
                         <div class="form-text mt-1 text-muted">يجب أن تتكون من 8 أحرف على الأقل.</div>
+                        @error('password')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <!-- تأكيد كلمة المرور -->
@@ -263,7 +276,7 @@
                         <label for="password_confirmation">تأكيد كلمة المرور الجديدة</label>
                         <div class="input-wrapper" dir="ltr">
                             <input id="password_confirmation" type="password" name="password_confirmation"
-                                class="custom-form-control" required placeholder="••••••••" dir="rtl" minlength="8"
+                                class="custom-form-control" required placeholder="••••••••" dir="rtl"
                                 style="padding-left: 3rem;">
                             <button type="button" class="btn-toggle-password"
                                 onclick="togglePasswordField('password_confirmation', this)">
@@ -271,6 +284,9 @@
                                 <i class="fas fa-eye-slash eye-closed d-none"></i>
                             </button>
                         </div>
+                        @error('password_confirmation')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <button type="submit" class="submit-btn">

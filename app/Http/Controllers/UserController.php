@@ -14,7 +14,9 @@ use App\Models\InternalEntity;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserGeographicScope;
+use App\Services\ErpNextUserService;
 use App\Services\NotificationService;
+use App\Services\UserDataScopeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +35,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $query = User::withInactive();
+        app(UserDataScopeService::class)->applyScope($query, auth()->user());
 
         if ($request->filled('role_id')) {
             $query->where('role_id', $request->role_id);
@@ -95,13 +98,14 @@ class UserController extends Controller
         $roles = Role::orderBy('name')->pluck('name', 'id');
         $statuses = ['Active', 'Disabled'];
         $entities = InternalEntity::active()->visibleToUser()->orderBy('name')->get();
+        $authorities = Authority::active()->orderBy('agency_name')->get();
 
         $sortOptions = [
             'sort_by' => $sortBy,
             'sort_order' => $sortOrder,
         ];
 
-        return view('user.index', compact('users', 'roles', 'statuses', 'entities', 'sortOptions'));
+        return view('user.index', compact('users', 'roles', 'statuses', 'entities', 'authorities', 'sortOptions'));
     }
 
     public function create()
@@ -153,6 +157,14 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                'unique:users,email',
+                Rule::requiredIf((bool) $request->boolean('is_financial_user')),
+            ],
+            'is_financial_user' => 'nullable',
             'password' => 'required|string|min:1|max:50',
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:Active,Disabled',
@@ -281,6 +293,8 @@ class UserController extends Controller
                 // إجبار المستخدم على تغيير كلمة المرور بعد أول دخول
                 'must_change_password' => true,
 
+                'is_financial_user' => $request->boolean('is_financial_user'),
+
                 'created_by' => auth()->id(),
             ]);
 
@@ -306,6 +320,23 @@ class UserController extends Controller
 
             DB::commit();
 
+            // ✅ مزامنة مع ERPNext للمستخدمين الماليين مع تمرير كلمة المرور الصريحة
+            $erpSyncWarning = null;
+            if ($user->is_financial_user) {
+                try {
+                    $syncResult = app(ErpNextUserService::class)
+                        ->createFinancialUser($user, $request->password);
+                    if (! ($syncResult['success'] ?? false)) {
+                        $erpSyncWarning = 'تم إنشاء المستخدم محلياً بنجاح، لكن فشلت المزامنة مع ERPNext: '.($syncResult['error'] ?? 'خطأ في الاتصال').'.';
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('ERPNext sync error in UserController store: '.$e->getMessage(), [
+                        'user_id' => $user->id,
+                    ]);
+                    $erpSyncWarning = 'تم إنشاء المستخدم محلياً بنجاح، ولكن تعذر الاتصال بـ ERPNext.';
+                }
+            }
+
             // إرسال إشعار إنشاء الحساب
             try {
                 app(NotificationService::class)
@@ -321,12 +352,18 @@ class UserController extends Controller
                 );
             }
 
-            return redirect()
+            $redirect = redirect()
                 ->route('users.index')
                 ->with(
                     'success',
                     'تم إنشاء المستخدم بنجاح والحساب مفعل ويمكنه تسجيل الدخول.'
                 );
+
+            if ($erpSyncWarning) {
+                $redirect->with('warning', $erpSyncWarning);
+            }
+
+            return $redirect;
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -349,6 +386,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        app(UserDataScopeService::class)->authorizeRecord($user, auth()->user());
         $user->load(['geographicScopes.governorate', 'geographicScopes.directorate']);
 
         return view('user.show', compact('user'));
@@ -423,6 +461,14 @@ class UserController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+                Rule::requiredIf((bool) $request->boolean('is_financial_user')),
+            ],
+            'is_financial_user' => 'nullable',
             'role_id' => 'required|exists:roles,id',
             'status' => 'required|in:Active,Disabled',
             'phone' => 'nullable|string|max:20',
@@ -587,12 +633,15 @@ class UserController extends Controller
         }
 
         $oldValues = $user->toArray();
+        $oldEmail = $user->email;
 
         DB::beginTransaction();
 
         try {
             $user->update([
                 'name' => $request->name,
+                'email' => $request->email,
+                'is_financial_user' => $request->boolean('is_financial_user'),
                 'role_id' => $request->role_id,
                 'status' => $request->status,
                 'phone' => $request->phone,
@@ -656,12 +705,39 @@ class UserController extends Controller
 
             DB::commit();
 
-            return redirect()
+            // ✅ مزامنة مع ERPNext عند تحديث المستخدم (مع كلمة المرور إن وُجدت)
+            $erpSyncWarning = null;
+            try {
+                if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                    $syncResult = app(ErpNextUserService::class)->syncUser(
+                        $user,
+                        'update',
+                        $oldEmail,
+                        $request->filled('password') ? $request->password : null
+                    );
+                    if (! ($syncResult['success'] ?? false)) {
+                        $erpSyncWarning = 'تم تحديث بيانات المستخدم محلياً، ولكن فشلت المزامنة مع ERPNext: '.($syncResult['error'] ?? 'خطأ في الاتصال').'.';
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error('ERPNext sync error in UserController update: '.$e->getMessage(), [
+                    'user_id' => $user->id,
+                ]);
+                $erpSyncWarning = 'تم تحديث بيانات المستخدم محلياً، ولكن تعذر الاتصال بـ ERPNext.';
+            }
+
+            $redirect = redirect()
                 ->route('users.show', $user)
                 ->with(
                     'success',
                     'تم تحديث بيانات المستخدم بنجاح'
                 );
+
+            if ($erpSyncWarning) {
+                $redirect->with('warning', $erpSyncWarning);
+            }
+
+            return $redirect;
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -721,6 +797,22 @@ class UserController extends Controller
 
         $user->update(['status' => 'Disabled']);
 
+        // تعطيل الحساب المرتبط في ERPNext فوراً إذا كان المستخدم مالياً أو مرتبطاً
+        $erpSyncWarning = null;
+        try {
+            if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                $syncResult = app(ErpNextUserService::class)->syncUser($user, 'disable');
+                if (! ($syncResult['success'] ?? false)) {
+                    $erpSyncWarning = 'تم تعطيل المستخدم محلياً، ولكن تعذر تعطيله في ERPNext: '.($syncResult['error'] ?? 'خطأ في الاتصال').'.';
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('ERPNext sync error in UserController disable: '.$e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
+            $erpSyncWarning = 'تم تعطيل المستخدم محلياً، ولكن تعذر الاتصال بـ ERPNext.';
+        }
+
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => 'disable',
@@ -736,12 +828,33 @@ class UserController extends Controller
             \Log::error('Notification error in UserController disable: '.$e->getMessage());
         }
 
-        return back()->with('success', 'تم تعطيل المستخدم بنجاح');
+        $response = back()->with('success', 'تم تعطيل المستخدم بنجاح');
+        if ($erpSyncWarning) {
+            $response->with('warning', $erpSyncWarning);
+        }
+
+        return $response;
     }
 
     public function enable(User $user)
     {
         $user->update(['status' => 'Active']);
+
+        // إعادة تفعيل الحساب المرتبط في ERPNext فوراً إذا كان المستخدم مالياً أو مرتبطاً
+        $erpSyncWarning = null;
+        try {
+            if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                $syncResult = app(ErpNextUserService::class)->syncUser($user, 'reactivate');
+                if (! ($syncResult['success'] ?? false)) {
+                    $erpSyncWarning = 'تم تفعيل المستخدم محلياً، ولكن تعذر تفعيله في ERPNext: '.($syncResult['error'] ?? 'خطأ في الاتصال').'.';
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('ERPNext sync error in UserController enable: '.$e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
+            $erpSyncWarning = 'تم تفعيل المستخدم محلياً، ولكن تعذر الاتصال بـ ERPNext.';
+        }
 
         AuditLog::create([
             'user_id' => auth()->id(),
@@ -758,7 +871,12 @@ class UserController extends Controller
             \Log::error('Notification error in UserController enable: '.$e->getMessage());
         }
 
-        return back()->with('success', 'تم تفعيل المستخدم بنجاح');
+        $response = back()->with('success', 'تم تفعيل المستخدم بنجاح');
+        if ($erpSyncWarning) {
+            $response->with('warning', $erpSyncWarning);
+        }
+
+        return $response;
     }
 
     public function resetPassword(User $user)
@@ -782,6 +900,23 @@ class UserController extends Controller
             'must_change_password' => true,
         ]);
 
+        // ✅ مزامنة كلمة المرور الجديدة مع ERPNext
+        $erpSyncWarning = null;
+        try {
+            if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                $syncResult = app(ErpNextUserService::class)
+                    ->syncUser($user, 'password', null, $request->password);
+                if (! ($syncResult['success'] ?? false)) {
+                    $erpSyncWarning = 'تم إعادة تعيين كلمة المرور محلياً، ولكن فشلت المزامنة مع ERPNext: '.($syncResult['error'] ?? 'خطأ في الاتصال').'.';
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('ERPNext sync error in UserController updatePassword: '.$e->getMessage(), [
+                'user_id' => $user->id,
+            ]);
+            $erpSyncWarning = 'تم إعادة تعيين كلمة المرور محلياً، ولكن تعذر الاتصال بـ ERPNext.';
+        }
+
         AuditLog::create([
             'user_id' => auth()->id(),
             'action' => 'reset_password',
@@ -797,7 +932,12 @@ class UserController extends Controller
             \Log::error('Notification error in UserController updatePassword: '.$e->getMessage());
         }
 
-        return redirect()->route('users.show', $user)->with('success', 'تم إعادة تعيين كلمة المرور بنجاح');
+        $response = redirect()->route('users.show', $user)->with('success', 'تم إعادة تعيين كلمة المرور بنجاح');
+        if ($erpSyncWarning) {
+            $response->with('warning', $erpSyncWarning);
+        }
+
+        return $response;
     }
 
     public function rolesPermissions()
@@ -1033,6 +1173,29 @@ class UserController extends Controller
                     'updated_by' => auth()->id(),
                 ]
             );
+        }
+    }
+
+    /**
+     * إعادة محاولة المزامنة يدوياً مع ERPNext
+     */
+    public function retryErpNextSync(User $user)
+    {
+        if (! $user->is_financial_user && ! $user->isLinkedToErpNext()) {
+            return back()->with('error', 'هذا المستخدم ليس مستخدماً مالياً أو مرتبطاً بـ ERPNext.');
+        }
+
+        try {
+            $result = app(ErpNextUserService::class)->syncUser($user, 'update');
+            if ($result['success'] ?? false) {
+                return back()->with('success', 'تمت مزامنة بيانات المستخدم مع ERPNext بنجاح.');
+            }
+
+            return back()->with('error', 'فشلت المزامنة مع ERPNext: '.($result['error'] ?? 'خطأ غير محدد'));
+        } catch (\Throwable $e) {
+            \Log::error('ERPNext manual retry sync error: '.$e->getMessage(), ['user_id' => $user->id]);
+
+            return back()->with('error', 'تعذر الاتصال بـ ERPNext: '.$e->getMessage());
         }
     }
 }

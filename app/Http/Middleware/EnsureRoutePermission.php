@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\ProjectUnifiedRequest;
 use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -48,7 +49,6 @@ class EnsureRoutePermission
             'notifications.mark-read',
             'chat.*',
             'projects.api.tasks.organizations',
-            'projects.api.entities.users',
             'admin.ui-showcase',
             'entities.get-geo',
             'api.entities.departments',
@@ -90,6 +90,41 @@ class EnsureRoutePermission
         // 2. Resolve Permission Slug from Route Name
         $permissionSlug = $this->resolvePermissionSlug($routeName);
 
+        if (str_starts_with($routeName, 'projects.requests.')) {
+            $requestModel = $request->route('unifiedRequest');
+            $isCreator = $requestModel instanceof ProjectUnifiedRequest
+                && (int) $requestModel->created_by === (int) $user->id;
+            $creatorRoutes = [
+                'projects.requests.edit',
+                'projects.requests.update',
+                'projects.requests.confirm-draft',
+                'projects.requests.revert-draft',
+                'projects.requests.submit',
+            ];
+            if ($isCreator && in_array($routeName, $creatorRoutes, true)) {
+                return $next($request);
+            }
+
+            $alternatePermissions = match ($routeName) {
+                'projects.requests.index', 'projects.requests.show' => ['payments.view', 'clearances.view', 'disbursements.view'],
+                'projects.requests.create', 'projects.requests.store', 'projects.requests.entity-users', 'projects.requests.project-financials' => ['payments.create', 'clearances.create', 'disbursements.create'],
+                'projects.requests.edit', 'projects.requests.update', 'projects.requests.confirm-draft', 'projects.requests.revert-draft' => ['payments.create', 'clearances.create'],
+                'projects.requests.submit' => ['project_requests.edit', 'payments.create', 'clearances.create'],
+                'projects.requests.approve', 'projects.requests.steps.approve' => ['disbursements.approve', 'payments.approve', 'clearances.approve'],
+                'projects.requests.reject', 'projects.requests.steps.reject' => ['payments.reject', 'clearances.reject'],
+                'projects.requests.print' => ['payments.view', 'clearances.view'],
+                default => [],
+            };
+            if ($user->isAdmin() || $user->hasPermission($permissionSlug)) {
+                return $next($request);
+            }
+            foreach ($alternatePermissions as $alternatePermission) {
+                if ($user->hasPermission($alternatePermission)) {
+                    return $next($request);
+                }
+            }
+        }
+
         // 3. Centralized Enforcement via Gate
         // This triggers Gate::before (Matrix validation) and dynamic Gate definitions (DB validation).
         try {
@@ -119,6 +154,13 @@ class EnsureRoutePermission
             'projects.empowerment' => 'projects.view',
             'projects.empowerment.show' => 'projects.view',
             'projects.reports.index' => 'reports.view',
+            // --- User management mappings ---
+            'users.disable' => 'users.edit',
+            'users.enable' => 'users.edit',
+            'users.resetPassword' => 'users.edit',
+            'users.updatePassword' => 'users.edit',
+            'users.retryErpNextSync' => 'users.edit',
+            'users.activity-log' => 'users.view',
             // --- Custom action mappings ---
             'roles-permissions.toggle' => 'roles-permissions.edit',
             'roles-permissions.toggle-scope' => 'roles-permissions.edit',
@@ -157,6 +199,55 @@ class EnsureRoutePermission
             'projects.tasks.execution-notes.store' => 'task.execution-note.create',
             'projects.tasks.document-notes.store' => 'task.document-note.create',
             'projects.tasks.activities.index' => 'task.timeline.view',
+            'projects.requests.index' => 'project_requests.view',
+            'projects.requests.show' => 'project_requests.view',
+            'projects.requests.create' => 'project_requests.create',
+            'projects.requests.store' => 'project_requests.create',
+            'projects.requests.entity-users' => 'project_requests.create',
+            'projects.requests.project-financials' => 'project_requests.create',
+            'projects.requests.edit' => 'project_requests.edit',
+            'projects.requests.update' => 'project_requests.edit',
+            'projects.requests.confirm-draft' => 'project_requests.edit',
+            'projects.requests.revert-draft' => 'project_requests.edit',
+            'projects.requests.submit' => 'project_requests.submit',
+            'projects.requests.approve' => 'project_requests.approve',
+            'projects.requests.steps.approve' => 'project_requests.approve',
+            'projects.requests.reject' => 'project_requests.reject',
+            'projects.requests.steps.reject' => 'project_requests.reject',
+            'projects.requests.steps.return' => 'project_requests.edit',
+            'projects.requests.print' => 'project_requests.print',
+
+            // --- Disbursement Workflow Mappings ---
+            'projects.disbursement-plans.index' => 'disbursements.view',
+            'projects.disbursement-plan.show' => 'disbursements.view',
+            'projects.disbursement-plan.create' => 'disbursements.create',
+            'projects.disbursement-plan.store' => 'disbursements.create',
+            'projects.disbursement-plan.approve' => 'disbursements.approve',
+            'projects.disbursement-plan.retry-disbursement' => 'disbursements.retry',
+            'projects.disbursement-plan.payments.index' => 'payments.view',
+            'projects.disbursement-plan.payments.create' => 'payments.create',
+            'projects.disbursement-plan.payments.store' => 'payments.create',
+            'projects.disbursement-plan.payments.show' => 'payments.view',
+            'projects.disbursement-plan.payments.approve' => 'payments.approve',
+            'projects.disbursement-plan.payments.reject' => 'payments.reject',
+            'projects.disbursement-plan.payments.cancel' => 'payments.reject',
+            'projects.disbursement-plan.clearances.index' => 'clearances.view',
+            'projects.disbursement-plan.clearances.create' => 'clearances.create',
+            'projects.disbursement-plan.clearances.store' => 'clearances.create',
+            'projects.disbursement-plan.clearances.show' => 'clearances.view',
+            'projects.disbursement-plan.clearances.approve' => 'clearances.approve',
+            'projects.disbursement-plan.clearances.reject' => 'clearances.reject',
+            'projects.disbursement-plan.clearances.cancel' => 'clearances.reject',
+            'projects.payment-requests.index' => 'payments.view',
+            'projects.clearance-requests.index' => 'clearances.view',
+            'projects.execution.manager-review' => 'execution.manager-review',
+            'projects.execution.aggregate-installment' => 'execution.aggregate-clearance',
+            'projects.execution.request-next-installment' => 'disbursements.request',
+
+            'api.tasks.users-by-scope' => 'task.assign',
+            'projects.api.tasks.users-by-scope' => 'task.assign',
+            'api.entities.users' => 'task.assign',
+            'projects.api.entities.users' => 'task.assign',
 
             // --- Added Report Mappings ---
             'projects.reports.index' => 'reports.view',
@@ -173,6 +264,14 @@ class EnsureRoutePermission
             'projects.reports.print_options' => 'reports.print',
             'projects.reports.print_generate' => 'reports.print',
             'projects.reports.official_summary' => 'reports.view',
+            'projects.reports.material_requests.api_lookup' => 'reports.material_requests.view',
+            'projects.reports.material_requests' => 'reports.material_requests.view',
+            'projects.reports.material_requests.items' => 'reports.material_requests.view',
+            'projects.reports.stock_entries' => 'reports.stock_entries.view',
+            'projects.reports.stock_entries.items' => 'reports.stock_entries.view',
+            'projects.reports.stock_ledger' => 'reports.stock_ledger.view',
+            'projects.reports.purchase_invoices' => 'reports.purchase_invoices.view',
+            'projects.reports.purchase_invoices.items' => 'reports.purchase_invoices.view',
             'permissions.report' => 'roles-permissions.view',
             'permissions.auto-register' => 'roles-permissions.edit',
 
@@ -703,6 +802,16 @@ class EnsureRoutePermission
             'projects.achievements.create' => 'projects.create',
             'projects.achievements.store' => 'projects.create',
             'projects.tasks.stop' => 'task.edit',
+            'tasks.achievement-reports.index' => 'task_reports.view',
+            'tasks.achievement-reports.index-all' => 'task_reports.view',
+            'tasks.achievement-reports.create' => 'task_reports.create',
+            'tasks.achievement-reports.edit' => 'task_reports.edit',
+            'tasks.achievement-reports.update' => 'task_reports.edit',
+            'tasks.achievement-reports.show' => 'task_reports.view',
+            'tasks.achievement-reports.print' => 'task_reports.export',
+            'tasks.achievement-reports.pdf' => 'task_reports.export',
+            'tasks.achievement-reports.attachments.store' => 'task_reports.edit',
+            'tasks.achievement-reports.attachments.download' => 'task_reports.view',
             'projects.print-financial' => 'projects.view',
             'projects.import-list' => 'projects.create',
             'projects.failure-report' => 'projects.create',

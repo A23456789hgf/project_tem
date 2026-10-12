@@ -7,6 +7,7 @@ use App\Models\InternalEntity;
 use App\Models\Program;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\UserDataScopeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -34,22 +35,7 @@ class HomeController extends Controller
 
         // ── فلترة المستخدمين ──────────────────────────────────────────
         $userQuery = User::query();
-        if (! $user->isAdmin() && ! ($user->role && $user->role->full_access)) {
-            if ($user->isExternal() || ($user->organization_type === 'external' && $user->authority_id)) {
-                $userQuery->where('authority_id', $user->authority_id);
-            } else {
-                $selectedAdminScope = Session::get('selected_administrative_scope_id', $user->administrative_scope_id);
-                $selectedEntity = Session::get('selected_entity_id', $user->entity_id);
-                $selectedGeographicScopes = Session::get('selected_geographic_scopes', $user->geographicScopes);
-                $entityIds = $this->getEntityIdsFromScope($selectedAdminScope, $selectedEntity, $selectedGeographicScopes);
-
-                if (! empty($entityIds)) {
-                    $userQuery->whereIn('entity_id', $entityIds);
-                } elseif (! empty($user->entity_id)) {
-                    $userQuery->where('entity_id', $user->entity_id);
-                }
-            }
-        }
+        app(UserDataScopeService::class)->applyScope($userQuery, $user);
 
         // ================================================================
         // الإحصائيات والمشاريع الأخيرة

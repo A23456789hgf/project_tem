@@ -1,907 +1,731 @@
 @extends('layouts.app')
 
+@section('title', 'تقرير الجودة الشامل')
+
 @section('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-    .implementation-dashboard-container {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 2rem;
+    :root {
+        --navy: #08214c;
+        --navy-light: #0d2d5e;
+        --gold: #d4af37;
+        --gold-soft: #e6c558;
+        --bg: #f1f5f9;
+        --card: #ffffff;
+        --text: #1e293b;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --warn: #f59e0b;
+        --danger: #ef4444;
+        --info: #0ea5e9;
+        --radius: 14px;
+        --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+        --shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+        --transition: all 0.2s ease;
     }
 
-    .dashboard-header {
-        margin-bottom: 2rem;
-    }
+    .q-wrap { padding: 1.25rem 1.5rem 3rem; background: var(--bg); min-height: 100vh; }
 
-    .dashboard-filters {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    /* Statistics Cards */
-    .stat-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-        border-left: 4px solid;
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    }
-
-    .budget-card { border-left-color: #007bff; }
-    .spent-card { border-left-color: #28a745; }
-    .remaining-card { border-left-color: #17a2b8; }
-    .remaining-card.negative { border-left-color: #dc3545; }
-    .progress-card { border-left-color: #fd7e14; }
-
-    .stat-icon {
-        font-size: 2.5rem;
-        color: #007bff;
-        min-width: 60px;
-        text-align: center;
-    }
-
-    .spent-card .stat-icon { color: #28a745; }
-    .remaining-card .stat-icon { color: #17a2b8; }
-    .remaining-card.negative .stat-icon { color: #dc3545; }
-    .progress-card .stat-icon { color: #fd7e14; }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin-bottom: 0.5rem;
-    }
-
-    .stat-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #003d7a;
-    }
-
-    .stat-currency, .stat-percentage {
-        font-size: 0.85rem;
-        color: #6c757d;
-        margin-top: 0.25rem;
-    }
-
-    .spent-percentage { color: #28a745; font-weight: 600; }
-
-    .stat-alert {
-        margin-top: 0.5rem;
-    }
-
-    .progress-bar-mini {
-        height: 4px;
-        background: #e9ecef;
-        border-radius: 2px;
-        margin-top: 0.75rem;
-        overflow: hidden;
-    }
-
-    .progress-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #fd7e14, #28a745);
-        border-radius: 2px;
-    }
-
-    /* Dashboard Sections */
-    .dashboard-section {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-    }
-
-    .section-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        padding: 1.5rem;
+    /* ============ Hero ============ */
+    .hero {
+        background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+        color: #fff;
+        padding: 1.75rem 2rem;
+        border-radius: var(--radius);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .section-header:hover {
-        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-    }
-
-    .section-header h3 {
-        margin: 0;
-        color: #003d7a;
-        font-size: 1.25rem;
-    }
-
-    .section-toggle {
-        font-size: 1.2rem;
-        color: #6c757d;
-        transition: transform 0.3s ease;
-    }
-
-    .section-content {
-        padding: 1.5rem;
-    }
-
-    /* Financial Table */
-    .financial-table thead {
-        background: #f8f9fa;
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    .financial-table tbody tr {
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .financial-table tbody tr:hover {
-        background: #f8f9fa;
-    }
-
-    /* Timeline */
-    .timeline-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .timeline-item {
-        border: 2px solid #e9ecef;
-        border-radius: 8px;
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .timeline-item.active {
-        border-color: #0056b3;
-        background: #f0f7ff;
-    }
-
-    .timeline-item.delayed {
-        border-color: #dc3545;
-        background: #fff5f5;
-    }
-
-    .timeline-item.upcoming {
-        border-color: #6c757d;
-        background: #f8f9fa;
-    }
-
-    .timeline-project-name {
-        font-weight: 600;
-        color: #003d7a;
-        margin-bottom: 0.5rem;
-    }
-
-    .timeline-status {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .timeline-dates {
-        margin: 1rem 0;
-        padding: 0.75rem;
-        background: white;
-        border-radius: 6px;
-    }
-
-    /* Activity Log */
-    .activity-log-list {
-        display: flex;
-        flex-direction: column;
         gap: 1rem;
-    }
-
-    .activity-log-item {
-        display: flex;
-        gap: 1.5rem;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-radius: 8px;
-        border-left: 4px solid;
-        transition: all 0.3s ease;
-    }
-
-    .activity-log-item:hover {
-        background: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    }
-
-    .activity-log-item.preliminary {
-        border-left-color: #0056b3;
-    }
-
-    .activity-log-item.executive {
-        border-left-color: #28a745;
-    }
-
-    .log-icon {
-        font-size: 1.5rem;
-        width: 50px;
-        height: 50px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-
-    .log-icon.preliminary {
-        background: #cfe2ff;
-        color: #0056b3;
-    }
-
-    .log-icon.executive {
-        background: #d1e7dd;
-        color: #28a745;
-    }
-
-    .log-content {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .log-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.5rem;
         flex-wrap: wrap;
-        gap: 1rem;
-    }
-
-    .log-header strong {
-        color: #003d7a;
-    }
-
-    .log-date {
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
-
-    .log-details {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        margin-bottom: 0.5rem;
-    }
-
-    .activity-type-badge {
-        display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-
-    .activity-type-badge.preliminary {
-        background: #cfe2ff;
-        color: #0056b3;
-    }
-
-    .activity-type-badge.executive {
-        background: #d1e7dd;
-        color: #28a745;
-    }
-
-    .activity-name {
-        color: #495057;
-        font-size: 0.9rem;
-    }
-
-    .log-amount {
-        font-size: 0.85rem;
-        color: #28a745;
-        font-weight: 600;
-        margin-top: 0.5rem;
-    }
-
-    /* Chart Container */
-    .chart-container {
-        background: white;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-    }
-
-    .chart-container h5 {
-        color: #003d7a;
-        margin-bottom: 1rem;
-        font-weight: 600;
-    }
-
-    .budget-chart-wrapper {
+        box-shadow: var(--shadow);
         position: relative;
-        height: 300px;
+        overflow: hidden;
     }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .implementation-dashboard-container {
-            padding: 1rem;
-        }
-
-        .stat-card {
-            flex-direction: column;
-            text-align: center;
-        }
-
-        .stat-icon {
-            margin: 0 auto;
-        }
-
-        .dashboard-filters {
-            flex-wrap: wrap;
-            width: 100%;
-        }
-
-        .timeline-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .section-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-        }
+    .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 90% 20%, rgba(212,175,55,0.18), transparent 60%);
+        pointer-events: none;
     }
+    .hero-title { font-size: 1.55rem; font-weight: 800; margin: 0 0 0.35rem; color: var(--gold); }
+    .hero-sub { color: rgba(255,255,255,0.75); margin: 0; font-size: 0.9rem; }
+    .hero-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; z-index: 1; }
+    .hero-actions .btn { font-weight: 600; border-radius: 10px; padding: 0.55rem 1rem; font-size: 0.9rem; }
+    .btn-gold { background: var(--gold); color: var(--navy); border: none; }
+    .btn-gold:hover { background: var(--gold-soft); color: var(--navy); }
 
-    /* Chart Tab Buttons */
-    .chart-tab-btn {
-        background: #f8f9fa;
-        border: 2px solid transparent;
-        padding: 0.5rem 1.25rem;
-        border-radius: 8px;
+    /* ============ KPI ============ */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1rem;
+        margin-top: 1.25rem;
+    }
+    .kpi {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.25rem;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .kpi::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 3px;
+        background: var(--c, var(--navy));
+    }
+    .kpi-icon {
+        width: 48px; height: 48px;
+        border-radius: 12px;
+        display: grid; place-items: center;
+        font-size: 1.25rem;
+        background: color-mix(in srgb, var(--c, var(--navy)) 12%, transparent);
+        color: var(--c, var(--navy));
+    }
+    .kpi-label { font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-bottom: 0.15rem; }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--text); line-height: 1; }
+    .kpi-value small { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+
+    /* ============ Filters ============ */
+    .filters {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        margin-top: 1.25rem;
+    }
+    .filters-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 0.85rem;
         cursor: pointer;
-        font-weight: 500;
-        color: #6c757d;
-        transition: all 0.3s ease;
-        font-size: 0.95rem;
+        user-select: none;
+    }
+    .filters-head h6 { margin: 0; font-weight: 700; color: var(--navy); display: flex; gap: 0.5rem; align-items: center; }
+    .filters-head .toggle-icon { transition: transform 0.25s; color: var(--muted); }
+    .filters.collapsed .toggle-icon { transform: rotate(-90deg); }
+    .filters.collapsed .filters-body { display: none; }
+
+    .filters-body .form-label {
+        font-size: 0.8rem; font-weight: 700; color: var(--muted);
+        margin-bottom: 0.3rem; display: block;
+    }
+    .filters-body .form-control,
+    .filters-body .form-select {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+        min-height: 40px;
+    }
+    .filters-body .form-control:focus,
+    .filters-body .form-select:focus {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px rgba(8,33,76,0.1);
     }
 
-    .chart-tab-btn:hover {
-        background: #e9ecef;
-        color: #003d7a;
+    .active-filters {
+        display: flex; flex-wrap: wrap; gap: 0.4rem;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed var(--border);
+    }
+    .filter-chip {
+        background: rgba(8,33,76,0.06);
+        color: var(--navy);
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .filter-chip i { cursor: pointer; opacity: 0.7; }
+    .filter-chip i:hover { opacity: 1; color: var(--danger); }
+
+    /* ============ Charts ============ */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 1rem;
+        margin-top: 1.25rem;
+    }
+    .panel {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+    }
+    .panel-title {
+        font-size: 0.95rem; font-weight: 700; color: var(--navy);
+        margin: 0 0 1rem;
+        display: flex; align-items: center; gap: 0.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .panel-title i { color: var(--gold); }
+
+    /* ============ Table ============ */
+    .table-panel {
+        background: var(--card);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+        margin-top: 1.25rem;
+        overflow: hidden;
+    }
+    .table-panel-head {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 0.75rem;
+    }
+    .table-panel-head h6 { margin: 0; font-weight: 700; color: var(--navy); font-size: 1rem; }
+    .table-panel-head .count { color: var(--muted); font-size: 0.85rem; font-weight: 500; }
+
+    .q-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .q-table thead th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+        user-select: none;
+    }
+    .q-table thead th.sortable { cursor: pointer; }
+    .q-table thead th.sortable:hover { color: var(--navy); }
+    .q-table thead th .sort-icon { margin-right: 0.35rem; opacity: 0.4; font-size: 0.7rem; }
+    .q-table thead th.active-sort .sort-icon { opacity: 1; color: var(--navy); }
+
+    .q-table tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: var(--transition);
+    }
+    .q-table tbody tr:hover { background: #f8fafc; }
+    .q-table tbody td { padding: 0.9rem 1rem; vertical-align: middle; }
+
+    .project-name {
+        color: var(--navy); font-weight: 700; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .project-name:hover { color: var(--gold); }
+
+    .badge-soft {
+        padding: 0.3rem 0.65rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-block;
+    }
+    .badge-soft.gray  { background: #f1f5f9; color: #475569; }
+    .badge-soft.green { background: #d1fae5; color: #065f46; }
+    .badge-soft.blue  { background: #dbeafe; color: #1e40af; }
+    .badge-soft.warn  { background: #fef3c7; color: #92400e; }
+    .badge-soft.red   { background: #fee2e2; color: #991b1b; }
+
+    .score-ring {
+        width: 52px; height: 52px;
+        position: relative;
+        display: inline-grid; place-items: center;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring .val {
+        position: absolute;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: var(--navy);
     }
 
-    .chart-tab-btn.active {
-        background: #0056b3;
-        color: white;
-        border-color: #003d7a;
+    .mini-bar {
+        height: 6px; border-radius: 999px;
+        background: #f1f5f9;
+        overflow: hidden;
+        margin-bottom: 0.3rem;
+    }
+    .mini-bar .fill { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+
+    .row-actions { display: flex; gap: 0.35rem; }
+    .icon-btn {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        display: grid; place-items: center;
+        cursor: pointer;
+        color: var(--muted);
+        transition: var(--transition);
+        font-size: 0.8rem;
+    }
+    .icon-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* Select2 tweaks */
+    .select2-container--default .select2-selection--multiple {
+        min-height: 40px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.15rem 0.3rem;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: var(--navy);
+        box-shadow: 0 0 0 3px rgba(8,33,76,0.1);
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background: var(--navy);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 0.1rem 0.5rem;
+        font-size: 0.78rem;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color: #fff;
+        margin-left: 0.4rem;
     }
 
-    .charts-section {
-        transition: all 0.3s ease;
-    }
+    .empty-state { padding: 3rem 1rem; text-align: center; color: var(--muted); }
+    .empty-state i { font-size: 2.5rem; color: var(--border); margin-bottom: 0.75rem; display: block; }
 </style>
 @endsection
 
 @section('content')
-<div class="implementation-dashboard-container mt-5">
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>
-                <i class="fas fa-chart-line"></i> لوحة معلومات التنفيذ
-            </h2>
-            <div class="dashboard-filters">
-                <button class="btn btn-sm btn-outline-primary" onclick="filterDashboard('all')">
-                    <i class="fas fa-th"></i> الكل
-                </button>
-                <button class="btn btn-sm btn-outline-success" onclick="filterDashboard('financial')">
-                    <i class="fas fa-dollar-sign"></i> مالي
-                </button>
-                <button class="btn btn-sm btn-outline-info" onclick="filterDashboard('timeline')">
-                    <i class="fas fa-calendar"></i> زمني
-                </button>
+<div class="q-wrap">
+
+    {{-- ================= Hero ================= --}}
+    <div class="hero">
+        <div>
+            <h1 class="hero-title"><i class="fas fa-medal me-2"></i> التقرير العام لجودة المشاريع</h1>
+            <p class="hero-sub">نظرة شاملة على الأداء الزمني والمالي مع إمكانية الفرز والتصفية المتقدمة</p>
+        </div>
+        <div class="hero-actions">
+            <button class="btn btn-light" onclick="printReport('all')">
+                <i class="fas fa-print me-1"></i> طباعة
+            </button>
+            <button class="btn btn-gold" onclick="exportReport('all')">
+                <i class="fas fa-file-excel me-1"></i> تصدير Excel
+            </button>
+        </div>
+    </div>
+
+    {{-- ================= KPIs ================= --}}
+    <div class="kpi-grid">
+        <div class="kpi" style="--c: #0ea5e9;">
+            <div class="kpi-icon"><i class="fas fa-project-diagram"></i></div>
+            <div>
+                <div class="kpi-label">إجمالي المشاريع</div>
+                <div class="kpi-value">{{ number_format($kpis['total_projects']) }}</div>
+            </div>
+        </div>
+        <div class="kpi" style="--c: #10b981;">
+            <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+            <div>
+                <div class="kpi-label">مشاريع مكتملة</div>
+                <div class="kpi-value">{{ number_format($kpis['completed_projects']) }}</div>
+            </div>
+        </div>
+        <div class="kpi" style="--c: #f59e0b;">
+            <div class="kpi-icon"><i class="fas fa-spinner"></i></div>
+            <div>
+                <div class="kpi-label">قيد التنفيذ</div>
+                <div class="kpi-value">{{ number_format($kpis['in_progress_projects']) }}</div>
+            </div>
+        </div>
+        <div class="kpi" style="--c: #d4af37;">
+            <div class="kpi-icon"><i class="fas fa-star"></i></div>
+            <div>
+                <div class="kpi-label">متوسط الجودة</div>
+                <div class="kpi-value">{{ $kpis['average_score'] }}<small>%</small></div>
             </div>
         </div>
     </div>
 
-    <!-- Summary Statistics Cards -->
-    <div class="row g-3 mb-4" id="stats-row">
-        @php
-            $totalBudget = $projects->sum(function($p) {
-                return $p->executiveFinancialSummaries->sum('approved_amount') ?? 0;
-            });
-            
-            $totalSpent = $projects->sum(function($p) {
-                return $p->executiveActivities->sum(function($a) {
-                    return $a->actions->sum(function($ac) {
-                        return $ac->executions->sum('amount_spent') ?? 0;
-                    });
-                });
-            });
-            
-            $totalRemaining = $totalBudget - $totalSpent;
-            
-            $projectsCount = $projects->count();
-            $completionPercentage = $projects->isNotEmpty() 
-                ? round($projects->sum(function($p) {
-                    $total = $p->preliminaryActivities->sum(function($a) {
-                        return $a->procedures->count();
-                    }) + $p->executiveActivities->sum(function($a) {
-                        return $a->actions->count();
-                    });
-                    
-                    $completed = $p->preliminaryActivities->sum(function($a) {
-                        return $a->procedures->filter(fn($pr) => $pr->executions->count() > 0)->count();
-                    }) + $p->executiveActivities->sum(function($a) {
-                        return $a->actions->filter(fn($ac) => $ac->executions->count() > 0)->count();
-                    });
-                    
-                    return $total > 0 ? ($completed / $total) * 100 : 0;
-                }) / max(1, $projectsCount))
-                : 0;
-        @endphp
+    {{-- ================= Filters ================= --}}
+    <form id="filter-form" method="GET" action="{{ route('projects.quality.index') }}">
+        <input type="hidden" name="report_scope" value="all" id="report_scope">
+        <input type="hidden" name="project_ids" id="filter_project_ids">
+        <input type="hidden" name="sort_by"  id="sort_by"  value="{{ request('sort_by', '') }}">
+        <input type="hidden" name="sort_dir" id="sort_dir" value="{{ request('sort_dir', 'desc') }}">
 
-        <!-- Total Budget Card -->
-        <div class="col-lg-3 col-md-6 dashboard-stat-card">
-            <div class="stat-card budget-card">
-                <div class="stat-icon">
-                    <i class="fas fa-coins"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">إجمالي الميزانية</div>
-                    <div class="stat-value">{{ number_format($totalBudget, 2) }}</div>
-                    <div class="stat-currency">ريال</div>
-                </div>
+        <div class="filters" id="filtersBox">
+            <div class="filters-head" onclick="document.getElementById('filtersBox').classList.toggle('collapsed')">
+                <h6><i class="fas fa-sliders-h"></i> الفلاتر والفرز المتقدم</h6>
+                <i class="fas fa-chevron-down toggle-icon"></i>
             </div>
-        </div>
 
-        <!-- Amount Spent Card -->
-        <div class="col-lg-3 col-md-6 dashboard-stat-card">
-            <div class="stat-card spent-card">
-                <div class="stat-icon">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">المبلغ المصروف</div>
-                    <div class="stat-value">{{ number_format($totalSpent, 2) }}</div>
-                    <div class="stat-percentage spent-percentage">
-                        @php
-                            $spentPercentage = $totalBudget > 0 ? ($totalSpent / $totalBudget) * 100 : 0;
-                        @endphp
-                        {{ number_format($spentPercentage, 1) }}%
+            <div class="filters-body">
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">المحافظات</label>
+                        <select name="governorate_ids[]" class="form-select multi-select" multiple>
+                            @foreach($filterData['governorates'] as $gov)
+                                <option value="{{ $gov->id }}"
+                                    {{ in_array($gov->id, (array) request('governorate_ids', [])) ? 'selected' : '' }}>
+                                    {{ $gov->name }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Remaining Budget Card -->
-        <div class="col-lg-3 col-md-6 dashboard-stat-card">
-            <div class="stat-card remaining-card {{ $totalRemaining < 0 ? 'negative' : '' }}">
-                <div class="stat-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">المبلغ المتبقي</div>
-                    <div class="stat-value">{{ number_format($totalRemaining, 2) }}</div>
-                    <div class="stat-alert">
-                        @if($totalRemaining < 0)
-                            <span class="badge bg-danger"><i class="fas fa-exclamation-circle"></i> تجاوز الميزانية</span>
-                        @else
-                            <span class="badge bg-success"><i class="fas fa-check-circle"></i> متوازن</span>
-                        @endif
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">الجهات</label>
+                        <select name="entity_ids[]" class="form-select multi-select" multiple>
+                            @foreach($filterData['entities'] as $ent)
+                                <option value="{{ $ent->id }}"
+                                    {{ in_array($ent->id, (array) request('entity_ids', [])) ? 'selected' : '' }}>
+                                    {{ $ent->name }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Overall Progress Card -->
-        <div class="col-lg-3 col-md-6 dashboard-stat-card">
-            <div class="stat-card progress-card">
-                <div class="stat-icon">
-                    <i class="fas fa-tasks"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">إجمالي التقدم</div>
-                    <div class="stat-value">{{ $completionPercentage }}%</div>
-                    <div class="progress-bar-mini">
-                        <div class="progress-bar-fill" style="width: {{ $completionPercentage }}%"></div>
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label">الحالة</label>
+                        <select name="status_ids[]" class="form-select multi-select" multiple>
+                            @foreach($filterData['statuses'] as $key => $label)
+                                <option value="{{ $key }}"
+                                    {{ in_array($key, (array) request('status_ids', [])) ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Financial Tracking Section -->
-    <div class="dashboard-section financial-section mb-4" id="financial-section">
-        <div class="section-header" onclick="toggleSection('financial-section')">
-            <h3><i class="fas fa-chart-bar"></i> تتبع المالية</h3>
-            <span class="section-toggle">
-                <i class="fas fa-chevron-up"></i>
-            </span>
-        </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label">من تاريخ</label>
+                        <input type="date" name="from_date" class="form-control" value="{{ request('from_date') }}">
+                    </div>
 
-        <div class="section-content">
-            <!-- Budget vs Spent Chart Container -->
-            <div class="row mb-4">
-                <div class="col-lg-6">
-                    <div class="chart-container">
-                        <h5 class="mb-3">توزيع الميزانية</h5>
-                        <div class="budget-chart-wrapper">
-                            <canvas id="budgetChart" style="max-height: 300px;"></canvas>
-                        </div>
+                    <div class="col-lg-2 col-md-3">
+                        <label class="form-label">إلى تاريخ</label>
+                        <input type="date" name="to_date" class="form-control" value="{{ request('to_date') }}">
+                    </div>
+
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label">ترتيب حسب</label>
+                        <select name="sort_by" class="form-select">
+                            <option value="creator_entity_id" {{ request('sort_by') == 'creator_entity_id' ? 'selected' : '' }}>الجهة</option>
+                            <option value="project_name"       {{ request('sort_by') == 'project_name' ? 'selected' : '' }}>اسم المشروع</option>
+                            <option value="start_date_gregorian" {{ request('sort_by') == 'start_date_gregorian' ? 'selected' : '' }}>تاريخ البدء</option>
+                            <option value="created_at"         {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>الأحدث</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2 col-md-6">
+                        <label class="form-label">الاتجاه</label>
+                        <select name="sort_dir" class="form-select">
+                            <option value="desc" {{ request('sort_dir', 'desc') == 'desc' ? 'selected' : '' }}>تنازلي</option>
+                            <option value="asc"  {{ request('sort_dir') == 'asc' ? 'selected' : '' }}>تصاعدي</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-7 col-md-12 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-filter me-1"></i> تطبيق
+                        </button>
+                        <a href="{{ route('projects.quality.index') }}" class="btn btn-outline-secondary px-4">
+                            <i class="fas fa-undo me-1"></i> إعادة تعيين
+                        </a>
                     </div>
                 </div>
 
-                <div class="col-lg-6">
-                    <div class="chart-container">
-                        <h5 class="mb-3">تفصيل المشاريع المالي</h5>
-                        <div class="table-responsive">
-                            <table class="table table-sm financial-table">
-                                <thead>
-                                    <tr>
-                                        <th>المشروع</th>
-                                        <th class="text-end">الميزانية</th>
-                                        <th class="text-end">المصروف</th>
-                                        <th class="text-end">النسبة</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($projects->take(5) as $project)
-                                    @php
-                                        $projectBudget = $project->executiveFinancialSummaries->sum('approved_amount') ?? 0;
-                                        $projectSpent = $project->executiveActivities->sum(function($a) {
-                                            return $a->actions->sum(function($ac) {
-                                                return $ac->executions->sum('amount_spent') ?? 0;
-                                            });
-                                        });
-                                        $projectPercentage = $projectBudget > 0 ? ($projectSpent / $projectBudget) * 100 : 0;
-                                    @endphp
-                                    <tr>
-                                        <td class="text-truncate" title="{{ $project->project_name }}">
-                                            <a href="{{ route('projects.quality.show', $project->id) }}" style="text-decoration: none; color: #0056b3; font-weight: 600;">
-                                                {{ Str::limit($project->project_name, 20) }}
-                                            </a>
-                                        </td>
-                                        <td class="text-end">{{ number_format($projectBudget, 0) }}</td>
-                                        <td class="text-end">{{ number_format($projectSpent, 0) }}</td>
-                                        <td class="text-end">
-                                            <span class="badge {{ $projectPercentage > 100 ? 'bg-danger' : ($projectPercentage > 80 ? 'bg-warning' : 'bg-success') }}">
-                                                {{ number_format($projectPercentage, 0) }}%
-                                            </span>
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted py-3">لا توجد بيانات</td>
-                                    </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Timeline & Schedule Section -->
-    <div class="dashboard-section timeline-section mb-4" id="timeline-section">
-        <div class="section-header" onclick="toggleSection('timeline-section')">
-            <h3><i class="fas fa-calendar-alt"></i> الجدول الزمني</h3>
-            <span class="section-toggle">
-                <i class="fas fa-chevron-up"></i>
-            </span>
-        </div>
-
-        <div class="section-content">
-            <div class="timeline-grid">
-                @forelse($projects->sortBy('start_date_gregorian')->take(10) as $project)
+                {{-- Active Filter Chips --}}
                 @php
-                    $startDate = \Carbon\Carbon::parse($project->start_date_gregorian);
-                    $endDate = \Carbon\Carbon::parse($project->end_date_gregorian);
-                    $today = \Carbon\Carbon::now();
-                    $totalDays = $startDate->diffInDays($endDate);
-                    $elapsedDays = $startDate->diffInDays($today);
-                    $elapsedPercentage = $totalDays > 0 ? min(100, ($elapsedDays / $totalDays) * 100) : 0;
-                    
-                    $isDelayed = $today->isAfter($endDate);
-                    $isActive = $today->isBetween($startDate, $endDate);
-                @endphp
-                <div class="timeline-item {{ $isDelayed ? 'delayed' : ($isActive ? 'active' : 'upcoming') }}">
-                    <div class="timeline-header">
-                        <div class="timeline-project-name">
-                            <a href="{{ route('projects.quality.show', $project->id) }}" style="text-decoration: none; color: #003d7a; font-weight: 600;">
-                                {{ Str::limit($project->project_name, 30) }}
-                            </a>
-                        </div>
-                        <div class="timeline-status">
-                            @if($isDelayed)
-                                <span class="badge bg-danger"><i class="fas fa-clock"></i> متأخر</span>
-                            @elseif($isActive)
-                                <span class="badge bg-info"><i class="fas fa-play-circle"></i> جاري</span>
-                            @else
-                                <span class="badge bg-secondary"><i class="fas fa-hourglass-start"></i> قادم</span>
-                            @endif
-                        </div>
-                    </div>
-
-                    <div class="timeline-dates">
-                        <small class="text-muted">
-                            <i class="fas fa-play"></i> {{ $startDate->format('Y-m-d') }}
-                            <i class="fas fa-arrow-right ms-2 me-2"></i>
-                            <i class="fas fa-stop"></i> {{ $endDate->format('Y-m-d') }}
-                        </small>
-                    </div>
-
-                    <div class="timeline-progress">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar" role="progressbar" style="width: {{ $elapsedPercentage }}%;" 
-                                 aria-valuenow="{{ $elapsedPercentage }}" aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <small class="text-muted d-block mt-1">{{ round($elapsedPercentage) }}% من المدة الزمنية</small>
-                    </div>
-                </div>
-                @empty
-                <div class="col-12">
-                    <div class="alert alert-info text-center py-4">
-                        <i class="fas fa-info-circle"></i> لا توجد مشاريع قيد التنفيذ
-                    </div>
-                </div>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <!-- Charts Tabs Navigation -->
-    <div style="margin-bottom: 2rem;">
-        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); padding: 1rem;">
-            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; border-bottom: 2px solid #e9ecef; padding-bottom: 1rem;">
-                <button onclick="showCharts('timeline')" class="chart-tab-btn active" data-tab="timeline">
-                    <i class="fas fa-clock"></i> المخططات الزمنية
-                </button>
-                <button onclick="showCharts('financial')" class="chart-tab-btn" data-tab="financial">
-                    <i class="fas fa-coins"></i> المخططات المالية
-                </button>
-                <button onclick="showCharts('performance')" class="chart-tab-btn" data-tab="performance">
-                    <i class="fas fa-tachometer-alt"></i> الأداء والجودة
-                </button>
-                <button onclick="showCharts('comparison')" class="chart-tab-btn" data-tab="comparison">
-                    <i class="fas fa-chart-bar"></i> المقارنات
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Timeline Charts Section -->
-    <div id="timeline-charts-section" class="charts-section" style="display: block;">
-        @include('projects.quality.charts.timeline-charts')
-    </div>
-
-    <!-- Financial Charts Section -->
-    <div id="financial-charts-section" class="charts-section" style="display: none;">
-        @include('projects.quality.charts.financial-charts')
-    </div>
-
-    <!-- Performance Charts Section -->
-    <div id="performance-charts-section" class="charts-section" style="display: none;">
-        @include('projects.quality.charts.performance-charts')
-    </div>
-
-    <!-- Comparison Charts Section -->
-    <div id="comparison-charts-section" class="charts-section" style="display: none;">
-        @include('projects.quality.charts.comparison-charts')
-    </div>
-
-    <!-- Implementation Activity Log Section -->
-    <div class="dashboard-section activity-log-section" id="activity-log-section" style="margin-top: 3rem;">
-        <div class="section-header" onclick="toggleSection('activity-log-section')">
-            <h3><i class="fas fa-history"></i> سجل الأنشطة</h3>
-            <span class="section-toggle">
-                <i class="fas fa-chevron-up"></i>
-            </span>
-        </div>
-
-        <div class="section-content">
-            <div class="activity-log-list">
-                @php
-                    // Collect all execution records from all projects
-                    $allExecutions = [];
-                    foreach ($projects as $project) {
-                        foreach ($project->preliminaryActivities as $activity) {
-                            foreach ($activity->procedures as $procedure) {
-                                foreach ($procedure->executions as $execution) {
-                                    $allExecutions[] = [
-                                        'type' => 'preliminary',
-                                        'project' => $project,
-                                        'activity' => $activity,
-                                        'name' => $procedure->procedure_name,
-                                        'execution' => $execution,
-                                        'date' => $execution->created_at
-                                    ];
-                                }
-                            }
+                    $activeChips = [];
+                    if (request('governorate_ids')) {
+                        foreach (request('governorate_ids') as $id) {
+                            $g = collect($filterData['governorates'])->firstWhere('id', $id);
+                            if ($g) $activeChips[] = ['type' => 'gov', 'label' => $g->name];
                         }
-                        
-                        foreach ($project->executiveActivities as $activity) {
-                            foreach ($activity->actions as $action) {
-                                foreach ($action->executions as $execution) {
-                                    $allExecutions[] = [
-                                        'type' => 'executive',
-                                        'project' => $project,
-                                        'activity' => $activity,
-                                        'name' => $action->action_name,
-                                        'execution' => $execution,
-                                        'date' => $execution->created_at
-                                    ];
-                                }
+                    }
+                    if (request('entity_ids')) {
+                        foreach (request('entity_ids') as $id) {
+                            $e = collect($filterData['entities'])->firstWhere('id', $id);
+                            if ($e) $activeChips[] = ['type' => 'ent', 'label' => $e->name];
+                        }
+                    }
+                    if (request('status_ids')) {
+                        foreach (request('status_ids') as $s) {
+                            if (isset($filterData['statuses'][$s])) {
+                                $activeChips[] = ['type' => 'st', 'label' => $filterData['statuses'][$s]];
                             }
                         }
                     }
-                    
-                    // Sort by date (newest first) and take first 15
-                    $allExecutions = collect($allExecutions)->sortByDesc('date')->take(15);
                 @endphp
 
-                @forelse($allExecutions as $log)
-                <div class="activity-log-item">
-                    <div class="log-icon {{ $log['type'] === 'preliminary' ? 'preliminary' : 'executive' }}">
-                        <i class="fas {{ $log['type'] === 'preliminary' ? 'fa-tasks' : 'fa-cogs' }}"></i>
-                    </div>
-
-                    <div class="log-content">
-                        <div class="log-header">
-                            <a href="{{ route('projects.quality.show', $log['project']->id) }}" style="text-decoration: none; color: #1e293b;">
-                                <strong>{{ $log['project']->project_name }}</strong>
-                            </a>
-                            <span class="log-date">
-                                <i class="fas fa-clock"></i>
-                                {{ $log['date']->diffForHumans() }}
-                            </span>
-                        </div>
-
-                        <div class="log-details">
-                            <span class="activity-type-badge {{ $log['type'] }}">
-                                {{ $log['type'] === 'preliminary' ? 'نشاط تمهيدي' : 'نشاط تنفيذي' }}
-                            </span>
-                            <span class="activity-name">{{ $log['name'] }}</span>
-                        </div>
-
-                        @if($log['execution']->amount_spent)
-                        <div class="log-amount">
-                            <i class="fas fa-dollar-sign"></i>
-                            {{ number_format($log['execution']->amount_spent, 2) }} ريال
-                        </div>
-                        @endif
-                    </div>
+                @if(count($activeChips) || request('from_date') || request('to_date'))
+                <div class="active-filters">
+                    <span class="text-muted small align-self-center me-2">
+                        <i class="fas fa-tag"></i> فلاتر مطبّقة:
+                    </span>
+                    @foreach($activeChips as $chip)
+                        <span class="filter-chip">{{ $chip['label'] }}</span>
+                    @endforeach
+                    @if(request('from_date'))
+                        <span class="filter-chip">من: {{ request('from_date') }}</span>
+                    @endif
+                    @if(request('to_date'))
+                        <span class="filter-chip">إلى: {{ request('to_date') }}</span>
+                    @endif
                 </div>
-                @empty
-                <div class="alert alert-info text-center py-4">
-                    <i class="fas fa-inbox"></i> لا توجد سجلات نشاط
-                </div>
-                @endforelse
+                @endif
             </div>
+        </div>
+    </form>
+
+    {{-- ================= Charts ================= --}}
+    <div class="charts-grid">
+        <div class="panel">
+            <h3 class="panel-title"><i class="fas fa-chart-pie"></i> توزيع مستويات الجودة</h3>
+            <canvas id="qualityDistributionChart" height="220"></canvas>
+        </div>
+        <div class="panel">
+            <h3 class="panel-title"><i class="fas fa-chart-bar"></i> متوسط الجودة حسب الجهة</h3>
+            <canvas id="qualityByEntityChart" height="220"></canvas>
+        </div>
+        <div class="panel">
+            <h3 class="panel-title"><i class="fas fa-chart-line"></i> اتجاه الجودة الزمني</h3>
+            <canvas id="qualityTrendChart" height="220"></canvas>
+        </div>
+    </div>
+
+    {{-- ================= Table ================= --}}
+    <div class="table-panel">
+        <div class="table-panel-head">
+            <h6><i class="fas fa-table me-2"></i> تفاصيل المشاريع</h6>
+            <span class="count">{{ count($projects) }} مشروع</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="q-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input">
+                        </th>
+                        <th class="sortable" data-sort="project_name">
+                            المشروع <i class="fas fa-sort sort-icon"></i>
+                        </th>
+                        <th>الجهة</th>
+                        <th>الموقع</th>
+                        <th>الحالة</th>
+                        <th>جودة الوقت</th>
+                        <th>الجودة المالية</th>
+                        <th class="text-center">التقييم العام</th>
+                        <th style="width: 100px;" class="text-center">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($projects as $data)
+                    @php
+                        $score = $data['statistics']['overall_quality_score'];
+                        $circ  = 2 * 3.14159 * 22;
+                        $dash  = ($score / 100) * $circ;
+                        $ringColor = $score >= 80 ? '#10b981' : ($score >= 60 ? '#f59e0b' : '#ef4444');
+                        $statusClass = match($data['status_name']) {
+                            'مكتمل', 'completed' => 'green',
+                            'قيد التنفيذ', 'in_progress' => 'blue',
+                            'معلّق', 'pending' => 'warn',
+                            default => 'gray',
+                        };
+                    @endphp
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="form-check-input project-checkbox" value="{{ $data['project']->id }}">
+                        </td>
+                        <td>
+                            <a href="{{ route('projects.quality.show', $data['project']->id) }}" class="project-name">
+                                {{ \Illuminate\Support\Str::limit($data['project']->project_name, 45) }}
+                            </a>
+                        </td>
+                        <td>{{ $data['entity_name'] }}</td>
+                        <td class="text-muted">{{ $data['location_name'] }}</td>
+                        <td><span class="badge-soft {{ $statusClass }}">{{ $data['status_name'] }}</span></td>
+                        <td>
+                            <div class="mini-bar">
+                                <div class="fill" style="width: {{ $data['statistics']['time_positive_percentage'] }}%; background:#0ea5e9;"></div>
+                            </div>
+                            <small class="text-muted">{{ $data['statistics']['time_positive_percentage'] }}%</small>
+                        </td>
+                        <td>
+                            <div class="mini-bar">
+                                <div class="fill" style="width: {{ $data['statistics']['financial_positive_percentage'] }}%; background:#10b981;"></div>
+                            </div>
+                            <small class="text-muted">{{ $data['statistics']['financial_positive_percentage'] }}%</small>
+                        </td>
+                        <td class="text-center">
+                            <div class="score-ring" title="{{ $score }}%">
+                                <svg width="52" height="52">
+                                    <circle cx="26" cy="26" r="22" stroke="#f1f5f9" stroke-width="5" fill="none"/>
+                                    <circle cx="26" cy="26" r="22" stroke="{{ $ringColor }}" stroke-width="5" fill="none"
+                                            stroke-linecap="round"
+                                            stroke-dasharray="{{ $dash }} {{ $circ }}"/>
+                                </svg>
+                                <span class="val">{{ round($score) }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="row-actions justify-content-center">
+                                <button class="icon-btn" onclick="printSingle({{ $data['project']->id }})" title="طباعة">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                                <button class="icon-btn" onclick="exportSingle({{ $data['project']->id }})" title="تصدير">
+                                    <i class="fas fa-file-excel"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <div class="fw-bold">لا توجد مشاريع مطابقة للفلاتر</div>
+                                <div class="small mt-1">جرّب تغيير معايير البحث</div>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="{{ asset('js/chart.min.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    // Initialize Chart on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeBudgetChart();
+document.addEventListener('DOMContentLoaded', function () {
+    // ================= Multi-Select =================
+    $('.multi-select').select2({
+        placeholder: 'اختر...',
+        allowClear: true,
+        width: '100%',
+        dir: 'rtl',
+        language: { noResults: () => 'لا توجد نتائج' },
     });
 
-    function showCharts(tab) {
-        // Hide all chart sections
-        document.getElementById('timeline-charts-section').style.display = 'none';
-        document.getElementById('financial-charts-section').style.display = 'none';
-        document.getElementById('performance-charts-section').style.display = 'none';
-        document.getElementById('comparison-charts-section').style.display = 'none';
-
-        // Remove active class from all buttons
-        document.querySelectorAll('.chart-tab-btn').forEach(btn => {
-            btn.classList.remove('active');
+    // ================= Sortable headers =================
+    document.querySelectorAll('.q-table th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            const current = document.getElementById('sort_by').value;
+            const dir = document.getElementById('sort_dir');
+            document.getElementById('sort_by').value = col;
+            dir.value = (current === col && dir.value === 'asc') ? 'desc' : 'asc';
+            document.getElementById('filter-form').submit();
         });
+    });
 
-        // Show selected section
-        const sectionMap = {
-            'timeline': 'timeline-charts-section',
-            'financial': 'financial-charts-section',
-            'performance': 'performance-charts-section',
-            'comparison': 'comparison-charts-section'
-        };
+    // ================= Selection =================
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.project-checkbox');
 
-        if (sectionMap[tab]) {
-            document.getElementById(sectionMap[tab]).style.display = 'block';
-        }
-
-        // Add active class to clicked button
-        document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-
-        // Scroll to charts section
-        const section = document.querySelector('.charts-section:not([style*="display: none"])');
-        if (section) {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
     }
 
-    function initializeBudgetChart() {
-        const ctx = document.getElementById('budgetChart');
-        if (!ctx) return;
+    // ================= Charts =================
+    const chartData = @json($charts);
 
-        @php
-            $totalBudget = $projects->sum(function($p) {
-                return $p->executiveFinancialSummaries->sum('approved_amount') ?? 0;
-            });
-            $totalSpent = $projects->sum(function($p) {
-                return $p->executiveActivities->sum(function($a) {
-                    return $a->actions->sum(function($ac) {
-                        return $ac->executions->sum('amount_spent') ?? 0;
-                    });
-                });
-            });
-            $totalRemaining = $totalBudget - $totalSpent;
-        @endphp
-
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['المصروف', 'المتبقي'],
-                datasets: [{
-                    data: [{{ $totalSpent }}, {{ max(0, $totalRemaining) }}],
-                    backgroundColor: [
-                        '#28a745',
-                        '#17a2b8'
-                    ],
-                    borderColor: ['#fff', '#fff'],
-                    borderWidth: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            font: { size: 12 }
-                        }
-                    }
-                }
+    new Chart(document.getElementById('qualityDistributionChart'), {
+        type: 'doughnut',
+        data: {
+            labels: chartData.quality_distribution.labels,
+            datasets: [{
+                data: chartData.quality_distribution.data,
+                backgroundColor: ['#10b981', '#34d399', '#f59e0b', '#f97316', '#ef4444'],
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, cutout: '65%',
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12, boxWidth: 12 } }
             }
-        });
-    }
-
-    function filterDashboard(type) {
-        // Hide all sections
-        document.getElementById('financial-section').style.display = 'none';
-        document.getElementById('timeline-section').style.display = 'none';
-        document.getElementById('activity-log-section').style.display = 'none';
-
-        // Show selected section
-        if (type === 'all') {
-            document.getElementById('financial-section').style.display = 'block';
-            document.getElementById('timeline-section').style.display = 'block';
-            document.getElementById('activity-log-section').style.display = 'block';
-        } else if (type === 'financial') {
-            document.getElementById('financial-section').style.display = 'block';
-        } else if (type === 'timeline') {
-            document.getElementById('timeline-section').style.display = 'block';
         }
-    }
+    });
 
-    function toggleSection(sectionId) {
-        const section = document.getElementById(sectionId);
-        const content = section.querySelector('.section-content');
-        const toggle = section.querySelector('.section-toggle i');
+    new Chart(document.getElementById('qualityByEntityChart'), {
+        type: 'bar',
+        data: {
+            labels: chartData.quality_by_entity.labels,
+            datasets: [{
+                label: 'متوسط الجودة %',
+                data: chartData.quality_by_entity.data,
+                backgroundColor: '#0d2d5e',
+                borderRadius: 6,
+                barThickness: 28,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
 
-        content.style.display = content.style.display === 'none' ? 'block' : 'none';
-        toggle.classList.toggle('fa-chevron-up');
-        toggle.classList.toggle('fa-chevron-down');
-    }
+    new Chart(document.getElementById('qualityTrendChart'), {
+        type: 'line',
+        data: {
+            labels: chartData.quality_trend.labels,
+            datasets: [{
+                label: 'متوسط الجودة',
+                data: chartData.quality_trend.data,
+                borderColor: '#d4af37',
+                backgroundColor: 'rgba(212,175,55,0.12)',
+                fill: true, tension: 0.35,
+                pointRadius: 4, pointBackgroundColor: '#08214c',
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+});
+
+// ================= Actions =================
+function getSelectedIds() {
+    return Array.from(document.querySelectorAll('.project-checkbox:checked')).map(cb => cb.value).join(',');
+}
+
+function buildActionUrl(baseUrl, scope, id = null) {
+    const formData = new FormData(document.getElementById('filter-form'));
+    const params = new URLSearchParams(formData);
+    params.set('report_scope', scope);
+    if (scope === 'selected') params.set('project_ids', getSelectedIds());
+    if (scope === 'single' && id) params.set('single_project_id', id);
+    return baseUrl + '?' + params.toString();
+}
+
+function printReport(scope)  { window.open(buildActionUrl('{{ route("projects.quality.print") }}',  scope), '_blank'); }
+function exportReport(scope) { window.location.href = buildActionUrl('{{ route("projects.quality.export") }}', scope); }
+function printSingle(id)     { window.open(buildActionUrl('{{ route("projects.quality.print") }}',  'single', id), '_blank'); }
+function exportSingle(id)    { window.location.href = buildActionUrl('{{ route("projects.quality.export") }}', 'single', id); }
 </script>
 @endsection

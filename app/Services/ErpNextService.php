@@ -28,7 +28,7 @@ class ErpNextService
     {
         $config = config('external.erpnext', []);
 
-        $this->baseUrl = rtrim((string) ($config['base_url'] ?? env('ERP_BASE_URL', 'http://172.16.10.231:8051')), '/');
+        $this->baseUrl = rtrim((string) ($config['base_url'] ?? env('ERP_BASE_URL', 'http://82.114.179.169:8855')), '/');
         $this->user = (string) ($config['user'] ?? env('ERP_USER', 'amir@mafwr.gov.ye'));
         $this->pass = (string) ($config['pass'] ?? env('ERP_PASS', 'Amir@2025'));
         $this->apiKey = (string) ($config['api_key'] ?? env('FRAPPE_API_KEY', '43036f34cd6ad9e'));

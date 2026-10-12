@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\CorrespondenceOrganizationResolver;
+use App\Services\OrganizationResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -448,8 +450,11 @@ class CorrespondenceReply extends Model
         // المستخدم من الجهة المرسلة أو المستقبلة للمراسلة الأصلية
         $correspondence = $this->correspondence;
         if ($correspondence) {
-            if ($correspondence->sender_entity_id === $user->entity_id ||
-                $correspondence->recipient_entity_id === $user->entity_id) {
+            $orgResolver = app(CorrespondenceOrganizationResolver::class);
+            $userOrg = app(OrganizationResolver::class)->resolve($user);
+
+            if ($orgResolver->matchesUserOrganization($userOrg, $this->sender_type, $this->sender_entity_id, $this->sender_authority_id) ||
+                $orgResolver->matchesUserOrganization($userOrg, $this->recipient_type, $this->recipient_entity_id, $this->recipient_authority_id)) {
 
                 // إذا كان الرد سرياً، تحقق من الصلاحية
                 if ($this->confidential) {
@@ -464,7 +469,8 @@ class CorrespondenceReply extends Model
         // إذا كان الرد مرتبطاً بإحالة
         if ($this->referral_id) {
             $referral = $this->referral;
-            if ($referral && $referral->referred_to_entity_id === $user->entity_id) {
+            $orgResolver = app(CorrespondenceOrganizationResolver::class);
+            if ($referral && $orgResolver->matchesUserOrganization($userOrg, $referral->referred_to_type, $referral->referred_to_entity_id, $referral->referred_to_authority_id)) {
                 return true;
             }
         }

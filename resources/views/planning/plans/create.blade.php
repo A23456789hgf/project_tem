@@ -56,9 +56,9 @@
                         <!-- الجهة -->
                         <div class="col-md-6">
                             <label class="form-label fw-bold">الجهة المقدمة للخطة *</label>
+                            @php($currentOrganization = Auth::user()->organization())
                             <input type="text" class="form-control bg-light"
-                                value="{{ Auth::user()->entity?->name ?? 'لم يتم تعيين جهة' }}" readonly>
-                            <input type="hidden" name="submitting_entity_id" value="{{ Auth::user()->entity_id }}">
+                                value="{{ $currentOrganization['model']?->name ?? $currentOrganization['model']?->agency_name ?? 'لم يتم تعيين جهة' }}" readonly>
                             <small class="text-muted">يتم تعيين الجهة آلياً حسب حساب المستخدم الحالي.</small>
                         </div>
 

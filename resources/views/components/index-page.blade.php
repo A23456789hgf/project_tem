@@ -112,14 +112,16 @@
 
                 if (isset($pagination)) {
                     $paginationHtml = $pagination;
-                } elseif ($paginatorInstance) {
+                } elseif ($paginatorInstance && method_exists($paginatorInstance, 'withQueryString') && method_exists($paginatorInstance, 'links')) {
                     $paginationHtml = $paginatorInstance->withQueryString()->links();
-                    $totalCount = $paginatorInstance->total();
+                    if (method_exists($paginatorInstance, 'total')) {
+                        $totalCount = $paginatorInstance->total();
+                    }
                 }
 
                 if (isset($total)) {
                     $totalCount = $total;
-                } elseif ($paginatorInstance && !$totalCount) {
+                } elseif ($paginatorInstance && method_exists($paginatorInstance, 'total') && !$totalCount) {
                     $totalCount = $paginatorInstance->total();
                 }
             @endphp

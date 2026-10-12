@@ -22,7 +22,7 @@ class GenericSheetImport implements ToCollection, WithHeadingRow
         $this->type = $type;
     }
 
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         $mappedRows = $rows->map(function ($row) {
             return $this->mapArabicHeadings($row->toArray());

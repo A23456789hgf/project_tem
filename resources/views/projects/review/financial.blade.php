@@ -163,14 +163,8 @@
                                     <h6 class="fw-bold text-info mb-0">
                                         <i class="fas fa-tasks me-1"></i> النشاط التمهيدي: {{ $activity->name ?? $activity->activity }}
                                     </h6>
-                                    <div class="d-flex align-items-center gap-1">
-                                        <label class="form-label small text-muted mb-0">وزن النشاط (%):</label>
-                                        <input type="number" step="0.01" min="0" max="100"
-                                               name="preliminary_activities[{{ $activity->id }}][weight]" 
-                                               class="form-control form-control-sm" style="width: 100px;" 
-                                               value="{{ $activity->weight ?? 0 }}">
-                                    </div>
                                 </div>
+                                @include('projects.review.partials.item-notes', ['model' => $activity])
                                 @if($activity->procedures->count() > 0)
                                     @foreach($activity->procedures as $procedure)
                                         <div class="ms-3 mb-3 p-3 bg-white border rounded">
@@ -180,15 +174,9 @@
                                                     <span class="badge bg-secondary-subtle text-secondary border">
                                                         {{ $procedure->start_date }} إلى {{ $procedure->end_date }} ({{ $procedure->duration_days }} يوم)
                                                     </span>
-                                                    <div class="d-flex align-items-center gap-1">
-                                                        <label class="form-label small text-muted mb-0">وزن الإجراء (%):</label>
-                                                        <input type="number" step="0.01" min="0" max="100"
-                                                               name="preliminary_procedures[{{ $procedure->id }}][weight]" 
-                                                               class="form-control form-control-sm" style="width: 90px;" 
-                                                               value="{{ $procedure->weight ?? 0 }}">
-                                                    </div>
                                                 </div>
                                             </div>
+                                            @include('projects.review.partials.item-notes', ['model' => $procedure])
                                             @if($procedure->costs->count() > 0)
                                                 <div class="table-responsive mt-2">
                                                     <table class="table table-bordered table-hover table-sm mb-0">
@@ -214,7 +202,7 @@
                                                                 </td>
                                                                 <td>
                                                                     <input type="number" 
-                                                                           name="preliminary_costs[{{ $cost->id }}][unit_price]" 
+                                                                           name="preliminary_costs[{{ $cost->id }}][amount]" 
                                                                            class="form-control form-control-sm cost-unit-price" 
                                                                            value="{{ $cost->unit_price }}"
                                                                            min="0"
@@ -223,6 +211,11 @@
                                                                 </td>
                                                                 <td class="total-cost-{{ $cost->id }} fw-bold text-success">
                                                                     {{ number_format($cost->total_cost, 2) }}
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td colspan="4" class="p-2 border-0 bg-light">
+                                                                    @include('projects.review.partials.item-notes', ['model' => $cost])
                                                                 </td>
                                                             </tr>
                                                             @endforeach
@@ -248,8 +241,8 @@
                 <div class="card mb-4 border-0 shadow-sm">
                     <div class="card-header" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: white;">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 fw-bold"><i class="fas fa-running me-2"></i>الأنشطة والإجراءات التنفيذية والتكاليف المالـية والأوزان</h5>
-                            <span class="badge bg-white text-dark small"><i class="fas fa-edit me-1 text-info"></i>تعديل التكاليف والأوزان</span>
+                            <h5 class="mb-0 fw-bold"><i class="fas fa-running me-2"></i>الأنشطة والإجراءات التنفيذية والتكاليف المالـية</h5>
+                            <span class="badge bg-white text-dark small"><i class="fas fa-edit me-1 text-info"></i>تعديل التكاليف</span>
                         </div>
                     </div>
                     <div class="card-body">
@@ -259,14 +252,8 @@
                                     <h6 class="fw-bold style-purple mb-0" style="color: #6f42c1;">
                                         <i class="fas fa-running me-1"></i> النشاط التنفيذي: {{ $activity->activity_name ?? $activity->name }}
                                     </h6>
-                                    <div class="d-flex align-items-center gap-1">
-                                        <label class="form-label small text-muted mb-0">وزن النشاط (%):</label>
-                                        <input type="number" step="0.01" min="0" max="100"
-                                               name="executive_activities[{{ $activity->id }}][weight]" 
-                                               class="form-control form-control-sm" style="width: 100px;" 
-                                               value="{{ $activity->weight ?? 0 }}">
-                                    </div>
                                 </div>
+                                @include('projects.review.partials.item-notes', ['model' => $activity])
                                 @if($activity->actions->count() > 0)
                                     @foreach($activity->actions as $action)
                                         <div class="ms-3 mb-3 p-3 bg-white border rounded">
@@ -276,15 +263,9 @@
                                                     <span class="badge bg-secondary-subtle text-secondary border">
                                                         {{ $action->start_date }} إلى {{ $action->end_date }}
                                                     </span>
-                                                    <div class="d-flex align-items-center gap-1">
-                                                        <label class="form-label small text-muted mb-0">وزن الإجراء (%):</label>
-                                                        <input type="number" step="0.01" min="0" max="100"
-                                                               name="executive_actions[{{ $action->id }}][weight]" 
-                                                               class="form-control form-control-sm" style="width: 90px;" 
-                                                               value="{{ $action->weight ?? 0 }}">
-                                                    </div>
                                                 </div>
                                             </div>
+                                            @include('projects.review.partials.item-notes', ['model' => $action])
                                             @if($action->costs->count() > 0)
                                                 <div class="table-responsive mt-2">
                                                     <table class="table table-bordered table-hover table-sm mb-0">
@@ -310,7 +291,7 @@
                                                                 </td>
                                                                 <td>
                                                                     <input type="number" 
-                                                                           name="executive_costs[{{ $cost->id }}][unit_price]" 
+                                                                           name="executive_costs[{{ $cost->id }}][amount]" 
                                                                            class="form-control form-control-sm cost-unit-price" 
                                                                            value="{{ $cost->unit_price }}"
                                                                            min="0"
@@ -319,6 +300,11 @@
                                                                 </td>
                                                                 <td class="total-cost-{{ $cost->id }} fw-bold text-success">
                                                                     {{ number_format($cost->total_cost, 2) }}
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <td colspan="4" class="p-2 border-0 bg-light">
+                                                                    @include('projects.review.partials.item-notes', ['model' => $cost])
                                                                 </td>
                                                             </tr>
                                                             @endforeach

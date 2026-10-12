@@ -14,9 +14,7 @@
                         <strong>تنبيه:</strong> يجب تغيير كلمة المرور الافتراضية قبل الاستمرار في استخدام النظام.
                     </div>
 
-                    @can('password.change.edit')
                     <form action="{{ route('password.change.update') }}" method="POST" id="passwordChangeForm">
-                    @endcan
                         @csrf
                         <div class="mb-3">
                             <label class="form-label fw-bold">كلمة المرور الحالية</label>

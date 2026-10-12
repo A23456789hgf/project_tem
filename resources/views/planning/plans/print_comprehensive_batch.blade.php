@@ -216,7 +216,7 @@
 ">
                 الجمهورية اليمنية<br>
                 وزارة الزراعة والثروة السمكية والموارد المائية<br>
-                {{ $plan->submittingEntity->name ?? '-' }}
+                {{ $plan->submitting_organization_name ?? '-' }}
             </div>
             <div class="header-center">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo" class="logo"><br>
@@ -244,11 +244,19 @@
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">الجهة المقدمة</span>
-                <span class="info-value">{{ $plan->submittingEntity->name }}</span>
+                <span class="info-value">{{ $plan->submitting_organization_name }}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">الأولوية الوطنية</span>
-                <span class="info-value">{{ $plan->priority->priority }}</span>
+                <span class="info-label">فترة الخطة</span>
+                <span class="info-value">
+                    @if($plan->start_date_g && $plan->end_date_g)
+                        من {{ \Carbon\Carbon::parse($plan->start_date_g)->format('Y-m-d') }} إلى {{ \Carbon\Carbon::parse($plan->end_date_g)->format('Y-m-d') }}
+                    @elseif(is_object($plan->priority))
+                        {{ $plan->priority->priority ?? $plan->priority->name ?? '-' }}
+                    @else
+                        {{ $plan->priority ?? '-' }}
+                    @endif
+                </span>
             </div>
             <div class="info-item">
                 <span class="info-label">تاريخ الإصدار</span>

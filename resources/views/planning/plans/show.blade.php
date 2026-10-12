@@ -47,12 +47,22 @@
                         </div>
                         
                         <div class="col-md-6">
-                            <label class="text-muted small d-block mb-1">الأولوية</label>
-                            <div class="fw-bold">{{ $plan->priority->priority }}</div>
+                            <label class="text-muted small d-block mb-1">فترة الخطة / الأولوية</label>
+                            <div class="fw-bold">
+                                @if($plan->start_date_g && $plan->end_date_g)
+                                    من {{ \Carbon\Carbon::parse($plan->start_date_g)->format('Y/m/d') }} إلى {{ \Carbon\Carbon::parse($plan->end_date_g)->format('Y/m/d') }} ({{ $plan->duration }} يوم)
+                                @elseif(is_object($plan->priority))
+                                    {{ $plan->priority->priority ?? $plan->priority->name ?? 'غير محدد' }}
+                                @elseif(!empty($plan->priority))
+                                    {{ $plan->priority }}
+                                @else
+                                    غير محدد
+                                @endif
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="text-muted small d-block mb-1">الجهة المقدمة</label>
-                            <div class="fw-bold">{{ $plan->submittingEntity->name }}</div>
+                            <div class="fw-bold">{{ $plan->submitting_organization_name }}</div>
                         </div>
                         
                         <div class="col-md-6">

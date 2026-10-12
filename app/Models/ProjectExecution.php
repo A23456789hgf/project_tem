@@ -13,6 +13,8 @@ class ProjectExecution extends Model
 
     protected $fillable = [
         'project_id',
+        'disbursement_plan_detail_id',
+        'clearance_request_id',
         'executive_activity_action_id',
         'created_by_user_id',
         'entity',
@@ -30,6 +32,8 @@ class ProjectExecution extends Model
         'financial_documents',
         'notes',
         'approval_status',
+        'workflow_review_status',
+        'workflow_return_note',
         'approved_by',
         'approved_at',
         'rejection_reason',
@@ -56,6 +60,16 @@ class ProjectExecution extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function disbursementPlanDetail(): BelongsTo
+    {
+        return $this->belongsTo(ProjectDisbursementPlanDetail::class, 'disbursement_plan_detail_id');
+    }
+
+    public function clearanceRequest(): BelongsTo
+    {
+        return $this->belongsTo(ProjectClearanceRequest::class, 'clearance_request_id');
     }
 
     /**

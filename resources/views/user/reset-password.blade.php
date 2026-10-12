@@ -22,8 +22,8 @@
                     <h5 class="mb-0">إعادة تعيين كلمة مرور: {{ $user->name }}</h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle"></i> أدخل كلمة مرور جديدة للمستخدم
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> سيتم إعادة تعيين كلمة المرور إلى القيمة الافتراضية: <strong>123456</strong>
                     </div>
 
                     @can('users.reset-password')
@@ -35,28 +35,13 @@
                             <input type="text" class="form-control" value="{{ $user->user_id }}" disabled>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="password" class="form-label">كلمة المرور الجديدة *</label>
-                            <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                                   id="password" name="password" required minlength="1" maxlength="50">
-                            @error('password')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="password_confirmation" class="form-label">تأكيد كلمة المرور *</label>
-                            <input type="password" class="form-control @error('password_confirmation') is-invalid @enderror" 
-                                   id="password_confirmation" name="password_confirmation" required minlength="1" maxlength="50">
-                            @error('password_confirmation')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
+                        <input type="hidden" name="password" value="123456">
+                        <input type="hidden" name="password_confirmation" value="123456">
 
                         <div class="row mt-4">
                             <div class="col-md-12">
-                                <button type="submit" class="btn btn-success btn-lg">
-                                    <i class="fas fa-check"></i> تحديث كلمة المرور
+                                <button type="submit" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-undo"></i> إعادة تعيين للافتراضي (123456)
                                 </button>
                                 <a href="{{ route('users.show', $user) }}" class="btn btn-secondary btn-lg">
                                     <i class="fas fa-times"></i> إلغاء

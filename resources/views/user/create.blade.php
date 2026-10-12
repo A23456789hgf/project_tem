@@ -118,11 +118,28 @@
             @error('phone') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
 
+        {{-- البريد الإلكتروني --}}
+        <div class="col-md-6">
+            <label class="form-label fw-semibold text-muted small mb-1">البريد الإلكتروني <span class="text-danger" id="email_required_marker" style="{{ old('is_financial_user') ? '' : 'display: none;' }}">*</span></label>
+            <input type="email" name="email" id="user_email" class="form-control @error('email') is-invalid @enderror"
+                   value="{{ old('email') }}" placeholder="user@example.com">
+            @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            <div class="form-text text-muted small">مطلوب عند تفعيل المستخدم المالي (Financial User) للمزامنة مع ERPNext.</div>
+        </div>
+
         {{-- حالة الحساب السريع --}}
         <div class="col-md-6 d-flex align-items-end">
             <div class="form-check form-switch p-0 m-0 d-flex align-items-center pb-2">
                 <input class="form-check-input ms-0 me-2" type="checkbox" name="status" value="Active" id="statusSwitch" checked style="cursor: pointer;">
                 <label class="form-check-label fw-semibold text-dark small mb-0" for="statusSwitch" style="cursor: pointer;">الحساب نشط وجاهز للاستخدام</label>
+            </div>
+        </div>
+
+        {{-- مستخدم مالي (Financial User) --}}
+        <div class="col-md-6 d-flex align-items-end">
+            <div class="form-check form-switch p-0 m-0 d-flex align-items-center pb-2">
+                <input class="form-check-input ms-0 me-2" type="checkbox" name="is_financial_user" value="1" id="financialUserSwitch" @checked(old('is_financial_user')) style="cursor: pointer;">
+                <label class="form-check-label fw-semibold text-dark small mb-0" for="financialUserSwitch" style="cursor: pointer;">Financial User (مستخدم مالي)</label>
             </div>
         </div>
 
@@ -225,6 +242,14 @@
         });
 
         toggleOrganizationFields(true);
+
+        $('#financialUserSwitch').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#email_required_marker').show();
+            } else {
+                $('#email_required_marker').hide();
+            }
+        });
     });
     </script>
 @endsection

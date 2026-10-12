@@ -1,5 +1,32 @@
 @extends('layouts.app')
 
+@php
+    /*
+     |--------------------------------------------------------------------------
+     | حماية المتغيّرات (Defensive defaults)
+     |--------------------------------------------------------------------------
+     | يضمن هذا البلوك وجود $organization و $administrativeOrganization
+     | حتى لو لم يمرّرهما الـ Controller (أو في حال وجود كاش قديم).
+     */
+    if (!isset($organization)) {
+        $organization = method_exists($user, 'organization')
+            ? $user->organization()
+            : [
+                'type'  => $user->organization_type ?? 'internal',
+                'model' => null,
+            ];
+    }
+
+    if (!isset($administrativeOrganization)) {
+        $administrativeOrganization = null;
+        if (!empty($user->administrative_scope_id)) {
+            $administrativeOrganization = ($user->organization_type === 'external')
+                ? \App\Models\Authority::find($user->administrative_scope_id)
+                : \App\Models\InternalEntity::find($user->administrative_scope_id);
+        }
+    }
+@endphp
+
 @section('content')
 <div class="container-fluid">
     <div class="row mb-4">
@@ -12,8 +39,6 @@
             </a>
         </div>
     </div>
-
-    
 
     <div class="row">
         <div class="col-md-8">
@@ -34,7 +59,7 @@
                         <div class="col-md-3">
                             <label class="fw-bold">نوع المستخدم:</label>
                             <p>
-                                @if($user->organization_type === 'external')
+                                @if(($organization['type'] ?? null) === 'external')
                                     <span class="badge bg-warning text-dark">خارجي (جهة خارجية)</span>
                                 @else
                                     <span class="badge bg-primary">داخلي (الوزارة / الجهات التابعة)</span>
@@ -43,7 +68,9 @@
                         </div>
                         <div class="col-md-3">
                             <label class="fw-bold">الجهة:</label>
-                            <p class="fw-semibold text-dark">{{ $user->entity?->name ?? $user->authority?->agency_name ?? 'N/A' }}</p>
+                            <p class="fw-semibold text-dark">
+                                {{ $organization['model']?->name ?? $organization['model']?->agency_name ?? 'N/A' }}
+                            </p>
                         </div>
                     </div>
 
@@ -60,7 +87,11 @@
                             <label class="fw-bold">مسؤولية الموافقات:</label>
                             <p>
                                 @if($user->responsibility)
-                                    <span class="badge bg-info text-dark">{{ $user->responsibility instanceof \App\Enums\UserResponsibilityType ? $user->responsibility->label() : (\App\Enums\UserResponsibilityType::tryFrom($user->responsibility)?->label() ?? $user->responsibility) }}</span>
+                                    <span class="badge bg-info text-dark">
+                                        {{ $user->responsibility instanceof \App\Enums\UserResponsibilityType
+                                            ? $user->responsibility->label()
+                                            : (\App\Enums\UserResponsibilityType::tryFrom($user->responsibility)?->label() ?? $user->responsibility) }}
+                                    </span>
                                 @else
                                     <span class="text-muted">بدون مسؤولية خاصة</span>
                                 @endif
@@ -68,14 +99,18 @@
                         </div>
                         <div class="col-md-3">
                             <label class="fw-bold">النطاق الإداري:</label>
-                            <p>{{ $user->isExternal() ? ($user->administrativeAuthority?->agency_name ?? $user->authority?->agency_name ?? 'غير محدد') : ($user->internalEntity?->name ?? 'غير محدد') }}</p>
+                            <p>{{ $administrativeOrganization?->name ?? $administrativeOrganization?->agency_name ?? 'غير محدد' }}</p>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="fw-bold">المحافظة والمديرية الأساسية:</label>
-                            <p>{{ $user->governorate_name ?? $user->governorate?->name ?? 'N/A' }} / {{ $user->directorate_name ?? $user->directorate?->name ?? 'N/A' }}</p>
+                            <p>
+                                {{ $user->governorate_name ?? $user->governorate?->name ?? 'N/A' }}
+                                /
+                                {{ $user->directorate_name ?? $user->directorate?->name ?? 'N/A' }}
+                            </p>
                         </div>
                         <div class="col-md-6">
                             <label class="fw-bold">تصنيف النطاق الجغرافي:</label>
@@ -114,6 +149,56 @@
                             </p>
                         </div>
                     </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="fw-bold">تصنيف المستخدم المالي (Financial User):</label>
+                            <p>
+                                @if($user->is_financial_user)
+                                    <span class="badge bg-success fs-6">
+                                        <i class="fas fa-coins me-1"></i> مستخدم مالي (Financial User)
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary fs-6">مستخدم عادي</span>
+                                @endif
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="fw-bold">مزامنة ERPNext:</label>
+                            <p>
+                                @if($user->erpnext_user_id)
+                                    <span class="fw-semibold font-monospace">{{ $user->erpnext_user_id }}</span>
+                                    @if($user->erpnext_sync_status === 'synced')
+                                        <span class="badge bg-success ms-1">متزامن</span>
+                                    @elseif($user->erpnext_sync_status === 'failed')
+                                        <span class="badge bg-danger ms-1">فشل المزامنة</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark ms-1">قيد المزامنة</span>
+                                    @endif
+                                    @if($user->erpnext_synced_at)
+                                        <small class="text-muted d-block mt-1">
+                                            تاريخ المزامنة: {{ $user->erpnext_synced_at->format('Y-m-d H:i') }}
+                                        </small>
+                                    @endif
+                                @else
+                                    <span class="text-muted">غير مرتبط بـ ERPNext</span>
+                                @endif
+                                @if($user->erpnext_sync_error)
+                                    <span class="text-danger small d-block mt-1">
+                                        <strong>الخطأ:</strong> {{ $user->erpnext_sync_error }}
+                                    </span>
+                                @endif
+                                @if($user->is_financial_user || $user->isLinkedToErpNext())
+                                    <form action="{{ route('users.retryErpNextSync', $user) }}" method="POST" class="d-inline-block mt-2">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-sync-alt me-1"></i> إعادة محاولة المزامنة مع ERPNext
+                                        </button>
+                                    </form>
+                                @endif
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -124,7 +209,6 @@
                 </div>
                 <div class="card-body">
                     @php
-                        // تجميع النطاقات حسب المحافظة
                         $groupedScopes = $user->geographicScopes->groupBy('governorate_id');
                     @endphp
                     <div class="table-responsive">
@@ -139,7 +223,8 @@
                                 @foreach($groupedScopes as $govId => $scopes)
                                     @php
                                         $governorate = $scopes->first()->governorate;
-                                        $directorates = $scopes->filter(fn($s) => $s->directorate_id != null)->map(fn($s) => $s->directorate);
+                                        $directorates = $scopes->filter(fn($s) => $s->directorate_id != null)
+                                                              ->map(fn($s) => $s->directorate);
                                     @endphp
                                     <tr>
                                         <td class="fw-bold align-middle" style="width: 30%;">
@@ -228,14 +313,16 @@
                         @can('users.disable')
                             <form action="{{ route('users.disable', $user) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn btn-warning w-100 mb-2" onclick="return confirmAction(this, 'هل تريد تعطيل هذا المستخدم؟')">
+                                <button type="submit" class="btn btn-warning w-100 mb-2"
+                                        onclick="return confirmAction(this, 'هل تريد تعطيل هذا المستخدم؟')">
                                     <i class="fas fa-ban"></i> تعطيل الحساب
                                 </button>
                             </form>
                         @endcan
                     @elseif($user->status === 'Disabled' && $user->username !== 'root')
                         @can('users.enable')
-                            <form action="{{ route('users.enable', $user) }}" method="POST" onsubmit="return confirmAction(this, 'هل أنت متأكد من عملية التفعيل؟')">
+                            <form action="{{ route('users.enable', $user) }}" method="POST"
+                                  onsubmit="return confirmAction(this, 'هل أنت متأكد من عملية التفعيل؟')">
                                 @csrf
                                 <button type="submit" class="btn btn-success w-100 mb-2">
                                     <i class="fas fa-check"></i> تفعيل الحساب
@@ -249,7 +336,8 @@
                             <form action="{{ route('users.destroy', $user) }}" method="POST">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-danger w-100" onclick="return confirmAction(this, 'هل تريد حذف هذا المستخدم؟')">
+                                <button type="submit" class="btn btn-danger w-100"
+                                        onclick="return confirmAction(this, 'هل تريد حذف هذا المستخدم؟')">
                                     <i class="fas fa-trash"></i> حذف المستخدم
                                 </button>
                             </form>

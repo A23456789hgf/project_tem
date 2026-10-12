@@ -9,6 +9,7 @@ use App\Models\ProjectAchievement;
 use App\Models\ProjectAchievementDocument;
 use App\Models\ProjectAchievementFunding;
 use App\Models\ReportType;
+use App\Services\DocumentLetterheadService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -81,8 +82,13 @@ class ProjectAchievementController extends Controller
 
         session()->flash('info', 'جاري طباعة التقرير الكامل للإنجازات.');
 
+        $letterheadData = app(DocumentLetterheadService::class)->resolveForDocument($project);
+        $letterhead = $letterheadData->letterhead;
+
         return view('projects.achievements.print', compact(
             'project',
+            'letterhead',
+            'letterheadData',
             'achievements',
             'latestAchievement',
             'governorates',
@@ -146,8 +152,13 @@ class ProjectAchievementController extends Controller
 
         session()->flash('info', 'جاري طباعة التقرير الفردي للإنجاز.');
 
+        $letterheadData = app(DocumentLetterheadService::class)->resolveForDocument($project);
+        $letterhead = $letterheadData->letterhead;
+
         return view('projects.achievements.print-single', compact(
             'project',
+            'letterhead',
+            'letterheadData',
             'achievement',
             'governorates',
             'directorates',

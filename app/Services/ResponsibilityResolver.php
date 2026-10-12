@@ -73,9 +73,9 @@ class ResponsibilityResolver
 
         // 2. Configured Stage Responsible User
         $stageConfig = EntityApprovalStage::where('entity_id', $resolvedEntity->id)
-            ->where(function($q) use ($resolvedType) {
+            ->where(function ($q) use ($resolvedType) {
                 $q->where('stage_key', $resolvedType)
-                  ->orWhere('stage', $resolvedType);
+                    ->orWhere('stage', $resolvedType);
             })
             ->where('is_active', true)
             ->with('responsibleUser')
@@ -156,7 +156,7 @@ class ResponsibilityResolver
 
         // Fallback for legacy snapshot records
         if (! $userId && $type) {
-            $userId = match ($type) {
+            $userId = match (strtolower($type)) {
                 'technical_review' => $approvalStep->technical_reviewer_id ?? $approvalStep->technical_review_user_id ?? null,
                 'financial_review' => $approvalStep->financial_reviewer_id ?? $approvalStep->financial_review_user_id ?? null,
                 default => null,
@@ -228,7 +228,7 @@ class ResponsibilityResolver
             $stageKey = $stage->stage_key ?? $stage->stage;
             $resolution = $this->resolveResponsibleUser($entity, $stageKey);
             if (! $resolution->isResolved()) {
-                $errors[] = "الجهة: {$entity->name} | المرحلة: " . ($stage->stage_name ?? $stageKey)
+                $errors[] = "الجهة: {$entity->name} | المرحلة: ".($stage->stage_name ?? $stageKey)
                     ." | المشكلة: {$resolution->reason}";
             }
         }

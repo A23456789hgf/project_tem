@@ -846,6 +846,12 @@
                             <span>سجل العمليات</span>
                         </button>
                     @endcan
+                    @if($task->isStandaloneGeneralTask() && auth()->user()->hasPermission('task_reports.view'))
+                        <button class="tab-link" data-tab-target="tab-achievement-reports">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>تقارير الإنجاز</span>
+                        </button>
+                    @endif
                 </div>
 
                 {{-- محتوى التبويبات --}}
@@ -873,6 +879,11 @@
                             @include('projects.tasks.partials.timeline')
                         </div>
                     @endcan
+                    @if($task->isStandaloneGeneralTask() && auth()->user()->hasPermission('task_reports.view'))
+                        <div class="tab-pane-content d-none" id="tab-achievement-reports">
+                            @include('projects.tasks.partials.achievement-reports')
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -948,18 +959,20 @@
                                 </select>
                             </div>
 
-                            <div class="field-group">
-                                <label class="field-label">المسند إليه</label>
-                                <select name="assigned_to[]" multiple class="form-select select2"
-                                    onchange="this.form.submit()" @cannot('task.edit', $task) disabled @endcannot>
-                                    <option value="">— غير مسندة —</option>
-                                    @foreach($users as $user)
-                                        <option value="{{ $user->id }}" {{ $task->assignees->contains('id', $user->id) ? 'selected' : '' }}>
-                                            {{ $user->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            @can('task.assign')
+                                <div class="field-group">
+                                    <label class="field-label">المسند إليه</label>
+                                    <select name="assigned_to[]" multiple class="form-select select2"
+                                        onchange="this.form.submit()" @cannot('task.edit', $task) disabled @endcannot>
+                                        <option value="">— غير مسندة —</option>
+                                        @foreach($users as $user)
+                                            <option value="{{ $user->id }}" {{ $task->assignees->contains('id', $user->id) ? 'selected' : '' }}>
+                                                {{ $user->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endcan
 
                             <div class="field-group">
                                 <label class="field-label">الجهة المرتبطة</label>
@@ -1088,9 +1101,6 @@
 
                         <input type="hidden" name="status" value="{{ $task->status }}">
                         <input type="hidden" name="priority" value="{{ $task->priority }}">
-                        @foreach($task->assignees as $assignee)
-                            <input type="hidden" name="assigned_to[]" value="{{ $assignee->id }}">
-                        @endforeach
                         <input type="hidden" name="project_entities_id" value="{{ $task->project_entities_id }}">
                         <input type="hidden" name="executive_activity_action_id"
                             value="{{ $task->executive_activity_action_id }}">

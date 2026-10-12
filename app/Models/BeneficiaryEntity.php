@@ -15,6 +15,7 @@ class BeneficiaryEntity extends Model
         'project_request_id',
         'authority_type',
         'authority_id',
+        'internal_entity_id',
         'parent_id',
     ];
 
@@ -29,12 +30,12 @@ class BeneficiaryEntity extends Model
 
     public function authority(): BelongsTo
     {
-        return $this->belongsTo(Authority::class);
+        return $this->belongsTo(Authority::class)->withoutGlobalScope('active_only');
     }
 
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Authority::class, 'parent_id');
+        return $this->belongsTo(Authority::class, 'parent_id')->withoutGlobalScope('active_only');
     }
 
     /**
@@ -42,7 +43,7 @@ class BeneficiaryEntity extends Model
      */
     public function internalEntity(): BelongsTo
     {
-        return $this->belongsTo(InternalEntity::class, 'authority_id');
+        return $this->belongsTo(InternalEntity::class, 'internal_entity_id')->withoutGlobalScope('active_only');
     }
 
     /**
@@ -50,7 +51,7 @@ class BeneficiaryEntity extends Model
      */
     public function parentInternalEntity(): BelongsTo
     {
-        return $this->belongsTo(InternalEntity::class, 'parent_id');
+        return $this->belongsTo(InternalEntity::class, 'parent_id')->withoutGlobalScope('active_only');
     }
 
     /**
@@ -58,6 +59,6 @@ class BeneficiaryEntity extends Model
      */
     public function getEntityIdAttribute()
     {
-        return $this->authority_type === 'internal' ? $this->authority_id : null;
+        return $this->authority_type === 'internal' ? $this->internal_entity_id : $this->authority_id;
     }
 }

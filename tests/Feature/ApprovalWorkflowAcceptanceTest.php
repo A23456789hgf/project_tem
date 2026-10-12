@@ -249,7 +249,7 @@ class ApprovalWorkflowAcceptanceTest extends TestCase
         // Verify Blade render at technical_review
         $response1 = $this->actingAs($this->adminUser)->get(route('approvals.show', $project->fresh()));
         $response1->assertOk();
-        $response1->assertSee('المراجعة الفنية');
+        $response1->assertSee('مراجعة فنية');
         $response1->assertSee('فتح شاشة المراجعة الفنية وتعديل الأوزان');
         $response1->assertSee(route('projects.review.technical', $project));
 
@@ -310,7 +310,7 @@ class ApprovalWorkflowAcceptanceTest extends TestCase
         $response4 = $this->actingAs($this->adminUser)->get(route('approvals.show', $project->fresh()));
         $response4->assertOk();
         $response4->assertSee($this->entityB->name);
-        $response4->assertSee('المراجعة الفنية');
+        $response4->assertSee('مراجعة فنية');
         $response4->assertSee('فتح شاشة المراجعة الفنية وتعديل الأوزان');
     }
 

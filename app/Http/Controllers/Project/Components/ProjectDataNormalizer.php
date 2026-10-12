@@ -17,6 +17,7 @@ use App\Models\SubArea;
 use App\Models\Subdomain;
 use App\Models\SubFinancingForm;
 use App\Models\Unit;
+use App\Services\ProjectEntitySelectionValidator;
 use App\Services\ReferenceDataApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -441,6 +442,7 @@ class ProjectDataNormalizer
     private function normalizeAuthoritiesAndEntities(Request $request): void
     {
         $authorityTypes = [
+            'beneficiary_entities',
             'supervising_authorities',
             'implementing_entities',
             'participating_entities',
@@ -449,6 +451,18 @@ class ProjectDataNormalizer
         foreach ($authorityTypes as $type) {
             if ($request->has($type)) {
                 $authorities = $request->input($type, []);
+                $selectionsToValidate = [];
+
+                foreach ($authorities as $authority) {
+                    if (empty($authority['internal_entity_id']) && empty($authority['authority_id'])) {
+                        continue;
+                    }
+
+                    $authority['authority_type'] = $authority['authority_type'] ?? $authority['entity_type'] ?? null;
+                    $selectionsToValidate[] = $authority;
+                }
+
+                ProjectEntitySelectionValidator::validate($selectionsToValidate, $type);
                 $cleanedAuthorities = [];
 
                 foreach ($authorities as $authority) {
@@ -460,9 +474,9 @@ class ProjectDataNormalizer
                     $authorityId = null;
 
                     if ($authorityType === 'internal') {
-                        $internalEntityId = $authority['internal_entity_id'] ?? $authority['authority_id'] ?? null;
-                    } else {
-                        $authorityId = $authority['authority_id'] ?? $authority['internal_entity_id'] ?? null;
+                        $internalEntityId = $authority['internal_entity_id'] ?? null;
+                    } elseif ($authorityType === 'external') {
+                        $authorityId = $authority['authority_id'] ?? null;
                     }
 
                     if (! empty($internalEntityId) || ! empty($authorityId)) {

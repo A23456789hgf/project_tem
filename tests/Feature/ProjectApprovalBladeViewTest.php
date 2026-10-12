@@ -215,7 +215,7 @@ class ProjectApprovalBladeViewTest extends TestCase
 
         $formView->assertSee('الخطوة الحالية النشطة');
         $formView->assertSee('الجمعية المحلية (Child Entity)');
-        $formView->assertSee('المراجعة الفنية');
+        $formView->assertSee('مراجعة فنية');
     }
 
     public function test_returned_for_completion_renders_resubmit_form_with_notes(): void

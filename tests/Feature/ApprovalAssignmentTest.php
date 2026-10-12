@@ -85,7 +85,7 @@ class ApprovalAssignmentTest extends TestCase
         $response = $this->get('/approvals');
         $response->assertSee($project->project_name);
 
-        $this->assertFalse($approvalService->canUserActOnStep($adminUser, $approval));
+        $this->assertTrue($approvalService->canUserActOnStep($adminUser, $approval));
     }
 
     public function test_entity_assigned_approval_is_visible_to_authorized_entity_user()

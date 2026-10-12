@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\ProjectCardExport;
 use App\Http\Controllers\Project\Services\ProjectService;
 use App\Models\Project;
+use App\Services\DocumentLetterheadService;
 use Mpdf\Mpdf;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -29,8 +30,10 @@ class ProjectCardController extends Controller
     public function print(Project $project)
     {
         $this->loadCardRelations($project);
+        $letterheadData = app(DocumentLetterheadService::class)->resolveFor($project);
+        $letterhead = $letterheadData->letterhead;
 
-        return view('projects.card.print', compact('project'));
+        return view('projects.card.print', compact('project', 'letterhead', 'letterheadData'));
     }
 
     /**
@@ -92,6 +95,8 @@ class ProjectCardController extends Controller
     public function exportPdf(Project $project)
     {
         $this->loadCardRelations($project);
+        $letterheadData = app(DocumentLetterheadService::class)->resolveFor($project);
+        $letterhead = $letterheadData->letterhead;
 
         $fileName = 'project_card_'.$project->id.'.pdf';
 
@@ -118,7 +123,7 @@ class ProjectCardController extends Controller
             ]);
 
             $mpdf->SetDirectionality('rtl');
-            $html = view('projects.card.pdf', compact('project'))->render();
+            $html = view('projects.card.pdf', compact('project', 'letterhead', 'letterheadData'))->render();
             $mpdf->WriteHTML($html);
 
             return response()->streamDownload(function () use ($mpdf) {
@@ -129,7 +134,7 @@ class ProjectCardController extends Controller
         }
 
         // Fallback to DomPDF with Arabic font
-        $pdf = \PDF::loadView('projects.card.pdf', compact('project'));
+        $pdf = \PDF::loadView('projects.card.pdf', compact('project', 'letterhead', 'letterheadData'));
         $pdf->setPaper('a4');
         $pdf->setOptions([
             'isHtml5ParserEnabled' => true,

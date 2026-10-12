@@ -158,7 +158,10 @@ class SmsServiceTest extends TestCase
         // Enable setting
         $manager->updateEventStatus('user.registered', true);
 
-        $role = Role::firstOrCreate(['name' => 'User']);
+        $role = Role::firstOrCreate([
+            'name' => config('auth.registration_role', 'viewer'),
+            'is_active' => true,
+        ]);
 
         $response = $this->post(route('register'), [
             'username' => 'newuser123',

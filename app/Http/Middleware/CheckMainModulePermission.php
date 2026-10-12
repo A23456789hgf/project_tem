@@ -42,14 +42,18 @@ class CheckMainModulePermission
             'projects.reports.' => [
                 'reports.view', 'reports.implementation.view', 'reports.quality.view',
                 'reports.financial.view', 'reports.official_summary.view', 'main_modules.reports',
+                'reports.material_requests.view', 'reports.stock_entries.view',
+                'reports.stock_ledger.view', 'reports.purchase_invoices.view',
             ],
             'projects.empowerment' => ['empowerment.view', 'empowerment.create', 'empowerment.edit', 'main_modules.empowerment'],
+            'projects.api.tasks.users-by-scope' => ['task.assign'],
+            'projects.api.entities.users' => ['task.assign'],
             'projects.' => [
                 'projects.view', 'projects.view-details', 'projects.create', 'projects.edit',
                 'execution.view', 'quality.view', 'approvals.view', 'main_modules.projects',
             ],
             'execution.' => ['execution.view', 'execution.edit', 'execution.approve', 'projects.view', 'main_modules.projects'],
-            'tasks.' => ['task.view', 'task.create', 'task.edit', 'tasks.print', 'main_modules.tasks'],
+            'tasks.' => ['task.view', 'task.create', 'task.edit', 'tasks.sidebar', 'tasks.print', 'main_modules.tasks', 'task_reports.view', 'task_reports.create'],
             'requests_descend.' => [
                 'project-requests.view', 'project-requests.create', 'project-requests.edit',
                 'project-requests.approve', 'main_modules.requests-descend',

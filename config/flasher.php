@@ -2,30 +2,55 @@
 
 return [
 
+    /*
+    | Default library — using built-in 'flasher' adapter (no extra package needed).
+    | The toastr adapter was removed because php-flasher/flasher-toastr is not installed.
+    */
     'default' => 'flasher',
 
+    /*
+    | Built-in flasher options
+    */
     'options' => [
         'position' => 'bottom-left',
         'timeout' => 5000,
         'rtl' => true,
     ],
 
-    'root_script' => [
-        'cdn' => 'https://cdn.jsdelivr.net/npm/@flasher/flasher@1.3.2/dist/flasher.min.js',
-        'local' => '/vendor/flasher/flasher.min.js',
+    /*
+    | JS assets
+    */
+    'scripts' => [
+        '/vendor/flasher/flasher.min.js',
     ],
 
+    /*
+    | CSS assets
+    */
     'styles' => [
-        'cdn' => 'https://cdn.jsdelivr.net/npm/@flasher/flasher@1.3.2/dist/flasher.min.css',
-        'local' => '/vendor/flasher/flasher.min.css',
+        '/vendor/flasher/flasher.min.css',
+        '/css/phpflasher-custom.css',
     ],
 
+    /*
+    | Use CDN
+    */
     'use_cdn' => false,
 
+    /*
+    | ترجمة الرسائل
+    */
     'auto_translate' => true,
 
+    /*
+    | Auto render: FlasherMiddleware in Kernel.php web group handles injection automatically.
+    | Also using explicit {!! flash()->render() !!} in app.blade.php as a safety fallback.
+    */
     'auto_render' => true,
 
+    /*
+    | Flash Bag (Laravel session integration)
+    */
     'flash_bag' => [
         'success' => ['success'],
         'error' => ['error', 'danger'],
@@ -33,6 +58,9 @@ return [
         'info' => ['info'],
     ],
 
+    /*
+    | Filter
+    */
     'filter_criteria' => [
         'limit' => 5,
     ],

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\OrganizationResolver;
 use App\Traits\HasActiveScope;
 use App\Traits\HasCreatorTracking;
 use App\Traits\HasDomainScope;
@@ -228,6 +229,10 @@ class Authority extends Model
             return $query;
         }
 
+        if ($user->isExternal()) {
+            return (new OrganizationResolver)->applyVisibleAuthorities($query, $user);
+        }
+
         if (method_exists($user, 'canAddAuthorities') && $user->canAddAuthorities()) {
             return $query;
         }
@@ -260,6 +265,10 @@ class Authority extends Model
 
         if ($user->isAdmin()) {
             return $query;
+        }
+
+        if ($user->isExternal()) {
+            return (new OrganizationResolver)->applyVisibleAuthorities($query, $user);
         }
 
         if ($user->entity && $user->entity->authority_id) {

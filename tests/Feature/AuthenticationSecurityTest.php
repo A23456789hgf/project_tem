@@ -357,7 +357,7 @@ class AuthenticationSecurityTest extends TestCase
 
         // Ensure generic message is used
         $errors = session('errors')->getBag('default');
-        $this->assertEquals('رقم الهاتف أو كلمة المرور غير صحيحة.', $errors->first('username'));
+        $this->assertEquals('رقم الهاتف أو اسم المستخدم أو كلمة المرور غير صحيحة.', $errors->first('username'));
     }
 
     public function test_login_fails_with_non_existent_phone_and_returns_same_generic_message(): void
@@ -373,7 +373,7 @@ class AuthenticationSecurityTest extends TestCase
 
         // Exact same error message to prevent User Enumeration
         $errors = session('errors')->getBag('default');
-        $this->assertEquals('رقم الهاتف أو كلمة المرور غير صحيحة.', $errors->first('username'));
+        $this->assertEquals('رقم الهاتف أو اسم المستخدم أو كلمة المرور غير صحيحة.', $errors->first('username'));
     }
 
     public function test_disabled_user_cannot_login(): void
@@ -396,7 +396,7 @@ class AuthenticationSecurityTest extends TestCase
         $this->assertGuest();
 
         $errors = session('errors')->getBag('default');
-        $this->assertEquals('رقم الهاتف أو كلمة المرور غير صحيحة.', $errors->first('username'));
+        $this->assertEquals('رقم الهاتف أو اسم المستخدم أو كلمة المرور غير صحيحة.', $errors->first('username'));
     }
 
     public function test_login_requires_phone_and_password(): void

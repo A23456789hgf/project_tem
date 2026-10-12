@@ -22,7 +22,7 @@ class ErpNextService
 
     public function __construct()
     {
-        $this->baseUrl = env('ERP_BASE_URL', 'http://172.16.10.231:8051');
+        $this->baseUrl = rtrim(config('external.erpnext.base_url', env('ERP_BASE_URL', 'http://82.114.179.169:8855')), '/');
         $this->apiKey = env('FRAPPE_API_KEY', '43036f34cd6ad9e');
         $this->apiSecret = env('FRAPPE_API_SECRET', 'b32671f3ca054cf');
         $this->erpUser = env('ERP_USER', 'amir@mafwr.gov.ye');

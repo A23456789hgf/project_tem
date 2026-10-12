@@ -46,6 +46,9 @@
             @can('reports.stock_entries.print')
             <button onclick="window.print()" class="btn btn-primary btn-sm"><i class="fas fa-print me-1"></i> طباعة</button>
             @endcan
+            @can('reports.stock_entries.export')
+            <button type="button" class="btn btn-success btn-sm" disabled><i class="fas fa-file-excel me-1"></i> تصدير (قريباً)</button>
+            @endcan
         </div>
     </div>
     
@@ -187,9 +190,11 @@
                                     <span class="badge bg-secondary">{{ $row['stock_entry_type'] ?? '-' }}</span>
                                 </td>
                                 <td class="d-print-none">
+                                    @can('reports.stock_entries.view_details')
                                     <button class="btn btn-sm btn-info text-white btn-view-details" data-id="{{ $row['name'] }}">
                                         <i class="fas fa-eye me-1"></i> التفاصيل
                                     </button>
+                                    @endcan
                                 </td>
                             </tr>
                         @empty

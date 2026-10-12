@@ -6,10 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الخطة التنفيذية | {{ $plan->plan_number }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <x-letterhead-styles :letterhead="$letterhead ?? null" />
 
     <style>
         :root {
-            --primary: #1e293b;
+            --primary: {{ $letterhead?->primary_color ?? '#1e293b' }};
             --secondary: #f97316;
             --primary-light: #f1f5f9;
             --border-dark: #222;
@@ -249,6 +250,7 @@
 <body>
 
     <div class="print-container">
+        <x-letterhead-selector :currentLetterhead="$letterhead ?? null" />
         <div class="header-section">
             <div class="header-right" style="
     display: flex;
@@ -258,13 +260,27 @@
     text-align: center;     /* لتوسيط النصوص داخل الأعمدة */
     height: 150px;          /* مثال: يمكن تغييره حسب الحاجة */
 ">
-                الجمهورية اليمنية<br>
-                وزارة الزراعة والثروة السمكية والموارد المائية<br>
-                {{ $plan->submittingEntity->name ?? '-' }}
+                @php
+                    $headerRightLines = !empty($letterhead?->header_right_text) ? explode("\n", $letterhead->header_right_text) : [
+                        'الجمهورية اليمنية',
+                        $letterhead?->organization_name ?? 'وزارة الزراعة والثروة السمكية والموارد المائية',
+                        $plan->submitting_organization_name ?? '',
+                    ];
+                @endphp
+                @foreach($headerRightLines as $line)
+                    @if(trim($line))
+                        {{ trim($line) }}<br>
+                    @endif
+                @endforeach
+                
+                
             </div>
             <div class="header-center">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo" class="logo"><br>
-                <h3>مصفوفة الخطة العامة لمشاريع العام 1447</h 3>
+                @php
+                    $planLogoUrl = !empty($letterhead?->logo_path) ? asset('storage/' . $letterhead->logo_path) : asset('images/logo.png');
+                @endphp
+                <img src="{{ $planLogoUrl }}" alt="Logo" class="logo"><br>
+                <h3>مصفوفة الخطة العامة لمشاريع العام 1447</h3>
 
             </div>
 
@@ -288,7 +304,7 @@
         <div class="info-bar">
             <div class="info-item">
                 <span class="info-label">الجهة</span>
-                <span class="info-value">{{ $plan->submittingEntity->name }}</span>
+                <span class="info-value">{{ $plan->submitting_organization_name }}</span>
             </div>
 
             <div class="info-item">

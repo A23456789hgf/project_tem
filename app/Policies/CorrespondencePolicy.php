@@ -4,6 +4,8 @@ namespace App\Policies;
 
 use App\Models\Correspondence;
 use App\Models\User;
+use App\Services\CorrespondenceOrganizationResolver;
+use App\Services\OrganizationResolver;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CorrespondencePolicy
@@ -89,13 +91,27 @@ class CorrespondencePolicy
                $correspondence->canBeReferredBy($user);
     }
 
+    public function updateReferralStatus(User $user, Correspondence $correspondence): bool
+    {
+        return $user->hasPermission('correspondence.referral', $correspondence);
+    }
+
+    public function updateReplyStatus(User $user, Correspondence $correspondence): bool
+    {
+        return $user->hasPermission('correspondence.reply', $correspondence);
+    }
+
     /**
      * Determine whether the user can forward the correspondence.
      */
     public function forward(User $user, Correspondence $correspondence): bool
     {
+        $userOrg = app(OrganizationResolver::class)->resolve($user);
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
+
         return $user->hasPermission('correspondence.forward', $correspondence) &&
-               ($correspondence->recipient_entity_id === $user->entity_id || $correspondence->sender_entity_id === $user->entity_id);
+               ($orgResolver->matchesUserOrganization($userOrg, $correspondence->recipient_type, $correspondence->recipient_entity_id, $correspondence->recipient_authority_id) ||
+                $orgResolver->matchesUserOrganization($userOrg, $correspondence->sender_type, $correspondence->sender_entity_id, $correspondence->sender_authority_id));
     }
 
     /**
@@ -103,8 +119,12 @@ class CorrespondencePolicy
      */
     public function close(User $user, Correspondence $correspondence): bool
     {
+        $userOrg = app(OrganizationResolver::class)->resolve($user);
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
+
         return $user->hasPermission('correspondence.close', $correspondence) &&
-               ($correspondence->sender_entity_id === $user->entity_id || $correspondence->recipient_entity_id === $user->entity_id);
+               ($orgResolver->matchesUserOrganization($userOrg, $correspondence->sender_type, $correspondence->sender_entity_id, $correspondence->sender_authority_id) ||
+                $orgResolver->matchesUserOrganization($userOrg, $correspondence->recipient_type, $correspondence->recipient_entity_id, $correspondence->recipient_authority_id));
     }
 
     /**

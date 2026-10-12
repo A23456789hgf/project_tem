@@ -405,9 +405,14 @@
                 <h2><i class="fas fa-file-import me-2"></i>قائمة استيراد المشاريع</h2>
                 <p>أدخل بيانات المشاريع مباشرةً في الجدول أو أضف صفوفاً جديدة، ثم اضغط "استيراد"</p>
             </div>
-            <a href="{{ route('projects.index') }}" class="btn btn-back">
-                <i class="fas fa-arrow-right me-1"></i>رجوع
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('projects.financings.import.form') }}" class="btn btn-back bg-success border-success text-white">
+                    <i class="fas fa-coins me-1"></i>استيراد التمويلات
+                </a>
+                <a href="{{ route('projects.index') }}" class="btn btn-back">
+                    <i class="fas fa-arrow-right me-1"></i>رجوع
+                </a>
+            </div>
         </div>
     </div>
 

@@ -12,7 +12,7 @@ class TaskDiscussionPolicy
      */
     public function view(User $user, Task $task): bool
     {
-        return $user->hasPermission('task.chat.view', $task->project);
+        return $user->hasPermission('task.chat.view', $task);
     }
 
     /**
@@ -20,6 +20,6 @@ class TaskDiscussionPolicy
      */
     public function reply(User $user, Task $task): bool
     {
-        return $user->hasPermission('task.chat.reply', $task->project);
+        return $user->hasPermission('task.chat.reply', $task);
     }
 }

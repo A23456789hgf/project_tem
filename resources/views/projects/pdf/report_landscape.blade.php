@@ -146,7 +146,7 @@
                             <td><span class="label">نوع التدخل:</span> {{ $project->intervention->name ?? '-' }}</td>
                         </tr>
                         <tr>
-                            <td><span class="label">الأولوية:</span> {{ $project->priority->name ?? '-' }}</td>
+                            <td><span class="label">الأولوية:</span> {{ is_object($project->priority) ? ($project->priority->name ?? '-') : ($project->priority ?? '-') }}</td>
                         </tr>
                         <tr>
                             <td><span class="label">المستفيدين:</span> {{ number_format($project->number_of_beneficiaries ?? 0) }}</td>

@@ -410,10 +410,14 @@ trait HasEntityVisibility
         }
 
         // Detect entity columns
-        $entityColCandidates = [
-            'entity_id', 'submitting_entity_id', 'submitting_entity',
-            'created_by_entity', 'sender_entity_id', 'recipient_entity_id',
-        ];
+        $isExternal = $user && $user->isExternal();
+        $entityColCandidates = $isExternal
+            ? ['authority_id', 'submitting_authority_id', 'sender_authority_id', 'creator_authority_id', 'assigned_authority_id']
+            : [
+                'entity_id', 'submitting_entity_id', 'submitting_entity',
+                'created_by_entity', 'sender_entity_id', 'recipient_entity_id',
+            ];
+
         $foundEntityCols = [];
         foreach ($entityColCandidates as $col) {
             if ($this->hasColumnCached($table, $col)) {
@@ -437,14 +441,21 @@ trait HasEntityVisibility
 
                 // ── Own: only records belonging to the user's entity ─────────────
             case 'own':
-                $entityId = $user->entity_id;
-                $entityName = $user->department ?: (
-                    $user->entity_id
-                        ? DB::table('internal_entities')
-                            ->where('id', $user->entity_id)
-                            ->value('name')
-                        : null
-                );
+                if ($user->isExternal()) {
+                    $entityId = $user->authority_id;
+                    $entityName = $user->department ?: (
+                        $entityId
+                            ? DB::table('authorities')->where('id', $entityId)->value('agency_name')
+                            : null
+                    );
+                } else {
+                    $entityId = $user->entity_id;
+                    $entityName = $user->department ?: (
+                        $entityId
+                            ? DB::table('internal_entities')->where('id', $entityId)->value('name')
+                            : null
+                    );
+                }
 
                 return $query->where(function ($q) use (
                     $user, $foundUserCol, $foundEntityCols, $entityId, $entityName, $table
@@ -475,6 +486,10 @@ trait HasEntityVisibility
             case 'parent':
             case 'dept_in_gen_dir':
             case 'gen_dir_in_sector':
+                if ($user->isExternal()) {
+                    return $this->applyAdminScopeFilter($query, $user, 'own');
+                }
+
                 $userEntity = $user->entity_id
                     ? DB::table('internal_entities')
                         ->where('id', $user->entity_id)

@@ -9,11 +9,19 @@ use App\Models\FundingSource;
 use App\Models\Project;
 use App\Models\ProjectFinancing;
 use App\Models\SubFinancingForm;
+use App\Services\ProjectFinancingCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ProjectFinancingController extends Controller
 {
+    protected $calculationService;
+
+    public function __construct(ProjectFinancingCalculationService $calculationService)
+    {
+        $this->calculationService = $calculationService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -115,7 +123,10 @@ class ProjectFinancingController extends Controller
                 ->withInput();
         }
 
-        ProjectFinancing::create($request->all());
+        $financing = ProjectFinancing::create($request->all());
+
+        // Recalculate totals and percentages
+        $this->calculationService->recalculate($financing->project);
 
         return redirect()->route('project-financings.index')
             ->with('success', 'تم إنشاء تمويل المشروع بنجاح');
@@ -196,6 +207,9 @@ class ProjectFinancingController extends Controller
 
         $projectFinancing->update($request->all());
 
+        // Recalculate totals and percentages
+        $this->calculationService->recalculate($projectFinancing->project);
+
         return redirect()->route('project-financings.index')
             ->with('success', 'تم تحديث تمويل المشروع بنجاح');
     }
@@ -205,7 +219,13 @@ class ProjectFinancingController extends Controller
      */
     public function destroy(ProjectFinancing $projectFinancing)
     {
+        $project = $projectFinancing->project;
         $projectFinancing->delete();
+
+        // Recalculate totals and percentages
+        if ($project) {
+            $this->calculationService->recalculate($project);
+        }
 
         return redirect()->route('project-financings.index')
             ->with('success', 'تم حذف تمويل المشروع بنجاح');

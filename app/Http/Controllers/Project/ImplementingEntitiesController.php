@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Authority;
 use App\Models\InternalEntity;
 use App\Models\Project;
+use App\Services\ProjectEntitySelectionValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ImplementingEntitiesController extends Controller
 {
@@ -223,6 +225,13 @@ class ImplementingEntitiesController extends Controller
             }
 
             $implementingEntities = $request->input('implementing_entities', []);
+            try {
+                ProjectEntitySelectionValidator::validate($implementingEntities, 'implementing_entities');
+            } catch (ValidationException $exception) {
+                DB::rollBack();
+
+                return response()->json(['success' => false, 'errors' => $exception->errors()], 422);
+            }
 
             // Validate each entity has the correct field based on type
             foreach ($implementingEntities as $index => $entity) {
@@ -324,6 +333,8 @@ class ImplementingEntitiesController extends Controller
     {
         try {
             $implementingEntities = $data['implementing_entities'] ?? [];
+
+            ProjectEntitySelectionValidator::validate($implementingEntities, 'implementing_entities');
 
             if (empty($implementingEntities)) {
                 return [

@@ -8,7 +8,9 @@ use App\Providers\FrappeServiceProvider;
 use App\Providers\PermissionServiceProvider;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Facade;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\ViewServiceProvider;
 
 return [
 
@@ -176,9 +178,10 @@ return [
         EventServiceProvider::class,
         RouteServiceProvider::class,
         PermissionServiceProvider::class,
-        // Barryvdh\DomPDF\ServiceProvider::class,
+        ViewServiceProvider::class,
         BladeServiceProvider::class,
         FrappeServiceProvider::class,
+        // Barryvdh\DomPDF\ServiceProvider::class,
     ])->toArray(),
 
     /*
@@ -194,6 +197,7 @@ return [
 
     'aliases' => Facade::defaultAliases()->merge([
         // 'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
+        'View' => View::class,
     ])->toArray(),
 
 ];

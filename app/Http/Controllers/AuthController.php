@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\PasswordReset;
 use App\Models\Role;
 use App\Models\User;
+use App\Scopes\DomainScope;
 use App\Services\AuditLogService;
 use App\Services\SmppSmsService;
 use App\Services\SmsEventManager;
@@ -36,6 +37,13 @@ class AuthController extends Controller
         $loginField = $request->has('phone') && ! $request->has('username') ? 'phone' : 'username';
         $rawIdentifier = trim((string) ($request->input('phone') ?? $request->input('username') ?? ''));
         $password = (string) $request->input('password', '');
+
+        // Diagnostic log: method entry & identifier
+        Log::info('🔎 AUTH LOGIN ENTRY', [
+            'login_field' => $loginField,
+            'identifier_raw' => $rawIdentifier,
+            'ip' => $request->ip(),
+        ]);
 
         // 2. التحقق من صحة المدخلات (Validation)
         $request->validate([
@@ -162,18 +170,18 @@ class AuthController extends Controller
             return redirect()->intended(route('dashboard'));
         }
 
-        // 6. البحث عن المستخدم برقم الهاتف فقط والاعتماد على Scopes الطبيعية
+        // 6. البحث عن المستخدم برقم الهاتف أو اسم المستخدم
         $phoneCandidates = $this->phoneLoginCandidates($rawIdentifier);
 
-        $user = User::where(function ($query) use ($phoneCandidates) {
-            $query->whereIn('phone', $phoneCandidates)
+        $user = User::withoutGlobalScope(DomainScope::class)->where(function ($query) use ($rawIdentifier, $phoneCandidates) {
+            $query->where('username', $rawIdentifier)
+                ->orWhereIn('phone', $phoneCandidates)
                 ->orWhereIn($this->normalizedPhoneColumn(), $phoneCandidates);
         })
             ->first();
 
-        $genericErrorMessage = 'رقم الهاتف أو كلمة المرور غير صحيحة.';
+        $genericErrorMessage = 'رقم الهاتف أو اسم المستخدم أو كلمة المرور غير صحيحة.';
 
-        // 7. التحقق من وجود المستخدم وحالة الحساب (رسالة موحدة لمنع كشف وجود الحسابات)
         if (! $user || $user->status !== 'Active') {
             RateLimiter::hit($throttleKey, 60);
 
@@ -212,6 +220,8 @@ class AuthController extends Controller
             Log::warning('❌ LOGIN FAILED: Invalid password', [
                 'user_id' => $user->id,
                 'identifier' => $rawIdentifier,
+                'password_length' => strlen($password),
+                'password_hex' => bin2hex($password),
                 'login_field' => $loginField,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -316,9 +326,7 @@ class AuthController extends Controller
             return redirect()->route('dashboard');
         }
 
-        $roles = Role::orderBy('name')->get();
-
-        return view('auth.register', compact('roles'));
+        return view('auth.register');
     }
 
     /**
@@ -390,7 +398,6 @@ class AuthController extends Controller
             'name' => 'required|string|min:3|max:255',
             'email' => 'required|email|unique:users,email|max:255',
             'password' => 'required|string|min:6|confirmed',
-            'role_id' => 'required|exists:roles,id',
             'phone' => 'nullable|string|max:20',
             'department' => 'nullable|string|max:255',
         ], [
@@ -405,8 +412,12 @@ class AuthController extends Controller
             'password.required' => 'كلمة المرور مطلوبة',
             'password.min' => 'كلمة المرور يجب أن تكون 6 أحرف على الأقل',
             'password.confirmed' => 'تأكيد كلمة المرور غير متطابق',
-            'role_id.required' => 'الدور مطلوب',
         ]);
+
+        $defaultRole = Role::query()
+            ->where('name', config('auth.registration_role'))
+            ->where('is_active', true)
+            ->firstOrFail();
 
         $user = User::create([
             'username' => $request->username,
@@ -414,7 +425,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role_id' => $request->role_id,
+            'role_id' => $defaultRole->id,
             'phone' => $request->phone,
             'department' => $request->department,
             'status' => 'Active',
@@ -594,6 +605,15 @@ class AuthController extends Controller
 
         $user->update(['password' => Hash::make($request->password)]);
 
+        // ✅ مزامنة كلمة المرور مع ERPNext للمستخدم المالي
+        try {
+            if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                app(\App\Services\ErpNextUserService::class)->syncUser($user, 'password', null, $request->password);
+            }
+        } catch (\Throwable $e) {
+            Log::error('ERPNext sync error in AuthController resetPassword: '.$e->getMessage(), ['user_id' => $user->id]);
+        }
+
         $passwordReset->delete();
 
         // ✅ تسجيل نجاح إعادة تعيين كلمة المرور
@@ -659,7 +679,7 @@ class AuthController extends Controller
             'authenticated' => Auth::check(),
             'user_id' => Auth::id(),
             'session_id' => session()->getId(),
-            'user_permissions' => session('user_permissions', []),
+            'permissions_count' => is_array(session('user_permissions')) ? count(session('user_permissions')) : 0,
             'monitoring_token' => session('monitoring_token', null),
         ]);
 
@@ -834,7 +854,20 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'انتهت صلاحية رمز التحقق'], 400);
         }
 
-        $user->update(['password' => Hash::make($request->password)]);
+        $user->update([
+            'password' => Hash::make($request->password),
+            'must_change_password' => false,
+        ]);
+
+        // ✅ مزامنة كلمة المرور مع ERPNext للمستخدم المالي
+        try {
+            if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                app(\App\Services\ErpNextUserService::class)->syncUser($user, 'password', null, $request->password);
+            }
+        } catch (\Throwable $e) {
+            Log::error('ERPNext sync error in AuthController resetPasswordWithOtp: '.$e->getMessage(), ['user_id' => $user->id]);
+        }
+
         $passwordReset->delete();
 
         AuditLog::create([
@@ -894,6 +927,15 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'must_change_password' => false,
         ]);
+
+        // ✅ مزامنة كلمة المرور مع ERPNext للمستخدم المالي
+        try {
+            if ($user->is_financial_user || $user->isLinkedToErpNext()) {
+                app(\App\Services\ErpNextUserService::class)->syncUser($user, 'password', null, $request->password);
+            }
+        } catch (\Throwable $e) {
+            Log::error('ERPNext sync error in AuthController forceChangePassword: '.$e->getMessage(), ['user_id' => $user->id]);
+        }
 
         AuditLog::create([
             'user_id' => $user->id,

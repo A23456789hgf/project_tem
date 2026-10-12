@@ -429,6 +429,14 @@
                                 {{ $task->title }}
                             </h6>
                             <div class="action-buttons">
+                                <a href="{{ route('projects.tasks.show', [$project->id, $task->id]) }}" class="action-btn action-btn-view" onclick="event.stopPropagation()" title="عرض تفاصيل المهمة" aria-label="عرض تفاصيل المهمة">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if($task->isStandaloneGeneralTask() && auth()->user()->hasPermission('task_reports.create') && $task->assignees->contains('id', auth()->id()) && $task->achievementReports->firstWhere('user_id', auth()->id())?->status !== 'submitted')
+                                <a href="{{ route('tasks.achievement-reports.create', $task) }}" class="action-btn action-btn-view" onclick="event.stopPropagation()" title="إضافة تقرير إنجاز" aria-label="إضافة تقرير إنجاز">
+                                    <i class="fas fa-file-circle-plus"></i>
+                                </a>
+                                @endif
                                 @can('task.edit', $task)
                                 <button type="button" class="action-btn action-btn-stop" onclick="event.stopPropagation(); openStopTaskModal({{ $task->id }}, '{{ addslashes($task->title) }}', '{{ $task->status }}')" title="إيقاف المهمة وإشعار المكلفين">
                                     <i class="fas fa-pause"></i>
@@ -793,6 +801,14 @@
                                  </td>
                                 <td class="text-center">
                                     <div class="action-buttons">
+                                        <a href="{{ route('projects.tasks.show', [$project->id, $task->id]) }}" class="action-btn action-btn-view" title="عرض تفاصيل المهمة" aria-label="عرض تفاصيل المهمة">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if($task->isStandaloneGeneralTask() && auth()->user()->hasPermission('task_reports.create') && $task->assignees->contains('id', auth()->id()) && $task->achievementReports->firstWhere('user_id', auth()->id())?->status !== 'submitted')
+                                        <a href="{{ route('tasks.achievement-reports.create', $task) }}" class="action-btn action-btn-view" title="إضافة تقرير إنجاز" aria-label="إضافة تقرير إنجاز">
+                                            <i class="fas fa-file-circle-plus"></i>
+                                        </a>
+                                        @endif
                                         @can('task.edit', $task)
                                         <button type="button" class="action-btn action-btn-stop {{ $task->status === 'cancelled' ? 'is-stopped' : '' }}" title="{{ $task->status === 'cancelled' ? 'استئناف المهمة وإشعار المكلفين' : 'إيقاف المهمة وإشعار المكلفين' }}" onclick="openStopTaskModal({{ $task->id }}, '{{ addslashes($task->title) }}', '{{ $task->status }}')">
                                             <i class="fas {{ $task->status === 'cancelled' ? 'fa-play' : 'fa-pause' }}"></i>
@@ -933,6 +949,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6">
+                        @can('task.assign')
                         <label class="form-label fw-bold small text-slate-700">إسناد إلى مستخدم</label>
                         <select name="assigned_to[]" multiple class="form-select select2">
                             <option value="">اختر مستخدماً (اختياري)</option>
@@ -940,6 +957,7 @@
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
                             @endforeach
                         </select>
+                        @endcan
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-slate-700">تاريخ الاستحقاق</label>
@@ -1053,12 +1071,14 @@
                 <div class="row">
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-slate-700">إسناد إلى مستخدم</label>
+                        @can('task.assign')
                         <select name="assigned_to[]" multiple id="edit-assigned_to" class="form-select">
                             <option value="">اختر مستخدماً (اختياري)</option>
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
                             @endforeach
                         </select>
+                        @endcan
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold small text-slate-700">تاريخ الاستحقاق</label>

@@ -502,8 +502,18 @@
                                             </div>
                                             <div class="col-sm-6">
                                                 <span class="text-muted d-block">أولوية المشروع:</span>
-                                                @if($project->priority)
-                                                    <span class="badge bg-info text-dark">{{ $project->priority->name }}</span>
+                                                @if(is_object($project->priority))
+                                                    <span class="badge bg-info text-dark">{{ $project->priority->name ?? $project->priority->priority ?? '-' }}</span>
+                                                @elseif(!empty($project->priority))
+                                                    @php
+                                                        $pText = match((string) $project->priority) {
+                                                            'high', 'عالية', 'عالي' => 'عالية',
+                                                            'medium', 'متوسطة', 'متوسط' => 'متوسطة',
+                                                            'low', 'منخفضة', 'منخفض' => 'منخفضة',
+                                                            default => $project->priority,
+                                                        };
+                                                    @endphp
+                                                    <span class="badge bg-info text-dark">{{ $pText }}</span>
                                                 @else
                                                     <span class="text-muted">غير محدد</span>
                                                 @endif
@@ -653,6 +663,7 @@
                 @include('projects.partials.tables.implementing-entities')
                 @include('projects.partials.tables.participating-entities')
                 @include('projects.partials.tables.beneficiary-entities')
+                @include('projects.partials.tables.entity-selector-script')
                 @include('projects.partials.tables.project_entities')
             </div>
 

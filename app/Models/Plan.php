@@ -16,7 +16,9 @@ class Plan extends Model
 
     protected $fillable = [
         'plan_number',
+        'submitting_type',
         'submitting_entity_id',
+        'submitting_authority_id',
         'geographic_scope_id',
         'administrative_scope_id',
         'created_by',
@@ -72,6 +74,25 @@ class Plan extends Model
     public function submittingEntity(): BelongsTo
     {
         return $this->belongsTo(InternalEntity::class, 'submitting_entity_id');
+    }
+
+    public function submittingAuthority(): BelongsTo
+    {
+        return $this->belongsTo(Authority::class, 'submitting_authority_id');
+    }
+
+    public function submittingOrganization(): InternalEntity|Authority|null
+    {
+        return $this->submitting_type === 'external'
+            ? $this->submittingAuthority
+            : $this->submittingEntity;
+    }
+
+    public function getSubmittingOrganizationNameAttribute(): ?string
+    {
+        $organization = $this->submittingOrganization();
+
+        return $organization?->name ?? $organization?->agency_name;
     }
 
     public function projects(): HasMany

@@ -198,8 +198,8 @@
                 </li>
             @endcan
 
-            @canany(['projects.sidebar', 'projects-implementation.sidebar', 'quality.sidebar', 'execution.sidebar'])
-                <li class="nav-item auth-perm-projects-sidebar auth-perm-execution-sidebar auth-perm-quality-sidebar"
+            @canany(['projects.sidebar', 'projects-implementation.sidebar', 'quality.sidebar', 'execution.sidebar', 'disbursements.sidebar'])
+                <li class="nav-item auth-perm-projects-sidebar auth-perm-execution-sidebar auth-perm-quality-sidebar auth-perm-disbursements-sidebar"
                     data-sidebar-module="projects">
                     @php
                         $isProjectsActive = request()->routeIs('projects.*')
@@ -256,6 +256,22 @@
                                 </li>
                             @endcan
 
+                            @can('disbursements.sidebar')
+                                <li class="nav-item auth-perm-disbursements-sidebar">
+                                    <a class="nav-link {{ request()->routeIs('projects.disbursement-plans.*') ? 'active' : '' }}"
+                                        href="{{ route('projects.disbursement-plans.index') }}">
+                                        <i class="fas fa-list-ol me-2"></i> إعداد خطط الصرف
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('project_requests.sidebar')
+                                <li class="nav-item auth-perm-project-requests-sidebar">
+                                    <a class="nav-link {{ request()->routeIs('projects.requests.*') ? 'active' : '' }}" href="{{ route('projects.requests.index') }}">
+                                        <i class="fas fa-file-invoice-dollar me-2"></i> الطلبات
+                                    </a>
+                                </li>
+                            @endcan
+
                             @can('projects-implementation.sidebar')
                                 <li class="nav-item auth-perm-projects-implementation-sidebar">
                                     <a class="nav-link {{ request()->routeIs('projects.implementation.index') ? 'active' : '' }}"
@@ -290,7 +306,7 @@
 
 
 
-            @can('main_modules.tasks')
+            @canany(['main_modules.tasks', 'task.view'])
                 <li class="nav-item auth-perm-tasks-sidebar" data-sidebar-module="tasks">
                     <a class="nav-link {{ request()->routeIs('tasks.*') || request()->routeIs('projects.tasks.*') ? 'active' : '' }}"
                         href="{{ route('tasks.index') }}">
@@ -870,10 +886,10 @@
             @endcanany
 
             @can('main_modules.users')
-            <li class="nav-item auth-perm-users-sidebar auth-perm-roles-permissions-sidebar auth-perm-audit-logs-sidebar auth-perm-import-logs-sidebar"
+            <li class="nav-item auth-perm-users-sidebar auth-perm-roles-permissions-sidebar auth-perm-audit-logs-sidebar auth-perm-import-logs-sidebar auth-perm-letterheads-sidebar"
                 data-sidebar-module="users">
                 @php
-                    $userManagementRoutes = ['users.*', 'roles.*', 'roles-permissions.*', 'admin.audit-logs.*', 'import-logs.*', 'admin.entity-stages.*'];
+                    $userManagementRoutes = ['users.*', 'roles.*', 'roles-permissions.*', 'admin.audit-logs.*', 'import-logs.*', 'admin.entity-stages.*', 'letterheads.*'];
                     $isUserManagementActive = request()->routeIs(...$userManagementRoutes);
                 @endphp
                 <a class="nav-link d-flex justify-content-between align-items-center {{ $isUserManagementActive ? 'active' : '' }}"
@@ -888,6 +904,15 @@
                             <li class="nav-item auth-perm-users-sidebar">
                                 <a class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}"
                                     href="{{ route('users.index') }}">قائمة المستخدمين</a>
+                            </li>
+                        @endcan
+
+                        @can('letterheads.view')
+                            <li class="nav-item auth-perm-letterheads-sidebar">
+                                <a class="nav-link {{ request()->routeIs('letterheads.*') ? 'active' : '' }}"
+                                    href="{{ route('letterheads.index') }}">
+                                    الترويسات وإعدادات الطباعة
+                                </a>
                             </li>
                         @endcan
 

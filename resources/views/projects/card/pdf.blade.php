@@ -191,12 +191,28 @@
 <body>
 
     <div class="page internal-padding">
-        <!-- رأس الصفحة مع QR واسم المشروع -->
-        <div class="page-header">
-            <div>
-                <div style="font-weight: 800; font-size: 18px; color: #2c5f2d;">{{ $project->project_name }}
+        @php
+            $cardPdfLetterhead = $letterhead ?? null;
+            $cardLogoSrc = $cardPdfLetterhead ? $cardPdfLetterhead->getLogoBase64() : null;
+            if (empty($cardLogoSrc)) {
+                $defaultLogo = public_path('images/logo.png');
+                $cardLogoSrc = file_exists($defaultLogo) ? 'data:image/png;base64,' . base64_encode(file_get_contents($defaultLogo)) : null;
+            }
+            $cardPrimaryColor = $cardPdfLetterhead ? ($cardPdfLetterhead->getTypographySettings()['primary_color'] ?? '#2c5f2d') : '#2c5f2d';
+        @endphp
+        <!-- رأس الصفحة مع QR واسم المشروع والترويسة الرسمية -->
+        <div class="page-header" style="border-bottom-color: {{ $cardPrimaryColor }};">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                @if($cardLogoSrc)
+                    <img src="{{ $cardLogoSrc }}" alt="Logo" style="height: 60px; width: auto; object-fit: contain;">
+                @endif
+                <div>
+                    <div style="font-size: 13px; color: #4b5563; font-weight: bold; margin-bottom: 2px;">
+                        {{ $cardPdfLetterhead ? $cardPdfLetterhead->organization_name : 'الجمهورية اليمنية - وزارة الزراعة والثروة السمكية والموارد المائية' }}
+                    </div>
+                    <div style="font-weight: 800; font-size: 18px; color: {{ $cardPrimaryColor }};">{{ $project->project_name }}</div>
+                    <div style="font-size: 12px; color: #666;">كود المشروع الموحد: <span dir="ltr">{{ $project->form_number }}</span></div>
                 </div>
-                <div style="font-size: 12px; color: #666;">كود المشروع الموحد: {{ $project->form_number }}</div>
             </div>
             <div class="header-qr-box">
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data={{ urlencode(route('projects.show', $project->id)) }}"

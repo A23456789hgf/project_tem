@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\InternalEntity;
 use App\Models\Project;
+use App\Models\ProjectApproval;
+use App\Observers\InternalEntityObserver;
+use App\Observers\ProjectApprovalObserver;
 use App\Observers\ProjectObserver;
 use Doctrine\DBAL\Types\IntegerType;
 use Doctrine\DBAL\Types\Type;
@@ -148,6 +152,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Register Model Observers
         Project::observe(ProjectObserver::class);
+        ProjectApproval::observe(ProjectApprovalObserver::class);
+        InternalEntity::observe(InternalEntityObserver::class);
 
         $this->registerHelpers();
         $this->registerBladeDirectives();

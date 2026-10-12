@@ -5,11 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>طباعة المهمة المستقلة | {{ $task->title }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-
+    <x-letterhead-styles :letterhead="$letterhead ?? null" />
     <style>
         :root {
-            --primary: #0C5B47;
+            --primary: {{ $letterhead?->primary_color ?? '#0C5B47' }};
             --primary-light: #e6eeec;
             --border-dark: #222;
             --text-dark: #1a1a1a;
@@ -178,13 +177,24 @@
 <body>
 
     <div class="print-container">
+        <x-letterhead-selector :currentLetterhead="$letterhead ?? null" />
+        @php
+            $headerRightLines = !empty($letterhead?->header_right_text) ? explode("\n", $letterhead->header_right_text) : [
+                'الجمهورية اليمنية',
+                $letterhead?->organization_name ?? 'وزارة الزراعة والثروة السمكية والموارد المائية',
+            ];
+            $taskLogoUrl = !empty($letterhead?->logo_path) ? asset('storage/' . $letterhead->logo_path) : asset('images/logo.png');
+        @endphp
         <div class="header-section">
             <div class="header-right">
-                الجمهورية اليمنية<br>
-                وزارة الزراعة والثروة السمكية والموارد المائية<br>
+                @foreach($headerRightLines as $line)
+                    @if(trim($line))
+                        {{ trim($line) }}<br>
+                    @endif
+                @endforeach
             </div>
             <div class="header-center">
-                <img src="{{ asset('images/logo.png') }}" alt="Logo" class="logo"><br>
+                <img src="{{ $taskLogoUrl }}" alt="Logo" class="logo"><br>
                 <h3>تفاصيل المهمة المستقلة</h3>
             </div>
             <div class="header-left" style="align-items: center; justify-content: center;">

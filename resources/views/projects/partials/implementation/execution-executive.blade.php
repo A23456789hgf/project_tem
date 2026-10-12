@@ -518,7 +518,44 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
             .then(response => response.json())
-            .then(data => {
+            .then(async data => {
+                if (!data.success && data.code === 'insufficient_installment_balance') {
+                    const confirmation = await Swal.fire({
+                        title: 'Installment balance exceeded',
+                        html: `Available: <strong>${Number(data.available_amount).toFixed(2)}</strong><br>Requested: <strong>${Number(data.requested_amount).toFixed(2)}</strong><br>Shortage: <strong>${Number(data.shortage_amount).toFixed(2)}</strong>`,
+                        icon: 'warning', showCancelButton: true,
+                        confirmButtonText: 'Submit financial justification', cancelButtonText: 'Cancel',
+                    });
+                    if (!confirmation.isConfirmed) { return; }
+                    const source = await Swal.fire({
+                        title: 'Financial justification',
+                        html: `<input id="workflow-funding-source" class="swal2-input" placeholder="Funding source" value="{{ addslashes($currentInstallment?->fundingSource?->name ?? '') }}"><textarea id="workflow-justification" class="swal2-textarea" placeholder="Explain the amount above the available installment balance"></textarea>`,
+                        focusConfirm: false, showCancelButton: true,
+                        confirmButtonText: 'Submit for approval', cancelButtonText: 'Back to form',
+                        preConfirm: () => {
+                            const fundingSource = document.getElementById('workflow-funding-source').value.trim();
+                            const justification = document.getElementById('workflow-justification').value.trim();
+                            if (!fundingSource || justification.length < 10) { Swal.showValidationMessage('Enter a funding source and a justification of at least 10 characters.'); return false; }
+                            return { fundingSource, justification };
+                        },
+                    });
+                    if (!source.isConfirmed) { return; }
+                    const justificationData = new FormData(form);
+                    justificationData.set('execution_type', 'executive');
+                    justificationData.set('funding_source', source.value.fundingSource);
+                    justificationData.set('justification', source.value.justification);
+                    const justificationResponse = await fetch("{{ route('projects.execution.financial-justification', $project) }}", {
+                        method: 'POST', body: justificationData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                    });
+                    const justificationResult = await justificationResponse.json();
+                    if (!justificationResponse.ok || !justificationResult.success) {
+                        await Swal.fire('Unable to submit', justificationResult.message || 'The request could not be submitted.', 'error');
+                        return;
+                    }
+                    await Swal.fire('Submitted for approval', `Request ${justificationResult.request.number} is now in the Approval Center.`, 'success');
+                    return;
+                }
                 if (data.success) {
                     // Re-calculate overages for the success message/logic
                     const actionId = formData.get('executive_activity_action_id');

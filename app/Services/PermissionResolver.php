@@ -51,7 +51,11 @@ class PermissionResolver
      */
     public static function isValidPermission(string $slug): bool
     {
-        return in_array($slug, self::getMatrixSlugs());
+        if (in_array($slug, self::getMatrixSlugs(), true)) {
+            return true;
+        }
+
+        return Permission::query()->where('slug', $slug)->exists();
     }
 
     /**

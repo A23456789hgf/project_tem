@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\CorrespondenceOrganizationResolver;
+use App\Services\OrganizationResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -56,6 +58,18 @@ class CorrespondenceReferral extends Model
     /**
      * Referred To Entity Relationship
      */
+    public function referredToAuthority()
+    {
+        return $this->belongsTo(Authority::class, 'referred_to_authority_id');
+    }
+
+    public function getReferredToOrganizationAttribute()
+    {
+        $resolver = app(CorrespondenceOrganizationResolver::class);
+
+        return $resolver->resolveOrganization($this->referred_to_type, $this->referred_to_entity_id, $this->referred_to_authority_id);
+    }
+
     public function referredToEntity()
     {
         return $this->belongsTo(InternalEntity::class, 'referred_to_entity_id');
@@ -500,7 +514,9 @@ class CorrespondenceReferral extends Model
     public function canBeViewedBy($user)
     {
         // المستخدم من الجهة المحال إليها
-        if ($this->referred_to_entity_id === $user->entity_id) {
+        $userOrg = app(OrganizationResolver::class)->resolve($user);
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
+        if ($orgResolver->matchesUserOrganization($userOrg, $this->referred_to_type, $this->referred_to_entity_id, $this->referred_to_authority_id)) {
             return true;
         }
 
@@ -511,8 +527,11 @@ class CorrespondenceReferral extends Model
 
         // المستخدم من الجهة المرسلة أو المستقبلة للمراسلة الأصلية
         $correspondence = $this->correspondence;
-        if ($correspondence->sender_entity_id === $user->entity_id ||
-            $correspondence->recipient_entity_id === $user->entity_id) {
+        $orgResolver = app(CorrespondenceOrganizationResolver::class);
+        $userOrg = app(OrganizationResolver::class)->resolve($user);
+
+        if ($orgResolver->matchesUserOrganization($userOrg, $this->sender_type, $this->sender_entity_id, $this->sender_authority_id) ||
+            $orgResolver->matchesUserOrganization($userOrg, $this->recipient_type, $this->recipient_entity_id, $this->recipient_authority_id)) {
             return true;
         }
 

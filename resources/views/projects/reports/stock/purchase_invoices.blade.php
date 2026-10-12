@@ -205,6 +205,11 @@
                 <i class="fas fa-print me-1"></i> طباعة
             </button>
             @endcan
+            @can('reports.purchase_invoices.export')
+            <button type="button" class="btn btn-outline-success rounded-pill" disabled>
+                <i class="fas fa-file-excel me-1"></i> تصدير (قريباً)
+            </button>
+            @endcan
         </div>
     </div>
 
@@ -409,9 +414,11 @@
                                 <span class="status-badge {{ $badgeClass }}">{{ $status }}</span>
                             </td>
                             <td class="text-center d-print-none">
+                                @can('reports.purchase_invoices.view_details')
                                 <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" onclick="showDetails('{{ $row['name'] }}', '{{ $row['posting_date'] ?? '' }}', '{{ $row['supplier'] ?? '' }}', '{{ $row['company'] ?? '' }}', '{{ $row['project'] ?? '' }}', '{{ $row['grand_total'] ?? 0 }}', '{{ $row['currency'] ?? '' }}', '{{ $row['status'] ?? '' }}')">
                                     التفاصيل
                                 </button>
+                                @endcan
                             </td>
                         </tr>
                     @empty

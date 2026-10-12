@@ -49,4 +49,28 @@ class TaskDiscussionController extends Controller
 
         return redirect()->back();
     }
+
+    public function storeGeneral(Request $request, Task $task)
+    {
+        abort_unless($task->project_id === null, 404);
+        $this->authorize('reply', [TaskDiscussion::class, $task]);
+
+        $validated = $request->validate([
+            'message' => 'required|string',
+            'parent_id' => 'nullable|exists:task_discussions,id',
+        ]);
+        $validated['task_id'] = $task->id;
+        $validated['user_id'] = auth()->id();
+
+        DB::transaction(function () use ($validated, $task, &$discussion): void {
+            $discussion = TaskDiscussion::create($validated);
+            $this->taskService->logActivity($task, 'comment_posted', $discussion, [
+                'message_preview' => mb_substr($discussion->message, 0, 100),
+            ]);
+            $actionUrl = route('tasks.show', $task)."#discussion-{$discussion->id}";
+            $this->taskService->parseAndNotifyMentions($task, $discussion->message, 'discussion_reply', $actionUrl);
+        });
+
+        return redirect()->back()->with('success', 'تم إضافة التعليق بنجاح.');
+    }
 }

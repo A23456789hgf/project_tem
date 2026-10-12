@@ -15,6 +15,8 @@ class ExternalUserManagementTest extends TestCase
 
     protected Role $role;
 
+    protected Role $normalRole;
+
     protected User $admin;
 
     protected function setUp(): void
@@ -25,6 +27,12 @@ class ExternalUserManagementTest extends TestCase
             'name' => 'Admin',
             'is_active' => true,
             'full_access' => true,
+        ]);
+
+        $this->normalRole = Role::create([
+            'name' => 'User',
+            'is_active' => true,
+            'full_access' => false,
         ]);
 
         // create a super admin to perform the actions
@@ -53,7 +61,7 @@ class ExternalUserManagementTest extends TestCase
             'email' => 'int@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role_id' => $this->role->id,
+            'role_id' => $this->normalRole->id,
             'organization_type' => 'internal',
             'entity_id' => $entity->id,
             'status' => 'Active',
@@ -77,7 +85,7 @@ class ExternalUserManagementTest extends TestCase
             'email' => 'int2@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role_id' => $this->role->id,
+            'role_id' => $this->normalRole->id,
             'organization_type' => 'internal',
             'entity_id' => '', // missing
             'status' => 'Active',
@@ -97,7 +105,7 @@ class ExternalUserManagementTest extends TestCase
             'email' => 'ext@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role_id' => $this->role->id,
+            'role_id' => $this->normalRole->id,
             'organization_type' => 'external',
             'authority_id' => $authority->id,
             'status' => 'Active',
@@ -121,7 +129,7 @@ class ExternalUserManagementTest extends TestCase
             'email' => 'ext2@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role_id' => $this->role->id,
+            'role_id' => $this->normalRole->id,
             'organization_type' => 'external',
             'authority_id' => '', // missing
             'status' => 'Active',

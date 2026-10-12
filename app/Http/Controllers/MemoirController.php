@@ -7,6 +7,7 @@ use App\Models\InternalEntity;
 use App\Models\Memoir;
 use App\Models\PrintableSignature;
 use App\Models\Project;
+use App\Services\DocumentLetterheadService;
 use App\Services\NotificationService;
 use ArPHP\I18N\Arabic;
 use Illuminate\Http\Request;
@@ -313,13 +314,17 @@ class MemoirController extends Controller
                 });
         }
 
-        $logoPath = public_path('images/logo.png');
-        $logoContent = '';
-        if (file_exists($logoPath)) {
+        // حل الترويسة الرسمية الخاصة بالجهة المصدرة للمذكرة
+        $letterheadData = app(DocumentLetterheadService::class)->resolveFor($memoir);
+        $letterhead = $letterheadData->letterhead;
+
+        $logoPath = $letterheadData->logoAbsolutePath ?? public_path('images/logo.png');
+        $logoContent = $letterheadData->logoBase64 ?? '';
+        if (empty($logoContent) && file_exists($logoPath)) {
             $logoContent = base64_encode(file_get_contents($logoPath));
         }
 
-        return view('memoirs.print', compact('memoir', 'headerType', 'signatures', 'logoContent', 'officers_selected'));
+        return view('memoirs.print', compact('memoir', 'headerType', 'signatures', 'logoContent', 'officers_selected', 'letterhead', 'letterheadData'));
     }
 
     /**

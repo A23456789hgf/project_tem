@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مذكرة إدارية | {{ $memoir->memoir_number ?? '' }}</title>
 
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<x-letterhead-styles :letterhead="$letterhead ?? null" />
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
 
@@ -229,32 +232,8 @@
 
     <div class="print-container">
 
-        <div class="header-container">
-            <div class="header-right">
-                @if($headerType === 'ministry')
-                    <div>الجمهورية اليمنية</div>
-                    <div>وزارة الزراعة والثروة السمكية والموارد المائية</div>
-                    <div>مكتب نائب الوزير</div>
-                @else
-                    <div>الجمهورية اليمنية</div>
-                    <div>اللجنة الزراعية والسمكية العليا</div>
-                    <div>رئيس اللجنة</div>
-                @endif
-            </div>
-
-            <div class="header-center">
-                <img src="data:image/png;base64,{{ $logoContent }}" class="logo">
-            </div>
-
-            <div class="header-left">
-                <div><strong>رقم المذكرة:</strong> {{ $memoir->memoir_number }}</div>
-                <div><strong>التاريخ هـ:</strong> {{ $memoir->hijri_date }}</div>
-                <div><strong>الموافق م:</strong> {{ $memoir->gregorian_date }}</div>
-            </div>
-        </div>
-
-
-
+        <x-letterhead-selector :currentLetterhead="$letterhead ?? null" />
+<x-letterhead-header :letterhead="$letterhead ?? null" :documentNumber="$memoir->memoir_number" :documentDate="$memoir->gregorian_date ?? now()->format('Y-m-d')" :customSubtitle="$memoir->hijri_date ? 'التاريخ الهجري: ' . $memoir->hijri_date : null" customTitle="مذكرة إدارية" />
         <div class="document-body">
             <div class="addressing">
                 الأخ/ {{ $memoir->to }} <span style="margin-right:15pt;">المحترم</span>
@@ -326,9 +305,7 @@
             @endif
         </div>
 
-        <div class="footer-info">
-            هذه الوثيقة صادرة عن نظام إدارة المشاريع - تاريخ الطباعة: {{ now()->format('Y/m/d H:i') }}
-        </div>
+        <x-letterhead-footer :letterhead="$letterhead ?? null" documentName="مذكرة إدارية" />
 
     </div>
 

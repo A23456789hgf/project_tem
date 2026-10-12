@@ -273,8 +273,8 @@
                     <div class="grid-item">
                         <span class="label">الأولوية</span>
                         <div class="value">
-                            @if(isset($project->priority))
-                                {{ $project->priority->name ?? 'غير محدد' }}
+                            @if(is_object($project->priority))
+                                {{ $project->priority->name ?? $project->priority->priority ?? 'غير محدد' }}
                             @else
                                 {{ $project->priority ?? 'غير محدد' }}
                             @endif

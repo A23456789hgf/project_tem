@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Services\DocumentLetterheadService;
 use ArPHP\I18N\Arabic;
 use Barryvdh\DomPDF\Facade\Pdf as DomPDF;
 use Illuminate\Http\Request;
@@ -89,17 +90,23 @@ class ProjectPdfExportController extends Controller
             $totalFinancing = $this->calculateTotalFinancing($project);
             $totalProjectCost = $project->cost->total_cost ?? $totalFinancing;
 
-            // تحويل الشعار إلى Base64
-            $logoPath = public_path('images/logo.png');
-            $logoBase64 = '';
-            if (file_exists($logoPath)) {
-                $logoData = file_get_contents($logoPath);
-                $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
+            // حل الترويسة الرسمية للجهة المصدرة للمشروع
+            $letterheadData = app(DocumentLetterheadService::class)->resolveFor($project);
+            $letterhead = $letterheadData->letterhead;
+            $logoBase64 = $letterheadData->logoBase64 ?? '';
+            if (empty($logoBase64)) {
+                $logoPath = public_path('images/logo.png');
+                if (file_exists($logoPath)) {
+                    $logoData = file_get_contents($logoPath);
+                    $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
+                }
             }
 
             // بيانات إضافية للعرض
             $pdfData = [
                 'project' => $project,
+                'letterhead' => $letterhead,
+                'letterheadData' => $letterheadData,
                 'qrCodeBase64' => $qrCodeImage,
                 'logoBase64' => $logoBase64, // Added
                 'qrCodeUrl' => $qrCodeUrl,
@@ -156,16 +163,22 @@ class ProjectPdfExportController extends Controller
             $totalFinancing = $this->calculateTotalFinancing($project);
             $totalProjectCost = $project->cost->total_cost ?? $totalFinancing;
 
-            // تحويل الشعار إلى Base64
-            $logoPath = public_path('images/logo.png');
-            $logoBase64 = '';
-            if (file_exists($logoPath)) {
-                $logoData = file_get_contents($logoPath);
-                $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
+            // حل الترويسة الرسمية للجهة المصدرة للمشروع
+            $letterheadData = app(DocumentLetterheadService::class)->resolveFor($project);
+            $letterhead = $letterheadData->letterhead;
+            $logoBase64 = $letterheadData->logoBase64 ?? '';
+            if (empty($logoBase64)) {
+                $logoPath = public_path('images/logo.png');
+                if (file_exists($logoPath)) {
+                    $logoData = file_get_contents($logoPath);
+                    $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
+                }
             }
 
             $pdfData = [
                 'project' => $project,
+                'letterhead' => $letterhead,
+                'letterheadData' => $letterheadData,
                 'qrCodeBase64' => $qrCodeImage,
                 'logoBase64' => $logoBase64, // Added
                 'qrCodeUrl' => $qrCodeUrl,
